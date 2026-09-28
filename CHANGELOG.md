@@ -8,6 +8,12 @@
 - On Windows the save dialog no longer suggests `b.md` for a name like `a:b.md`; it suggests `sessionlens.md`, as on
   macOS and Linux.
 
+### Changed
+- The readme asks you to report a false finding as an issue with an anonymized piece of the session, and says what
+  to remove first. Quick start now says the Sessions list is below the panel.
+- `THIRD-PARTY-NOTICES.md` names every package inside `vendor-eslint.js`: eslint-plugin-playwright 2.12.0, Sucrase
+  and its dependencies ts-interface-checker (Apache-2.0) and lines-and-columns, ajv, uri-js and natural-compare.
+
 ### For contributors
 - The CI workflow and the repository config files (`.gitattributes`, Prettier, `.vscodeignore`) are back; they were
   lost when the history was squashed.
