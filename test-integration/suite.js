@@ -58,9 +58,21 @@ it("migrates sessions from globalState (the 0.1.100 format) into files", async (
 it("moves the five panel settings into VS Code settings (the 0.1.102 format)", async () => {
   const gs = api.context.globalState;
   await gs.update("settings", Object.assign({}, gs.get("settings") || {}, { minGapMs: 4321 }));
-  await api.runMigrations();
-  assert.strictEqual(vscode.workspace.getConfiguration("sessionlens").get("minGapMs"), 4321);
-  assert.strictEqual((gs.get("settings") || {}).minGapMs, undefined, "no longer kept in globalState");
+  // the host's log goes to its Output channel only; keep what the migration says, for the failure message
+  const logged = [],
+    log = api.host.log;
+  api.host.log = (m) => {
+    logged.push(String(m));
+    log(m);
+  };
+  try {
+    await api.runMigrations();
+  } finally {
+    api.host.log = log;
+  }
+  const why = "\nhost log:\n" + logged.join("\n");
+  assert.strictEqual(vscode.workspace.getConfiguration("sessionlens").get("minGapMs"), 4321, why);
+  assert.strictEqual((gs.get("settings") || {}).minGapMs, undefined, "no longer kept in globalState" + why);
   await vscode.workspace.getConfiguration("sessionlens").update("minGapMs", undefined, vscode.ConfigurationTarget.Global);
 });
 
