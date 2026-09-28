@@ -39,17 +39,29 @@ the Cypress bundle above already lists, from the same installed versions:
 
 ## media/vendor-eslint.js
 
-Built the same way (ESLint's Linter + eslint-plugin-playwright), predating this notices file.
-Identified so far from the bundle's own code:
+Built the same way (ESLint's Linter + eslint-plugin-playwright), predating this notices file. It also
+bundles Sucrase, which strips TypeScript types before ESLint reads the code (`transforms: ["typescript"]`).
+Identified from the bundle's own code; where the bundle has no version string, the version was found by comparing it
+with the published packages:
 
 - **eslint** 10.10.0 (the version string inside the bundle) — MIT — Copyright OpenJS Foundation and other contributors
-- **eslint-plugin-playwright** — MIT — Copyright Mark Skelton (the bundle carries no version string; not pinned down)
+- **eslint-plugin-playwright** 2.12.0 — MIT — Copyright Mark Skelton (no version string; all 67 rules and all 118 rule
+  messages of 2.12.0 are in the bundle, and 2.11.0 and earlier lack rules the bundle has)
 - **eslint-scope** — BSD-2-Clause — Copyright (c) jQuery Foundation and other contributors
 - **estraverse** — BSD-2-Clause — Copyright (c) 2012-2016 Yusuke Suzuki
 - **globals** — MIT — Copyright (c) Sindre Sorhus
 - **debug** and **ms** — MIT — Copyright (c) Josh Junon and contributors
-- an interface-checking helper (Apache-2.0-style license banner, exact package not yet pinned down
-  — flagged here rather than left unattributed; to be identified precisely and completed)
+- **ajv** 6.x — MIT — Copyright (c) 2015-2021 Evgeny Poberezkin (as in the Cypress bundle above)
+- **uri-js** — BSD-2-Clause — Copyright (c) 2014 Gary Court (a dependency of ajv), with **punycode** 2.1.0 inside it —
+  MIT — Copyright Mathias Bynens
+- **natural-compare** — MIT — Copyright (c) 2012-2015 Lauri Rooden (a dependency of ESLint)
+- **sucrase** 3.x — MIT — Copyright (c) 2012-2018 various contributors (no version string; its code is the same in
+  3.34.0 to 3.35.1, the latest)
+- **ts-interface-checker** 0.1.13 — Apache-2.0 — Copyright Dmitry S, Grist Labs (a dependency of Sucrase; it has no
+  NOTICE file). This is the Apache-licensed code this file used to list as "an interface-checking helper".
+- **lines-and-columns** 1.2.4 — MIT — Copyright (c) 2015 Brian Donovan (a dependency of Sucrase)
+
+Apache-2.0 license text: <https://www.apache.org/licenses/LICENSE-2.0>
 
 ## media/tree-sitter.js, media/tree-sitter.wasm, media/tree-sitter-java.wasm, media/tree-sitter-c_sharp.wasm, media/tree-sitter-python.wasm
 

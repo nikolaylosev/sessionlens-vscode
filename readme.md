@@ -19,11 +19,12 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 - [Commands and VS Code settings](#commands-and-vs-code-settings)
 - [Install](#install)
 - [Your data](#your-data)
+- [Found a false finding?](#found-a-false-finding)
 
 ## Quick start
 
 1. **Open the panel.** Click the SessionLens icon in the Activity Bar, or run **SessionLens: Open panel** from the Command Palette. The sidebar has two parts: the **Calibration & Settings** panel with its own tabs on top, and a native **Sessions** list under it (hidden while another tab of the panel is open). If you moved these parts yourself earlier, VS Code keeps your order; drag a part by its title to change it. Most actions are also in the Command Palette, see [Commands and VS Code settings](#commands-and-vs-code-settings).
-2. **Load a session.** On the **Sessions** tab of Calibration & Settings, pick a **Profile** that matches the code the agent was writing (for example `qa-ts`), then drop a transcript onto the panel, choose a file, or paste the text. It then shows up in the **Sessions** list above.
+2. **Load a session.** On the **Sessions** tab of Calibration & Settings, pick a **Profile** that matches the code the agent was writing (for example `qa-ts`), then drop a transcript onto the panel, choose a file, or paste the text. It then shows up in the **Sessions** list below the panel.
 3. **Open it.** Click the session in the **Sessions** list. It opens in its own editor tab, so several sessions can be open side by side, and closing one is just closing that tab.
 4. **Add the specification (optional).** In the session's tab, open **Specification** and paste the requirements with IDs (`R1.`, `R2.` …). This enables coverage checks.
 5. **Read the findings.** Every finding shows what happened and the evidence. Skim the **Timeline** too: a session with no findings is not necessarily a good one.
@@ -491,3 +492,15 @@ your `settings.json`, then uninstall the extension. Deleting the folder `globalS
 for VS Code: its sessions, rules and keys are not carried over. If you need its verdicts or rules, export them there
 first (**Calibration → Export verdicts.json**, **Rules → Export rules.json**) and import them here
 (**Calibration → Import verdicts / findings**, **Rules → Import rules.json**); then uninstall it.
+
+## Found a false finding?
+
+If SessionLens flags something that is not a mistake, or misses one it should catch, please
+[open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues/new) with a short, anonymized piece of the
+session that shows it. Every such report helps tune the checks.
+
+- **Say** which profile the session used, the check's name as the finding shows it, and the SessionLens version.
+- **Paste** only the few lines the finding is about: the agent's step or the test code, not the whole transcript.
+- **Remove** anything private before you post: file paths and user names, host names and URLs, tokens, keys and
+  passwords, company and product names, and customer data. Replace them with placeholders such as `<path>` or
+  `<token>`. Issues are public.
