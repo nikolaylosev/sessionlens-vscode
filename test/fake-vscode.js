@@ -280,7 +280,7 @@ function fakeWebviewView() {
     options: {},
     html: "",
     cspSource: "vscode-resource:",
-    asWebviewUri: (u) => ({ toString: () => "vscode-resource:" + u.fsPath }),
+    asWebviewUri: (u) => ({ toString: () => "vscode-resource:" + u.fsPath.replace(/\\/g, "/") }), // a URI: "/" on Windows too
     onDidReceiveMessage: (cb) => {
       handler = cb;
       webview.__handler = cb;

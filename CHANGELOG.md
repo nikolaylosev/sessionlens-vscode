@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.107
+
+### Fixed
+- AI review through Claude Code or Codex CLI works when the path to the CLI contains non-Latin letters, for example a
+  Windows user folder named in Cyrillic. Such a path used to be refused as "CLI not found".
+- On Windows the save dialog no longer suggests `b.md` for a name like `a:b.md`; it suggests `sessionlens.md`, as on
+  macOS and Linux.
+
+### For contributors
+- The CI workflow and the repository config files (`.gitattributes`, Prettier, `.vscodeignore`) are back; they were
+  lost when the history was squashed.
+- `@vscode/test-electron` 3.1.0: 2.5.2 cannot start VS Code 1.110+ on macOS.
+
 ## 0.1.106 — Phase 7C: ready for publishing
 
 ### Changed

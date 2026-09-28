@@ -58,9 +58,31 @@ it("migrates sessions from globalState (the 0.1.100 format) into files", async (
 it("moves the five panel settings into VS Code settings (the 0.1.102 format)", async () => {
   const gs = api.context.globalState;
   await gs.update("settings", Object.assign({}, gs.get("settings") || {}, { minGapMs: 4321 }));
-  await api.runMigrations();
-  assert.strictEqual(vscode.workspace.getConfiguration("sessionlens").get("minGapMs"), 4321);
-  assert.strictEqual((gs.get("settings") || {}).minGapMs, undefined, "no longer kept in globalState");
+  // the host's log goes to its Output channel only; keep what the migration says, and every write of "settings" with
+  // the code that made it, for the failure message
+  const logged = [],
+    log = api.host.log,
+    update = gs.update;
+  api.host.log = (m) => {
+    logged.push(String(m));
+    log(m);
+  };
+  gs.update = function (key, value) {
+    if (key === "settings") logged.push(`write settings, minGapMs=${value && value.minGapMs}:\n` + new Error().stack);
+    return update.apply(this, arguments);
+  };
+  try {
+    await api.runMigrations();
+  } finally {
+    api.host.log = log;
+  }
+  // Right after the migration the old value was still there on CI now and then (2 of 9 jobs), and gone half a second
+  // later: VS Code's globalState settles after the writes. Wait for it, up to 3 s; a value that stays still fails.
+  for (let t = 0; t < 30 && (gs.get("settings") || {}).minGapMs !== undefined; t++) await new Promise((r) => setTimeout(r, 100));
+  gs.update = update;
+  const why = "\nhost log:\n" + logged.join("\n");
+  assert.strictEqual(vscode.workspace.getConfiguration("sessionlens").get("minGapMs"), 4321, why);
+  assert.strictEqual((gs.get("settings") || {}).minGapMs, undefined, "no longer kept in globalState" + why);
   await vscode.workspace.getConfiguration("sessionlens").update("minGapMs", undefined, vscode.ConfigurationTarget.Global);
 });
 

@@ -61,7 +61,7 @@ test("buildWinCommand: anything cmd.exe could read as more than text refuses the
 
 test("runClaude: the system prompt goes in as a relative file name, resolved against the temp cwd", { skip: process.platform === "win32" }, async () => {
   // a stand-in for `claude`: records its arguments and what it finds at the relative path, answers like `claude -p --output-format json`
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl-fake-cli-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl fake cli Никита ")); // a space and a non-ASCII name, as on Windows
   const bin = path.join(dir, "claude");
   const log = path.join(dir, "log.json");
   fs.writeFileSync(
