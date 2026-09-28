@@ -1,0 +1,1826 @@
+{
+ "qa-ts": {
+  "profile": "qa-ts",
+  "language": "typescript",
+  "codeExt": [
+   ".ts",
+   ".tsx",
+   ".js",
+   ".mjs"
+  ],
+  "runners": [
+   "jest",
+   "vitest",
+   "npm test",
+   "playwright test",
+   "pnpm test",
+   "yarn test"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "raw_locator",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "positional_locator",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "lint_valid_title",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 26,
+  "engine": {
+   "kind": "eslint",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": true,
+   "builtIn": true,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-cypress": {
+  "profile": "qa-cypress",
+  "language": "cypress",
+  "codeExt": [
+   ".ts",
+   ".tsx",
+   ".js",
+   ".mjs"
+  ],
+  "runners": [
+   "cypress run",
+   "cypress open",
+   "npx cypress",
+   "yarn cypress"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "raw_locator",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 24,
+  "engine": {
+   "kind": "eslint-cypress",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-detox": {
+  "profile": "qa-detox",
+  "language": "detox",
+  "codeExt": [
+   ".ts",
+   ".tsx",
+   ".js",
+   ".mjs"
+  ],
+  "runners": [
+   "detox test",
+   "npx detox test",
+   "detox build",
+   "e2e:test"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "positional_locator",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "no_app_reset",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 26,
+  "engine": {
+   "kind": "eslint-detox",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-python": {
+  "profile": "qa-python",
+  "language": "python",
+  "codeExt": [
+   ".py"
+  ],
+  "runners": [
+   "pytest"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "swallowed_exception",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "assert_args_reversed",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 26,
+  "engine": {
+   "kind": "tree-sitter",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".py"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": true,
+   "builtIn": true,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-java": {
+  "profile": "qa-java",
+  "language": "java",
+  "codeExt": [
+   ".java",
+   ".kt"
+  ],
+  "runners": [
+   "mvn test",
+   "mvn verify",
+   "gradle test",
+   "gradlew"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "unannotated_test_method",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "swallowed_exception",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "assert_args_reversed",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 27,
+  "engine": {
+   "kind": "tree-sitter",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".java",
+    ".kt"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-c#": {
+  "profile": "qa-c#",
+  "language": "csharp",
+  "codeExt": [
+   ".cs"
+  ],
+  "runners": [
+   "dotnet test"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "unannotated_test_method",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "swallowed_exception",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "assert_args_reversed",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 27,
+  "engine": {
+   "kind": "tree-sitter",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".cs"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-api": {
+  "profile": "qa-api",
+  "language": "api",
+  "codeExt": [
+   ".py",
+   ".java",
+   ".kt",
+   ".ts",
+   ".tsx",
+   ".js",
+   ".mjs",
+   ".cs",
+   ".go",
+   ".feature",
+   ".postman_collection.json",
+   ".postman_environment.json"
+  ],
+  "runners": [
+   "pytest",
+   "npm test",
+   "jest",
+   "vitest",
+   "playwright test",
+   "mvn test",
+   "mvn verify",
+   "gradle test",
+   "gradlew",
+   "dotnet test",
+   "go test",
+   "newman",
+   "karate"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "api",
+    "checks": [
+     {
+      "name": "status_only_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "mocked_service",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "no_negative_cases",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "test_data_no_cleanup",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "response_time_assert",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 30,
+  "engine": {
+   "kind": "none",
+   "state": "none"
+  },
+  "spec": {
+   "read": [
+    ".py",
+    ".java",
+    ".kt",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs",
+    ".cs",
+    ".go",
+    ".feature"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-mobile": {
+  "profile": "qa-mobile",
+  "language": "mobile",
+  "codeExt": [
+   ".py",
+   ".java",
+   ".kt",
+   ".ts",
+   ".tsx",
+   ".js",
+   ".mjs",
+   ".cs"
+  ],
+  "runners": [
+   "pytest",
+   "npm test",
+   "jest",
+   "vitest",
+   "mvn test",
+   "mvn verify",
+   "gradle test",
+   "gradlew",
+   "dotnet test"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "assert_weakened",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "weak_assert",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_date",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fragile_wait",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "expected_failure",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "magic_number",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assertion_roulette",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "conditional_logic",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_assert",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "mobile",
+    "checks": [
+     {
+      "name": "mobile_raw_locator",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_coordinates",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "no_driver_teardown",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 26,
+  "engine": {
+   "kind": "none",
+   "state": "none"
+  },
+  "spec": {
+   "read": [
+    ".py",
+    ".java",
+    ".kt",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".mjs",
+    ".cs"
+   ],
+   "notRead": [],
+   "anyFile": false
+  },
+  "asserts": true,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-robot": {
+  "profile": "qa-robot",
+  "language": "robot",
+  "codeExt": [
+   ".robot",
+   ".resource"
+  ],
+  "runners": [
+   "robot ",
+   "robot.exe",
+   "python -m robot",
+   "rebot"
+  ],
+  "groups": [
+   {
+    "group": "method",
+    "checks": [
+     {
+      "name": "peeked_at_src_before_plan",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "stop_markers_missing",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "code",
+    "checks": [
+     {
+      "name": "sleep_or_skip_added",
+      "off": false,
+      "engineOnly": true
+     },
+     {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "robot",
+    "checks": [
+     {
+      "name": "empty_test_case",
+      "off": false,
+      "engineOnly": true
+     }
+    ]
+   }
+  ],
+  "count": 15,
+  "engine": {
+   "kind": "robot-parser",
+   "state": "on"
+  },
+  "spec": {
+   "read": [
+    ".robot"
+   ],
+   "notRead": [
+    ".resource"
+   ],
+   "anyFile": false
+  },
+  "asserts": false,
+  "gherkin": true,
+  "calibration": {
+   "validated": false,
+   "builtIn": false,
+   "verdicts": 0,
+   "min": 5
+  }
+ },
+ "qa-generic": {
+  "profile": "qa-generic",
+  "language": "any",
+  "codeExt": [],
+  "runners": [
+   "pytest",
+   "npm test",
+   "jest",
+   "vitest",
+   "mvn test",
+   "gradle test",
+   "go test",
+   "dotnet test",
+   "cargo test",
+   "make test"
+  ],
+  "groups": [
+   {
+    "group": "process",
+    "checks": [
+     {
+      "name": "pass_claim_without_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "fix_after_fail_without_triage",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "tests_never_run",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "edit_churn",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "assumption_instead_of_question",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "user_frustration",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   },
+   {
+    "group": "gherkin",
+    "checks": [
+     {
+      "name": "outline_no_examples",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "scenario_no_then",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "bloated_background",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "duplicate_step_text",
+      "off": false,
+      "engineOnly": false
+     }
+    ]
+   }
+  ],
+  "count": 11,
+  "engine": {
+   "kind": "none",
+   "state": "none"
+  },
+  "spec": {
+   "read": [
+    ".ts",
+    ".js",
+    ".py",
+    ".java",
+    ".kt",
+    ".cs",
+    ".go",
+    ".feature",
+    ".robot"
+   ],
+   "notRead": [],
+   "anyFile": true
+  },
+  "asserts": false,
+  "gherkin": true,
+  "calibration": {
+   "validated": true,
+   "builtIn": true,
+   "verdicts": 0,
+   "min": 5
+  }
+ }
+}

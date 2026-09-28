@@ -1,0 +1,219 @@
+{
+ "qa-ts": {
+  "ran": true,
+  "note": "ESLint: 7 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "sleep_or_skip_added",
+    "severity": "high",
+    "rule": "playwright/no-wait-for-timeout",
+    "line": 4,
+    "message": "e2e/cart.spec.ts:4 — Unexpected use of page.waitForTimeout() [playwright/no-wait-for-timeout]"
+   },
+   {
+    "check": "conditional_logic",
+    "severity": "low",
+    "rule": "playwright/no-conditional-in-test",
+    "line": 5,
+    "message": "e2e/cart.spec.ts:5 — Avoid having conditionals in tests [playwright/no-conditional-in-test]"
+   },
+   {
+    "check": "raw_locator",
+    "severity": "low",
+    "rule": "playwright/no-raw-locators",
+    "line": 5,
+    "message": "e2e/cart.spec.ts:5 — Usage of raw locator detected. Use methods like .getByRole() or .getByText() instead of raw locators [playwright/no-raw-locators]"
+   },
+   {
+    "check": "raw_locator",
+    "severity": "low",
+    "rule": "playwright/no-raw-locators",
+    "line": 6,
+    "message": "e2e/cart.spec.ts:6 — Usage of raw locator detected. Use methods like .getByRole() or .getByText() instead of raw locators [playwright/no-raw-locators]"
+   },
+   {
+    "check": "positional_locator",
+    "severity": "low",
+    "rule": "playwright/no-nth-methods",
+    "line": 6,
+    "message": "e2e/cart.spec.ts:6 — Unexpected use of nth() [playwright/no-nth-methods]"
+   },
+   {
+    "check": "weak_assert",
+    "severity": "high",
+    "rule": "playwright/expect-expect",
+    "line": 9,
+    "message": "e2e/cart.spec.ts:9 — Test has no assertions [playwright/expect-expect]"
+   },
+   {
+    "check": "sleep_or_skip_added",
+    "severity": "high",
+    "rule": "playwright/no-skipped-test",
+    "line": 9,
+    "message": "e2e/cart.spec.ts:9 — Unexpected use of the `.skip()` annotation [playwright/no-skipped-test]"
+   }
+  ]
+ },
+ "qa-cypress": {
+  "ran": true,
+  "note": "ESLint: 5 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "sleep_or_skip_added",
+    "severity": "high",
+    "rule": "cypress/no-unnecessary-waiting",
+    "line": 4,
+    "message": "cypress/e2e/login.cy.ts:4 — Do not wait for arbitrary time periods [cypress/no-unnecessary-waiting]"
+   },
+   {
+    "check": "fragile_wait",
+    "severity": "medium",
+    "rule": "cypress/no-force",
+    "line": 5,
+    "message": "cypress/e2e/login.cy.ts:5 — Do not use force on click and type calls [cypress/no-force]"
+   },
+   {
+    "check": "raw_locator",
+    "severity": "low",
+    "rule": "cypress/require-data-selectors",
+    "line": 5,
+    "message": "cypress/e2e/login.cy.ts:5 — use data-* attribute selectors instead of classes or tag names [cypress/require-data-selectors]"
+   },
+   {
+    "check": "raw_locator",
+    "severity": "low",
+    "rule": "cypress/no-chained-get",
+    "line": 6,
+    "message": "cypress/e2e/login.cy.ts:6 — Avoid chaining multiple cy.get() calls [cypress/no-chained-get]"
+   },
+   {
+    "check": "raw_locator",
+    "severity": "low",
+    "rule": "cypress/require-data-selectors",
+    "line": 6,
+    "message": "cypress/e2e/login.cy.ts:6 — use data-* attribute selectors instead of classes or tag names [cypress/require-data-selectors]"
+   }
+  ]
+ },
+ "qa-detox": {
+  "ran": true,
+  "note": "ESLint: 4 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "no_app_reset",
+    "severity": "medium",
+    "rule": "detox/require-reload-before-each",
+    "line": 1,
+    "message": "e2e/app.test.js:1 — describe block has tests but no beforeEach(device.reloadReactNative()) / launchApp({newInstance:true}) — app state can leak between tests [detox/require-reload-before-each]"
+   },
+   {
+    "check": "no_assertion_after_action",
+    "severity": "high",
+    "rule": "detox/expect-after-action",
+    "line": 2,
+    "message": "e2e/app.test.js:2 — Test performs actions (tap/typeText/swipe/…) but has no expect(...) anywhere — nothing is actually verified [detox/expect-after-action]"
+   },
+   {
+    "check": "sleep_or_skip_added",
+    "severity": "high",
+    "rule": "detox/no-hardcoded-wait",
+    "line": 4,
+    "message": "e2e/app.test.js:4 — Hardcoded delay via setTimeout used as a sleep — use waitFor(...).withTimeout(...) for a real condition instead [detox/no-hardcoded-wait]"
+   },
+   {
+    "check": "positional_locator",
+    "severity": "low",
+    "rule": "detox/no-index-matcher",
+    "line": 5,
+    "message": "e2e/app.test.js:5 — atIndex(n) used to disambiguate a matcher — prefer a stable by.id(...) matcher instead of a positional pick [detox/no-index-matcher]"
+   }
+  ]
+ },
+ "qa-java": {
+  "ran": true,
+  "note": "ESLint: 2 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "swallowed_exception",
+    "severity": "high",
+    "rule": "java/swallowed-exception",
+    "line": 4,
+    "message": "src/test/java/CartTest.java:4 — empty catch block — an exception here is silently swallowed and the test passes regardless [java/swallowed-exception]"
+   },
+   {
+    "check": "assert_args_reversed",
+    "severity": "medium",
+    "rule": "java/assert-args-reversed",
+    "line": 5,
+    "message": "src/test/java/CartTest.java:5 — assertEquals(cart.size(), 1) — the literal usually goes first (expected), the value under test second (actual); this reads reversed [java/assert-args-reversed]"
+   }
+  ]
+ },
+ "qa-c#": {
+  "ran": true,
+  "note": "ESLint: 2 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "swallowed_exception",
+    "severity": "high",
+    "rule": "csharp/swallowed-exception",
+    "line": 4,
+    "message": "tests/CartTests.cs:4 — empty catch block — an exception here is silently swallowed and the test passes regardless [csharp/swallowed-exception]"
+   },
+   {
+    "check": "assert_args_reversed",
+    "severity": "medium",
+    "rule": "csharp/assert-args-reversed",
+    "line": 5,
+    "message": "tests/CartTests.cs:5 — Assert.AreEqual(cart.Count, 1) — the literal usually goes first (expected), the value under test second (actual); this reads reversed [csharp/assert-args-reversed]"
+   }
+  ]
+ },
+ "qa-python": {
+  "ran": true,
+  "note": "ESLint: 2 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "no_assertion_after_action",
+    "severity": "high",
+    "rule": "python/no-assertion-after-action",
+    "line": 8,
+    "message": "tests/test_cart.py:8 — test_click() calls other code but has no assert/assert*(...)/pytest.raises(...) anywhere in its body — nothing is actually verified [python/no-assertion-after-action]"
+   },
+   {
+    "check": "swallowed_exception",
+    "severity": "high",
+    "rule": "python/swallowed-exception",
+    "line": 4,
+    "message": "tests/test_cart.py:4 — except block only does pass/... — an exception here is silently swallowed and the test passes regardless [python/swallowed-exception]"
+   }
+  ]
+ },
+ "qa-robot": {
+  "ran": true,
+  "note": "ESLint: 3 findings in 1 block(s)",
+  "findings": [
+   {
+    "check": "empty_test_case",
+    "severity": "high",
+    "rule": "robot/empty-test-case",
+    "line": 2,
+    "message": "tests/cart.robot:2 — Empty Case: no steps at all — an empty test case [robot/empty-test-case]"
+   },
+   {
+    "check": "no_assertion_after_action",
+    "severity": "high",
+    "rule": "robot/no-assertion-after-action",
+    "line": 4,
+    "message": "tests/cart.robot:4 — Add Item: has steps but none of them is a Should */Must * keyword — nothing is actually verified [robot/no-assertion-after-action]"
+   },
+   {
+    "check": "sleep_or_skip_added",
+    "severity": "high",
+    "rule": "robot/sleep-or-skip",
+    "line": 6,
+    "message": "tests/cart.robot:6 — Add Item: Sleep    2s — a fixed delay instead of a real wait condition [robot/sleep-or-skip]"
+   }
+  ]
+ }
+}

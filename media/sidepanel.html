@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SessionLens for VSCode</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <nav>
+    <button data-view="sessions" class="tab active" data-i18n="h_sessions">Sessions</button>
+    <button data-view="calib" class="tab" data-i18n="h_calib">Calibration</button>
+    <button data-view="rules" class="tab" data-i18n="h_rules">Rules</button>
+    <button data-view="prompts" class="tab" data-i18n="h_prompts">Model rules</button>
+    <button data-view="settings" class="tab">⚙</button>
+  </nav>
+</header>
+
+<section id="view-sessions" class="view active">
+  <div class="drop" id="drop">
+    <div class="drop-title" data-i18n="drop_title"></div>
+    <div class="drop-sub" data-i18n="drop_sub"></div>
+    <div class="row">
+      <label class="btn"><span data-i18n="pick_file"></span><input type="file" id="file" hidden></label>
+      <button class="btn ghost" id="paste-toggle" data-i18n="paste_toggle"></button>
+    </div>
+    <div class="row"><label><span data-i18n="profile"></span> <select id="profile"></select></label></div>
+    <div class="pinfo" id="profile-info"></div>
+    <textarea id="paste" data-i18n-ph="paste_ph" hidden></textarea>
+    <div class="row" id="name-row" hidden><input id="name-input" data-i18n-ph="name_ph"><button class="btn" id="name-go" data-i18n="name_go"></button></div>
+    <div class="drop-sub" id="name-hint"></div>
+    <div class="row" id="paste-row" hidden><input id="paste-name" data-i18n-ph="paste_name_ph"><button class="btn" id="paste-go" data-i18n="parse"></button></div>
+  </div>
+  <div class="list" id="session-list"></div>
+</section>
+
+<section id="view-review" class="view">
+  <div id="review-empty" class="empty" data-i18n="review_empty"></div>
+  <div id="review" hidden>
+    <div class="hdr" id="hdr"></div>
+    <div class="metrics" id="metrics"></div>
+    <details id="spec-d"><summary><span data-i18n="spec_sum"></span> <span id="spec-count"></span></summary>
+      <textarea id="spec" data-i18n-ph="spec_ph"></textarea>
+      <div class="row actions"><label class="btn tiny ghost"><span data-i18n="spec_file"></span><input type="file" id="spec-file" hidden></label><button class="btn tiny" id="spec-save" data-i18n="spec_save"></button></div>
+      <div id="coverage"></div>
+    </details>
+    <div class="row actions"><button class="btn ghost" id="seg-run" data-i18n="seg_run"></button><span id="seg-status" class="muted"></span></div>
+    <div class="muted" id="seg-hint"></div>
+    <div class="row actions" id="seg-extra" hidden><button class="btn tiny ghost" id="seg-spec" data-i18n="seg_use_spec"></button><button class="btn tiny ghost" id="seg-reset" data-i18n="seg_reset"></button></div>
+    <div class="row actions"><button class="btn" id="ai-run" data-i18n="ai_run"></button><button class="btn ghost" id="ai-verify-again" data-i18n="ai_verify_again" hidden></button><span id="ai-status" class="muted"></span></div>
+    <div id="suppressed" class="muted"></div>
+    <div id="lint-note" class="muted"></div>
+    <details open><summary><span data-i18n="findings"></span> <span id="f-count"></span></summary><div class="filter" id="filter"></div><div id="findings"></div></details>
+    <details id="dropped-d" hidden><summary><span data-i18n="dropped_sum"></span> <span id="dropped-count"></span></summary><div id="dropped"></div></details>
+    <details><summary data-i18n="asserts"></summary><div id="asserts"></div></details>
+    <details><summary data-i18n="timeline"></summary><ul class="tl" id="timeline"></ul></details>
+    <details><summary data-i18n="transcript"></summary><div id="transcript" class="trans"></div></details>
+    <details id="raw-d" hidden><summary><span data-i18n="raw_sum"></span> <span id="raw-count"></span></summary><textarea id="raw" readonly style="height:220px;font-family:monospace;font-size:11px"></textarea><div class="row actions"><button class="btn tiny ghost" id="raw-copy" data-i18n="copy"></button><button class="btn tiny ghost" id="raw-dl" data-i18n="raw_dl"></button></div></details>
+    <div class="row actions">
+      <button class="btn" id="export-md" data-i18n="md_btn"></button>
+      <button class="btn ghost" id="export-json" data-i18n="export_json"></button>
+      <button class="btn ghost" id="rename" data-i18n="rename"></button>
+      <button class="btn ghost" id="mark-reviewed" data-i18n="mark_reviewed"></button>
+      <button class="btn ghost danger" id="del-session" data-i18n="delete"></button>
+    </div>
+  </div>
+</section>
+
+<section id="view-calib" class="view">
+  <details class="sec-d" id="calib-prec-d" open>
+    <summary class="h2" data-i18n="c_prec"></summary>
+    <p class="muted" data-i18n="c_prec_sub"></p>
+    <table id="precision"></table>
+  </details>
+  <details class="sec-d" id="calib-rules-d" open>
+    <summary class="h2" id="c-rules-title"></summary>
+    <p class="muted"><span data-i18n="c_rules_sub1"></span> <input id="min-count" type="number" value="2" min="1" style="width:3em"> <span data-i18n="c_rules_sub2"></span></p>
+    <label class="muted" style="display:block;margin:6px 0"><span data-i18n="rules_target_lbl"></span> <select id="rules-target" style="width:auto">
+      <option value="claude" data-i18n="rules_target_claude"></option>
+      <option value="codex" data-i18n="rules_target_codex"></option>
+      <option value="both" data-i18n="rules_target_both"></option>
+    </select></label>
+    <div class="row actions" id="rules-pick-row" hidden><span class="muted" data-i18n="pick_lbl"></span><button class="btn tiny ghost" id="rules-pick-all" data-i18n="pick_all"></button><button class="btn tiny ghost" id="rules-pick-none" data-i18n="pick_none"></button></div>
+    <div id="rules"></div>
+    <div class="row actions" id="dismissed-row" hidden><span class="muted" id="dismissed-note"></span><button class="btn tiny ghost" id="rules-restore" data-i18n="rules_restore"></button></div>
+    <label class="muted" style="display:block;margin:6px 0"><input id="gen-skill-examples" type="checkbox" checked> <span data-i18n="gen_skill_examples_lbl"></span></label>
+    <div class="row actions">
+      <button class="btn" id="copy-rules" data-i18n="rules_copy"></button>
+      <button class="btn ghost" id="compress-rules" data-i18n="compress_run"></button>
+      <button class="btn ghost" id="gen-skill" data-i18n="gen_skill_run"></button>
+      <span id="compress-status" class="muted"></span>
+      <span id="gen-skill-status" class="muted"></span>
+      <button class="btn ghost" id="export-verdicts" data-i18n="c_export"></button>
+      <label class="btn ghost"><span data-i18n="c_import"></span><input type="file" id="import-file" hidden></label>
+    </div>
+    <p class="muted" id="import-status"></p>
+    <details id="compress-d" hidden><summary data-i18n="compress_result"></summary>
+      <div id="compress-results"></div>
+    </details>
+    <details id="gen-skill-d" hidden><summary data-i18n="gen_skill_result"></summary>
+      <div id="gen-skill-results"></div>
+    </details>
+  </details>
+  <details id="cal-raw-d" hidden><summary><span data-i18n="raw_sum"></span> <span id="cal-raw-count"></span></summary>
+    <p class="muted" data-i18n="cal_raw_note"></p>
+    <textarea id="cal-raw" readonly style="height:220px;font-family:monospace;font-size:11px"></textarea>
+    <div class="row actions"><button class="btn tiny ghost" id="cal-raw-copy" data-i18n="copy"></button><button class="btn tiny ghost" id="cal-raw-dl" data-i18n="raw_dl"></button><button class="btn tiny ghost" id="cal-raw-clear" data-i18n="cal_raw_clear"></button></div>
+  </details>
+</section>
+
+<section id="view-rules" class="view">
+  <h2 data-i18n="rules_title_tab"></h2>
+  <p class="muted" data-i18n="rules_sub"></p>
+  <div class="row actions">
+    <button class="btn" id="rules-export" data-i18n="rules_export"></button>
+    <label class="btn ghost"><span data-i18n="rules_import"></span><input type="file" id="rules-file" hidden></label>
+    <button class="btn ghost" id="rules-reset" data-i18n="rules_reset"></button>
+  </div>
+  <p class="muted" id="rules-status"></p>
+  <div id="rules-list"></div>
+</section>
+
+<section id="view-prompts" class="view">
+  <h2 data-i18n="prompts_title"></h2>
+  <p class="muted" data-i18n="prompts_sub"></p>
+  <div id="prompts-list"></div>
+  <div class="row actions"><button class="btn ghost" id="prompts-reset" data-i18n="prompts_reset"></button><span class="muted" id="prompts-status"></span></div>
+</section>
+
+<section id="view-settings" class="view">
+  <h2 data-i18n="s_model"></h2>
+  <p class="muted" data-i18n="s_sub"></p>
+  <div id="s-model-list"></div>
+  <details class="sec-d" id="s-addmodel-d">
+    <summary class="h2" data-i18n="s_models_add"></summary>
+    <label><span data-i18n="s_provider"></span><br><select id="s-add-provider" style="width:100%"><option value="claudecli">Claude Code (subscription)</option><option value="codexcli">Codex (subscription)</option><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI (GPT)</option><option value="google">Google (Gemini)</option><option value="xai">xAI (Grok)</option><option value="deepseek">DeepSeek</option><option value="qwen">Qwen (Alibaba Cloud)</option><option value="local">Local (Ollama / LM Studio) — experimental</option></select></label>
+    <label style="display:block;margin-top:8px"><span id="s-add-key-label"></span><br><input id="s-add-key" type="password" style="width:100%"></label>
+    <button class="btn tiny ghost" id="s-add-key-del" data-i18n="key_delete" style="display:none;margin-top:4px"></button>
+    <label style="display:block;margin-top:8px"><span data-i18n="s_model_lbl"></span><br><input id="s-add-model" style="width:100%"><span class="muted" id="s-add-model-hint"></span></label>
+    <div id="s-add-cli-row" style="display:none;margin-top:8px">
+      <p class="muted" id="s-add-cli-note"></p>
+      <div><span id="s-add-cli-path-label"></span><br><button class="btn tiny ghost" id="s-add-cli-settings"></button><br><span class="muted" id="s-add-cli-hint"></span></div>
+      <div class="row actions"><button class="btn" id="s-add-cli-check"></button><span id="s-add-cli-status" class="muted"></span></div>
+    </div>
+    <label style="display:block;margin-top:8px" id="s-add-base-row"><span data-i18n="s_baseurl"></span><br><input id="s-add-baseurl" style="width:100%" placeholder="http://localhost:11434/v1"><span class="muted" id="s-add-baseurl-hint"></span></label>
+    <label style="display:block;margin-top:8px"><span data-i18n="s_model_alias"></span><br><input id="s-add-label" style="width:100%"></label>
+    <div class="row actions"><button class="btn" id="s-add-model-btn" data-i18n="s_models_add_btn"></button><span id="s-add-status" class="muted"></span></div>
+  </details>
+  <details class="sec-d" id="s-routes-d">
+    <summary class="h2" data-i18n="s_routes"></summary>
+    <p class="muted" data-i18n="s_routes_sub"></p>
+    <div id="s-routes"></div>
+  </details>
+  <label style="display:block;margin-top:14px"><span data-i18n="s_gap"></span><br><input id="s-gap" type="number" value="6500" style="width:100%"><span class="muted" data-i18n="s_gap_hint"></span></label>
+  <label style="display:block;margin-top:8px"><span data-i18n="s_maxcode"></span><br><input id="s-maxcode" type="number" value="40000" style="width:100%"></label>
+  <label style="display:block;margin-top:8px"><input id="s-lint" type="checkbox" checked> <span data-i18n="lint_on"></span></label>
+  <label style="display:block;margin-top:8px"><input id="s-verify" type="checkbox" checked> <span data-i18n="s_verify"></span></label>
+  <div class="row actions"><button class="btn" id="s-save" data-i18n="s_save"></button><span id="s-status" class="muted"></span></div>
+  <h2 data-i18n="s_schema"></h2>
+  <p class="muted" data-i18n="s_schema_sub"></p>
+  <label style="display:block;margin-top:14px"><input id="s-debug-model" type="checkbox"> <span data-i18n="s_debug_model"></span></label>
+  <p class="muted" data-i18n="s_debug_model_sub"></p>
+  <h2 data-i18n="s_reset_settings"></h2>
+  <p class="muted" data-i18n="s_reset_settings_sub"></p>
+  <div class="row actions"><button class="btn ghost" id="s-reset-settings" data-i18n="s_reset_settings_btn"></button><span id="s-reset-settings-status" class="muted"></span></div>
+  <h2 data-i18n="s_danger"></h2>
+  <p class="muted" data-i18n="s_danger_sub"></p>
+  <div class="row actions"><button class="btn danger" id="s-reset-all" data-i18n="s_reset_all"></button><span id="s-reset-status" class="muted"></span></div>
+</section>
+
+<script src="i18n.js"></script>
+<script src="lint-robot.js"></script>
+<script src="checks.js"></script>
+<script src="lens.js"></script>
+<script src="lint.js"></script>
+<script src="rules.js"></script>
+<script src="spec.js"></script>
+<script src="ai.js"></script>
+<script src="segment.js"></script>
+<script src="dialogs.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

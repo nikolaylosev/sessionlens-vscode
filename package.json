@@ -1,0 +1,245 @@
+{
+  "name": "sessionlens-vscode",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.1.106",
+  "license": "MIT",
+  "publisher": "nikolaylosev",
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=22"
+  },
+  "categories": [
+    "AI",
+    "Testing"
+  ],
+  "activationEvents": [
+    "onWebviewPanel:sessionlensSession"
+  ],
+  "main": "./extension.js",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "perf": "node --max-old-space-size=3000 perf/run.js --n 200 --kb 1024 --runs 5",
+    "lint": "eslint .",
+    "build": "node scripts/build-webview.js",
+    "build:check": "node scripts/build-webview.js --check",
+    "format": "prettier --write \"**/*.js\"",
+    "format:check": "prettier --check \"**/*.js\"",
+    "typecheck": "tsc -p .",
+    "test:integration": "node test-integration/run.js",
+    "check:vsix": "node scripts/check-vsix.js"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sessionlens",
+          "title": "%container.title%",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "sessionlens": [
+        {
+          "id": "sessionlensView",
+          "name": "%view.panel%",
+          "type": "webview"
+        },
+        {
+          "id": "sessionlensSessionsTree",
+          "name": "%view.sessions%",
+          "type": "tree",
+          "when": "sessionlens.activeTab == 'sessions' || !sessionlens.activeTab"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "sessionlens.focus",
+        "title": "%cmd.focus%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.importTranscript",
+        "title": "%cmd.import%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.openSession",
+        "title": "%cmd.openSession%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.exportVerdicts",
+        "title": "%cmd.exportVerdicts%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.openSettings",
+        "title": "%cmd.openSettings%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.openSessionFromTree",
+        "title": "%cmd.treeOpen%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.renameSession",
+        "title": "%cmd.treeRename%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.deleteSession",
+        "title": "%cmd.treeDelete%",
+        "category": "SessionLens"
+      }
+    ],
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "sessionlens.claudeCliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "%config.claudeCliPath%",
+          "order": 10
+        },
+        "sessionlens.codexCliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "%config.codexCliPath%",
+          "order": 11
+        },
+        "sessionlens.minGapMs": {
+          "type": "integer",
+          "default": 6500,
+          "minimum": 0,
+          "maximum": 600000,
+          "scope": "application",
+          "markdownDescription": "%config.minGapMs%",
+          "order": 1
+        },
+        "sessionlens.maxCode": {
+          "type": "integer",
+          "default": 40000,
+          "minimum": 1000,
+          "maximum": 2000000,
+          "scope": "application",
+          "markdownDescription": "%config.maxCode%",
+          "order": 2
+        },
+        "sessionlens.verify": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "markdownDescription": "%config.verify%",
+          "order": 3
+        },
+        "sessionlens.lint": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "markdownDescription": "%config.lint%",
+          "order": 4
+        },
+        "sessionlens.rulesTarget": {
+          "type": "string",
+          "default": "claude",
+          "enum": [
+            "claude",
+            "codex",
+            "both"
+          ],
+          "enumDescriptions": [
+            "%config.rulesTarget.claude%",
+            "%config.rulesTarget.codex%",
+            "%config.rulesTarget.both%"
+          ],
+          "scope": "application",
+          "markdownDescription": "%config.rulesTarget%",
+          "order": 5
+        }
+      }
+    },
+    "viewsWelcome": [
+      {
+        "view": "sessionlensSessionsTree",
+        "contents": "%welcome.sessions%"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "sessionlens.openSessionFromTree",
+          "when": "false"
+        },
+        {
+          "command": "sessionlens.renameSession",
+          "when": "false"
+        },
+        {
+          "command": "sessionlens.deleteSession",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "sessionlens.openSessionFromTree",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
+          "group": "1_open@1"
+        },
+        {
+          "command": "sessionlens.renameSession",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "sessionlens.deleteSession",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
+          "group": "2_edit@2"
+        }
+      ]
+    }
+  },
+  "icon": "media/icon.png",
+  "keywords": [
+    "llm",
+    "ai agent",
+    "claude code",
+    "session review",
+    "qa",
+    "api testing",
+    "code review",
+    "rest api",
+    "testing"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.4",
+    "@types/vscode": "1.85",
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3"
+  },
+  "l10n": "./l10n",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nikolaylosev/sessionlens-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nikolaylosev/sessionlens-vscode/issues"
+  },
+  "homepage": "https://github.com/nikolaylosev/sessionlens-vscode#readme",
+  "qna": "marketplace",
+  "galleryBanner": {
+    "color": "#12202f",
+    "theme": "dark"
+  }
+}

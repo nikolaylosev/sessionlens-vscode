@@ -1,0 +1,246 @@
+# Changelog
+
+## 0.1.106 — Phase 7C: ready for publishing
+
+### Changed
+- New extension ID: `nikolaylosev.sessionlens-vscode` (publisher `nikolaylosev`). VS Code treats it as a different
+  extension from the earlier local build (`local.sessionlens-vscode`, up to 0.1.105): its sessions, rules, calibration
+  and API keys are not carried over. Export verdicts and rules there first if you need them, import them here, then
+  uninstall the old build.
+- **SessionLens: Open settings** finds the extension's settings by its own ID, whatever it is.
+
+### Added
+- Repository, issue tracker and homepage links, a Marketplace banner and Q&A; `CONTRIBUTING.md`; the readme's
+  "Your data" section says where everything is kept and how to remove it; places for screenshots in the readme.
+- The changelog is part of the package (the Marketplace shows it).
+
+### For contributors
+- CI packages the extension without `--allow-missing-repository` and checks the package's file list against an
+  allow-list (`npm run check:vsix`).
+- `THIRD-PARTY-NOTICES.md` names all three tree-sitter grammars and the ESLint version inside `vendor-eslint.js`.
+
+## 0.1.105 — Phase 7B: code quality and infrastructure
+
+Nothing changes in how SessionLens looks or what it finds.
+
+### Changed
+- The Chrome version is no longer supported: its code paths are gone from the panel (session storage in the page,
+  API keys in the page's settings, direct provider requests from the page, the session list in the panel, browser
+  downloads). The VS Code extension works as before.
+- A request to VS Code that never gets an answer no longer leaves the panel waiting forever: after a limit that
+  depends on the request, the panel shows "no reply from VS Code". File dialogs and local model servers have no limit.
+- `RULES-ARCHITECTURE.md` is in English.
+
+### For contributors
+- The panel's source is ES modules in `src/webview/`; `npm run build` bundles them into `media/app.js` (esbuild).
+- ESLint, Prettier (160 columns), `tsc --checkJs`, a build check and integration tests in a real VS Code, all in
+  GitHub Actions on Ubuntu, Windows and macOS (Node 22).
+
+## 0.1.104 — Phase 7A: profile details, panel order, specification coverage
+
+### Added
+- Under the **Profile** list: a one-line summary of what the selected profile checks and **What this profile checks**
+  with its file types, recognised test runs, checks by group (switched off in Rules: struck through), static
+  analysis and its state, file types that count for specification coverage, assertion comparison and calibration
+  status. The options of the list name the language; the profile name in a session's header shows the summary as a
+  tooltip.
+- Specification coverage finds Kotlin tests (`@Test fun …`, also names in backticks) and Robot Framework test cases
+  and tasks (`[Documentation]` and `[Tags]` count).
+
+### Changed
+- The **Calibration & Settings** panel is now above the **Sessions** list in the sidebar (VS Code keeps an order you
+  set yourself).
+- Files SessionLens cannot read tests from do not count for coverage; with only such files, coverage is not computed
+  and the Specification section says so instead of "No code found".
+
+### Fixed
+- False `spec_uncovered` (High) for every requirement in qa-cypress, qa-detox, qa-mobile, qa-robot and qa-generic,
+  and for Kotlin files: tests were read with the Python pattern and never found.
+
+## 0.1.103 — Phase 6: VS Code integration
+
+SessionLens behaves like a regular VS Code extension: its actions are in the Command Palette and the Sessions list's
+context menu, five settings are in VS Code Settings, and VS Code's own texts follow its display language.
+
+### Added
+- Commands **SessionLens: Import transcript…**, **Open session…** (pick by name, profile or date), **Export
+  verdicts** and **Open settings**. Import and export run in the sidebar, which opens if needed.
+- Context menu on a session in the Sessions list: **Open**, **Rename…**, **Delete** (asks first; closes the
+  session's tab).
+- VS Code settings `sessionlens.minGapMs`, `sessionlens.maxCode`, `sessionlens.verify`, `sessionlens.lint` and
+  `sessionlens.rulesTarget`, the same values as in the panel; a change in either place shows up in the other, and
+  switching `lint` re-analyzes sessions as the panel's toggle does. User settings: synced by Settings Sync, not
+  changeable by a workspace. Values set in the panel are moved there on the first start.
+- Russian for the Sessions list, commands, setting descriptions, dialogs and notifications, following VS Code's
+  display language. The panel stays in English.
+- The **SessionLens** Output channel also shows migration messages that went to the developer console before, CLI
+  failures (code and time) and how long each analysis took. No transcript text, prompts or replies.
+
+### Changed
+- The Sessions list is visible right after installing and while the panel below is collapsed; it is still hidden
+  while another tab of the panel is open. It is now above the panel in a new installation (VS Code keeps an order you
+  set yourself).
+- An empty Sessions list shows a short text with an **Import transcript…** button instead of "No sessions yet —
+  import one below".
+- A session you renamed is shown under its new name in the list, the tab title, the panel header and Open session…;
+  before, the task id found in the transcript stayed in front. Sessions you did not rename look as before.
+- A session tab restored after a restart takes the session's current name.
+
+### Fixed
+- Collapsing the panel while it showed Calibration, Rules or Settings left the Sessions list hidden until the panel
+  was opened again.
+
+## 0.1.102 — Phase 5: lint engines loaded on demand
+
+The sidebar and every session tab no longer load all static-analysis engines. About 4.5 MB of JavaScript and 4.9 MB
+of WebAssembly used to be loaded, and the three tree-sitter grammars compiled, in every page.
+
+### Changed
+- The ESLint bundles and the tree-sitter engines are loaded the first time a session of their language is analyzed
+  in a page, and only the files that language needs: `qa-ts` loads `vendor-eslint.js`; `qa-java` loads
+  `tree-sitter.js` and `lint-java.js` and compiles only the Java grammar; `qa-api`, `qa-mobile`, `qa-go` and
+  `qa-generic` load nothing. The Robot parser stays part of the page.
+- The sidebar loads an engine only to import or to re-analyze a session of that language in the background. Browsing
+  Sessions, Calibration, Rules and Settings loads none.
+- A session tab loads its session's engine right after it is drawn, so the next analysis does not wait for it.
+- New lint note "static analysis: engine loading…" while an engine is still loading. "bundle not loaded" now means
+  the engine file could not be loaded.
+
+### Fixed
+- An analysis that ran before a tree-sitter engine had finished starting (for example an import right after VS Code
+  opened) was saved as final, without the Java/C#/Python findings, and never repeated. Such an analysis is now marked
+  as not done and repeated as soon as the engine is ready.
+- Sessions saved that way by earlier versions are found once, a few seconds after the first start of 0.1.102, and
+  analyzed again (only `qa-java`, `qa-c#` and `qa-python` sessions are read for this).
+
+## 0.1.101 — Phase 4: sessions in files instead of globalState
+
+Start-up and the panel's response no longer depend on how many sessions are stored. One action writes one session.
+
+### Changed
+- Sessions are files in the extension's storage folder (`sessions/<id>.json` plus a small `<id>.meta.json` summary),
+  kept by the host (`store.js`). The sidebar loads only the summaries; a session tab loads only its own session;
+  Calibration, Rules and the Sessions tree work from the summaries. Export verdicts, examples for a generated skill
+  and verdict import read sessions 10 at a time.
+- New messages `session:list`, `session:get`, `session:put`, `session:delete`, `session:clear`. `storage:get` and
+  `storage:set` no longer accept `sessions`; new small key `analysisEpoch`.
+- A verdict, a rename, "Mark reviewed", a spec, an AI review: one `session:put` of that session with the rev it was
+  read at. If another window saved the same session in between, it is read again and the change applied to the
+  fresh copy.
+- Rules tab: a checkbox or severity change is written after 300 ms and re-analyzes nothing in the sidebar. Open
+  session tabs re-analyze their own session when the write arrives; the other sessions are re-analyzed in the
+  background, one at a time, newest first. The ESLint switch and a verdict import work the same way.
+- Other pages are told exactly what changed (one session, the list, or the settings) instead of re-reading
+  everything.
+- New Output channel "SessionLens" (migration, repairs of the session folder, refused messages).
+
+### Fixed
+- With more than 64 MB of sessions, 0.1.100 refused every save (the phase 3 message limit applied to the whole
+  `sessions` object): verdicts, renames and rule changes were silently lost. Messages now carry one session (limit
+  32 MB per session).
+- An open session tab now shows new findings after a rules change. In 0.1.100 its refresh looked for an active nav
+  tab, which a session tab has none of, so it kept the old findings until it was reopened.
+
+### Migration
+- On first start, every session in `globalState["sessions"]` is written to a file, read back and compared, then the
+  key is removed. If anything fails, the old data stays and the next start tries again. After the move, 0.1.100 or
+  earlier shows no sessions: export what you need before going back.
+
+## 0.1.100 — Phase 3: trust boundary between the panel and the host
+
+The panel renders untrusted transcripts, imported JSON and model answers, so the host now treats every message from
+it as possibly hostile.
+
+### Security
+- Qwen / local server address: in 0.1.99 `ai:call` took `baseUrl` from the panel for Qwen and the local provider, so
+  a compromised panel could have the host send the saved Qwen key to any address (or make the host request any URL).
+  The host now keeps these addresses itself (`globalState.hostBaseUrls`, not reachable through storage messages) and
+  ignores `payload.baseUrl`. A new address is used only after the person confirms it in a modal VS Code dialog
+  (`baseurl:set`); going back to the default asks nothing.
+- CLI paths: `sessionlens.claudeCliPath` / `sessionlens.codexCliPath` are machine-scoped VS Code settings; a
+  workspace's `.vscode/settings.json` cannot set them. `claude:run`, `claude:check`, `codex:run` and `codex:check`
+  ignore any path in the message.
+- Every message is checked by a table of validators (`validate.js`) before anything happens: field types, sizes,
+  known providers, known storage keys (unknown key → the whole write is refused), known tabs, existing sessions.
+  Unknown message types are refused.
+- Saving a generated skill: `skillName` and every file path are checked against a character whitelist (no `..`,
+  backslash, `:`, absolute paths, empty segments, Windows reserved names, trailing dots or spaces), before the
+  folder dialog opens, and the resolved target must lie inside the skill folder. The skill's name and paths come from
+  a model answer, which a transcript can steer.
+- Save file: only a file name is taken from the panel; the dialog starts in the workspace folder (or home).
+- Panel rendering: every value interpolated into `innerHTML` is escaped, including numbers, ids, severities and the
+  parameters of translated strings. Before, a check name from an imported verdicts file reached the Calibration
+  tables as markup, and several transcript fields (`profile`, `seq`, event `kind`, assertion counts) were not escaped.
+- Windows, `.cmd`/`.bat` CLIs: the command line for `cmd.exe` is built without `\"` escapes and refuses any argument
+  with `% ! ^ & | < > "`; the system prompt goes in as a relative file name (`system.txt`, resolved against the
+  temporary working folder), so the user's temp path no longer passes through `cmd.exe`.
+
+### Changed
+- Settings → Add a model, Claude Code / Codex: the path field is replaced by **Open settings**; **Check** shows the
+  path it used. Paths entered in earlier versions are moved to the user settings at activation (once, with a notice).
+- Settings → Add a model, Qwen / local: a new address is confirmed in a VS Code dialog; cancelling it does not add
+  the model. Addresses saved by earlier versions are moved to the host at activation, without a question.
+- Reset settings also returns the local and Qwen addresses to their defaults; it does not touch the CLI paths.
+
+### Added
+- Tests: `validate`, `trust-boundary` (host under the fake `vscode`), `cli`, `xss` (the real panel in jsdom with a
+  markup payload in every stored string, plus mutation checks); 103 in total. Dev dependency: `jsdom`.
+
+## 0.1.99 — Phase 2: API keys in SecretStorage, provider calls on the host
+
+### Changed
+- API keys are stored in VS Code's SecretStorage (`secrets.js`), no longer in `globalState.settings`
+  (`apiKey`, `keys`). Keys saved by earlier versions are moved at activation; the move is idempotent and, if the
+  keychain is unavailable, leaves the keys where they were (they keep working) until the next start.
+- HTTP requests to Anthropic, Google, OpenAI, xAI, DeepSeek, Qwen and local servers are made by the extension host
+  (`providers.js`, message `ai:call`). The webview keeps prompts, routing, the request queue, 429 retries, parsing
+  and verify; the host performs one call per message with the same `LensAI.PROVIDERS[p].call` functions and adds
+  the key itself. The webview never receives a key: `storage:get` strips the key fields, `secret:status` returns
+  booleans only.
+- Webview CSP: `connect-src` is the extension's own resources only (needed by tree-sitter's `.wasm`), no longer
+  `https: http:`.
+- The host sends the key only to a provider's fixed endpoint; an address from the panel is accepted only for the
+  local provider and Qwen (editable region).
+- Requests go through `node:http`/`node:https` rather than the global `fetch`: no 300 s header limit (a slow local
+  model with `stream: false` exceeded it), VS Code's proxy settings apply. Cloud requests stop after 10 minutes,
+  local ones have no limit; closing a view or tab aborts its requests.
+
+### Added
+- Settings → Add a model: the key field shows **saved ✓** / **not set**, never the key; **Delete key** button.
+  **Reset settings** also deletes the stored keys.
+- From a remote window (SSH, WSL, Dev Container), a failed connection to a local server says that the request
+  left from the remote machine.
+- Tests: `secrets`, `providers`, `ai-transport`, `host-messages` (extension.js under a fake `vscode`), 63 in total.
+
+### Unchanged
+- The Chrome build path: without the VS Code bridge, keys stay in settings and calls go out from the page.
+- `anthropic-dangerous-direct-browser-access` is now sent only from a browser page, i.e. only by the Chrome build.
+
+## 0.1.98 — Rules, phase 1: check registry
+
+### Added
+- `media/checks.js` — a single registry of all check names (group, default severity, rule-text key, good example,
+  sources, sort priority) plus `SEVERITIES` and `GROUPS_ORDER`. `rules.js` tables, `lens.js` `RULE_KEYS`, the Rules
+  panel's group list, `sortFindings` priorities and every severity check are now derived from it.
+- `npm test` (built-in `node --test`, no dependencies, Node ≥ 21):
+  - `rules-consistency` — fails when a detector (regex `F(...)`, any `*_RULE_MAP`, `spec.js`, the model's
+    categories) emits a name missing from the registry, when a registry entry has no detector or wrong `sources`,
+    or when rule text / group labels are missing in any language;
+  - `finding-pipeline` — one finding per source (regex, lint via the Robot engine, gherkin, spec, ai) through
+    `LensRules.apply()` and `Lens.sortFindings()`;
+  - `book-snapshot` — `LensRules.book({})` is identical to v0.1.97 apart from the two added rows.
+- Rules panel: an ⓘ hint next to a manually set severity when calibration has demoted the check and the manual
+  value does not apply to its findings.
+- Importing `rules.json` reports how many rows were ignored and why (unknown check, no check, invalid severity).
+
+### Fixed
+- `ai_other` (a model finding outside the review categories) is now a real check: shown in the Rules panel, can be
+  disabled or re-weighted, exported to `rules.json`, and has its own rule text.
+- `lint_valid_title` (Playwright `valid-title`) was mapped in `lint.js` but missing from the rule book; it now
+  appears in the Code group with its own rule text and example.
+
+### Changed (internal)
+- `LensRules.fromJson()` returns `{ overrides, ignored }`.
+- `LensLint.RULE_MAPS`, `LensAI.AI_CATEGORIES`, `Lens.calibLevel()` and `I18N.has()` are exported.
+- Unknown check names reaching `Lens.RULES` / `LensRules.ruleText()` log one `console.warn` per name (synthetic
+  `lint_<ruleId>` names excepted).

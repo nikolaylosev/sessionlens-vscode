@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "vscode"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["extension.js", "cli.js", "providers.js", "store.js", "secrets.js", "validate.js", "media/*.js", "src/webview/*.js", "types/*.d.ts"],
+  "exclude": ["media/vendor-eslint*.js", "media/tree-sitter.js", "media/app.js", "node_modules"]
+}
