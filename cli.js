@@ -22,7 +22,7 @@ const path = require("path");
 
 const IS_WIN = process.platform === "win32";
 const MODEL_RX = /^[A-Za-z0-9][A-Za-z0-9._:\-\[\]]{0,80}$/; // alias (sonnet) or full name (claude-sonnet-5)
-const PATH_RX = /^[\w\s.:\\/()\-~@+]+$/; // no quotes, %, &, |, <, >, ^ : the path may reach a shell on Windows
+const PATH_RX = /^[\p{L}\p{N}_\s.:\\/()\-~@+]+$/u; // letters of any script; no quotes, %, &, |, <, >, ^ : the path may reach a shell on Windows
 const MAX_STDIN = 9.5 * 1024 * 1024; // Claude Code caps piped stdin at 10 MB
 const DEFAULT_TIMEOUT = 300000;
 const SYSTEM_FILE = "system.txt";

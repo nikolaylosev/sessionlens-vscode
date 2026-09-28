@@ -128,7 +128,8 @@ function isInside(root, file, platform = process.platform) {
 
 // save:file: only a basename survives; anything unusable becomes "sessionlens.md"
 function safeBasename(name) {
-  const b = path.basename(String(name == null ? "" : name).replace(/\\/g, "/"));
+  // posix: on Windows path.basename("a:b.md") would take "a:" for a drive and return "b.md"
+  const b = path.posix.basename(String(name == null ? "" : name).replace(/\\/g, "/"));
   if (!b || b === "." || b === ".." || b.includes(":") || CONTROL_RX.test(b) || b.length > 200) return "sessionlens.md";
   return b;
 }
