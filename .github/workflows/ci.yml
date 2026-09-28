@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build:check
+      - run: npm test
+      - name: Integration tests in VS Code (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+      - name: Integration tests in VS Code
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+      - name: Check what goes into the .vsix
+        run: npm run check:vsix
+      - name: Package
+        run: npx --yes @vscode/vsce@3 package -o sessionlens-vscode.vsix
+      - name: Upload the .vsix
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sessionlens-vscode-vsix
+          path: sessionlens-vscode.vsix

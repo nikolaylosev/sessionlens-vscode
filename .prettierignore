@@ -1,0 +1,11 @@
+node_modules/
+media/vendor-eslint*.js
+media/tree-sitter.js
+media/app.js
+*.wasm
+*.vsix
+*.md
+*.json
+*.html
+*.css
+.github/

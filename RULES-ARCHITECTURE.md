@@ -1176,7 +1176,7 @@ built form.
 |---|---|---|
 | `npm test` | unit and DOM tests (`test/`, jsdom, fake `vscode`) | ubuntu, windows, macos |
 | `npm run lint` | ESLint on our own code (`eslint.config.js`; vendored bundles and the generated `media/app.js` excluded), `max-len` 160 except strings, templates, regexes and URLs | yes |
-| `npm run format:check` | Prettier, `printWidth` 160 (`.prettierrc.json`); the formatting commit is in `.git-blame-ignore-revs` | yes |
+| `npm run format:check` | Prettier, `printWidth` 160 (`.prettierrc.json`) | yes |
 | `npm run typecheck` | `tsc` with `checkJs` (`tsconfig.json`, loose: `strict` off); page globals in `types/webview-globals.d.ts`; every own file starts with `// @ts-check` | yes |
 | `npm run build:check` | `media/app.js` is what `src/webview` builds to (§19) | yes |
 | `npm run check:vsix` | the files `vsce` would package match an allow-list (`scripts/check-vsix.js`): run-time files only, no sources, tests, configs, screenshots or source maps | yes |
