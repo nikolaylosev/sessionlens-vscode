@@ -76,7 +76,9 @@ it("moves the five panel settings into VS Code settings (the 0.1.102 format)", a
   } finally {
     api.host.log = log;
   }
-  await new Promise((r) => setTimeout(r, 500)); // a write that lands after the migration shows up too
+  // Right after the migration the old value was still there on CI now and then (2 of 9 jobs), and gone half a second
+  // later: VS Code's globalState settles after the writes. Wait for it, up to 3 s; a value that stays still fails.
+  for (let t = 0; t < 30 && (gs.get("settings") || {}).minGapMs !== undefined; t++) await new Promise((r) => setTimeout(r, 100));
   gs.update = update;
   const why = "\nhost log:\n" + logged.join("\n");
   assert.strictEqual(vscode.workspace.getConfiguration("sessionlens").get("minGapMs"), 4321, why);
