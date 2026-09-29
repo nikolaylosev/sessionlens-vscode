@@ -1,5 +1,5 @@
 {
-  "displayName": "SessionLens",
+  "displayName": "SessionLens: AI Agent Test Review",
   "description": "Review Claude Code and Codex sessions that write autotests: tests never run, weakened asserts, sleeps. Turn your verdicts into rules for CLAUDE.md and AGENTS.md.",
   "container.title": "SessionLens",
   "view.sessions": "Sessions",
