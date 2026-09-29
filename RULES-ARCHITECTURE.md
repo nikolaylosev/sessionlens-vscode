@@ -838,10 +838,8 @@ Status at v0.1.98. Closed items are kept for the record.
 14. **Open.** `ENGINE_FILES` in `lint.js` and `ENGINE_SCRIPTS` in
     `extension.js` are two lists; `test/lazy-engines.test.js` checks that
     they match.
-15. **Open (since v0.1.103).** The panel still sends the five settings from VS Code Settings (§16.1)
-    as part of `settings`. A page that has not yet
-    received the refresh after an edit of `settings.json` can write an old
-    value back. The window is the delivery time of one `__slRefresh`.
+15. ~~A page that has not yet received the refresh after an edit of `settings.json` can write an old value back~~ —
+    **closed in v0.1.109**: the host writes only the values the page changed (§16.1).
 16. **Open (since v0.1.103).** Host strings: the `t("…")` keys in `extension.js`
     and `l10n/bundle.l10n.ru.json`, the strings of `package.json` and the two
     `package.nls*.json` — two lists each; `test/vscode-integration.test.js`
@@ -1058,6 +1056,10 @@ The panel (`app.js`) does not know about VS Code settings; it sees them inside `
   clamped to the bound; both cases are written to the Output channel on a change.
 - `storage:set`: each of the five fields that differs from the configured one is written to `ConfigurationTarget.Global`;
   they are removed from `globalState.settings`. A field that failed to be written stays in `globalState`.
+  The page sends all five with every save, changed or not. Since v0.1.109 `wireMessages` keeps, per page, the values
+  that page last saw (`knownConfig`: its last `storage:get`, then its own successful writes), and a field equal to
+  that is not written: it is the page's old copy, and writing it would undo an edit of `settings.json` whose refresh
+  has not reached the page yet. A page that has not read the settings yet falls back to "differs from the configured".
 - `onDidChangeConfiguration` for any of the five keys → `__slRefresh { scope: "keys" }` to all pages. The path
   is the same as after saving the form: `loadKeys()`, `ensureFresh()` of the open session, the background pass.
 - The migration `migrateSettingsToConfig` in `host.ready` after `migrateHostOwned`: values from `globalState.settings`

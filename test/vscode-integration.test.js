@@ -250,6 +250,41 @@ test("settings: a value that could not be written stays in globalState, so nothi
   assert.ok(h.calls.output.some((l) => /could not write the setting sessionlens\.lint/.test(l)));
 });
 
+test("settings: a page that has not seen an edit of settings.json yet does not write the old value back (§11.15)", async () => {
+  const h = await hostOnly({ globalState: { settings: { profile: "qa-ts" } } });
+  h.setConfig("sessionlens.lint", false);
+  h.setConfig("sessionlens.maxCode", 90000);
+  const seen = (await h.wv.send("storage:get", { keys: ["settings"] })).settings;
+  // settings.json is edited; the refresh has not reached the page, which saves something else with what it saw
+  h.setConfig("sessionlens.lint", true);
+  h.setConfig("sessionlens.maxCode", undefined);
+  h.calls.configUpdates.length = 0;
+  await h.wv.send("storage:set", { values: { settings: Object.assign({}, seen, { profile: "qa-java" }) } });
+  assert.deepEqual(h.calls.configUpdates, []);
+  assert.equal(h.config.global["sessionlens.lint"], true);
+  assert.equal("sessionlens.maxCode" in h.config.global, false);
+  assert.deepEqual(h.context.globalState.data.settings, { profile: "qa-java" });
+  // what the page does change is written, and its own write counts as seen: a later edit of settings.json is not
+  // undone by the page's next save either
+  await h.wv.send("storage:set", { values: { settings: Object.assign({}, seen, { lint: true, maxCode: 70000 }) } });
+  assert.deepEqual(h.calls.configUpdates, [["sessionlens.maxCode", 70000, 1]]);
+  h.setConfig("sessionlens.maxCode", 80000);
+  h.calls.configUpdates.length = 0;
+  await h.wv.send("storage:set", { values: { settings: Object.assign({}, seen, { lint: true, maxCode: 70000, profile: "qa-ts" }) } });
+  assert.deepEqual(h.calls.configUpdates, []);
+  assert.equal(h.config.global["sessionlens.maxCode"], 80000);
+});
+
+test("settings: a value that could not be written is tried again on the next save, not taken as seen", async () => {
+  const h = await hostOnly({ vscode: { configFails: true }, globalState: { settings: { profile: "qa-ts" } } });
+  await h.wv.send("storage:get", { keys: ["settings"] });
+  for (let i = 0; i < 2; i++) {
+    await h.wv.send("storage:set", { values: { settings: { profile: "qa-ts", lint: false } } });
+    assert.deepEqual(h.context.globalState.data.settings, { profile: "qa-ts", lint: false }, `save ${i + 1}`);
+  }
+  assert.equal(h.calls.output.filter((l) => /could not write the setting sessionlens\.lint/.test(l)).length, 2);
+});
+
 test("settings: a workspace value is ignored (application scope)", async () => {
   const h = await hostOnly({
     vscode: { config: { workspace: { "sessionlens.lint": false, "sessionlens.minGapMs": 0 } } },

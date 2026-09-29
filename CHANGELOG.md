@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.109
+
+### Fixed
+- A setting changed in `settings.json` (or VS Code Settings) is no longer switched back by a SessionLens page that
+  saves something else before it has picked up the change. Only the values you change in the panel are written.
+
 ## 0.1.108
 
 ### Fixed
