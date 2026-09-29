@@ -1,7 +1,7 @@
 {
-  "displayName": "SessionLens for VSCode",
+  "displayName": "SessionLens",
   "description": "Ревью сессий Claude Code и Codex, которые пишут автотесты: тесты не запускались, проверки ослаблены, стоят паузы. Ваши вердикты становятся правилами для CLAUDE.md и AGENTS.md.",
-  "container.title": "SessionLens for VSCode",
+  "container.title": "SessionLens",
   "view.sessions": "Сессии",
   "view.panel": "Калибровка и настройки",
   "welcome.sessions": "Сессий пока нет. Загрузите транскрипт Claude Code или Codex, чтобы начать ревью.\n[Импортировать транскрипт…](command:sessionlens.importTranscript)",

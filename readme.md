@@ -1,4 +1,4 @@
-# SessionLens for VSCode
+# SessionLens
 
 SessionLens is built for QA automation (AQA) engineers who write autotests with Claude Code or Codex. It reviews what the agent actually did in a session: reads the transcript, flags where the agent went wrong, lets you record a verdict on each finding, and turns the findings you confirm into rules for `CLAUDE.md`, `AGENTS.md` (Codex's equivalent), or both.
 

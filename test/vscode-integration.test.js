@@ -82,8 +82,9 @@ test("package.json: every %key% is in package.nls.json and package.nls.ru.json; 
   for (const k of Object.keys(NLS)) assert.ok(used.has(k), `unused: ${k}`);
   assert.deepEqual(Object.keys(NLS_RU).sort(), Object.keys(NLS).sort());
   assert.equal(PKG.l10n, "./l10n");
-  // the English texts of 0.1.102 did not change
-  assert.equal(NLS.displayName, "SessionLens for VSCode");
+  // the English texts of 0.1.102 did not change, except the name (0.1.109: "SessionLens for VSCode" → "SessionLens")
+  assert.equal(NLS.displayName, "SessionLens");
+  assert.equal(NLS["container.title"], "SessionLens");
   assert.equal(NLS["view.panel"], "Calibration & Settings");
   assert.equal(NLS["cmd.focus"], "Open panel");
 });
