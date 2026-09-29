@@ -47,7 +47,8 @@ test("lint (Robot engine): empty test case → empty_test_case", () => {
 
 test("gherkin: scenario without Then → scenario_no_then", () => {
   const events = [ev(1, "features/login.feature", "Feature: Login\n  Scenario: valid user\n    Given a registered user\n    When she logs in\n")];
-  expectFinding(pipeline(Lens.gherkinChecks(events)), "scenario_no_then", "high", "gherkin");
+  const f = expectFinding(pipeline(Lens.gherkinChecks(events)), "scenario_no_then", "high", "gherkin");
+  assert.equal(f.source, "gherkin", "told apart from regex findings, which have no source (§11.9)");
 });
 
 test("spec: no specification → no_spec, sorted above ordinary high findings", () => {

@@ -1627,7 +1627,8 @@
           out.push(F("duplicate_step_text", "low", seq, T("duplicate_step_text_msg", { file, scenarios: names.slice(0, 4).join(", "), n: names.length })));
       }
     }
-    return out;
+    // its own source: these findings used to look like regex ones (no source at all), RULES-ARCHITECTURE §11.9
+    return out.map((f) => Object.assign(f, { source: "gherkin" }));
   }
   /* calib: { check: {ok, fp} } from reviewer verdicts. ≥10 verdicts and precision <30% → check suppressed; <50% → demoted to low. */
   /* Calibration verdict for one regex check from its reviewer stats {ok, fp}: with ≥10 verdicts, precision < 30%
