@@ -1129,9 +1129,12 @@ Before 0.1.104 everything without a pattern of its own was silently read with th
 requirement got a false `spec_uncovered` (High): qa-cypress, qa-detox, qa-mobile, qa-robot, qa-generic and
 Kotlin files.
 
-A known limitation (unchanged): in Java-like syntaxes and in Karate a test's body runs to the next test,
-so a comment above the second and later tests lands in the body of the previous one. A requirement ID is safer
-in the test's name or inside its body.
+A test's body runs to the next test's first line, so it also takes the comment right above the next test. Up to 0.1.107
+that comment stayed there: in the Java-like syntaxes, TypeScript, Go and Karate the second and later tests lost the ID
+in their comment, and a short first test could take it. Since 0.1.108 `extract()` hands the comment lines at the end of
+a body (`COMMENT_LINE`, the same prefixes as each pattern's leading group) to the next test when that test starts
+right after them. A comment separated from the test by a blank line still belongs to no test, as for the first test.
+Python needs none of this: its body is the indented lines only.
 
 `supports(language, file)` is the same decision as `true`/`false`; `Lens.profileInfo()` uses it (§8.4).
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.108
+
+### Fixed
+- Specification coverage: a requirement ID in the comment right above a test now links that test for the second and
+  later tests in a file too. Before, in Java, Kotlin, C#, TypeScript/JavaScript, Go and Karate the comment was read as
+  part of the test above it, so the test looked unlinked (`test_without_requirement`, and `spec_uncovered` for its
+  requirement), and a short test above could take the ID.
+
 ## 0.1.107
 
 ### Fixed
