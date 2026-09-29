@@ -220,7 +220,10 @@ function configuredSettings(logBad) {
 }
 /* storage:set: writes the configuration keys the panel changed. → the keys that could not be written (they stay in
    globalState so nothing is lost; the next save tries again). */
-async function writeConfigSettings(settings) {
+/* known: what the writing page last saw of these settings (its storage:get, or its own last write), updated here. The
+   page sends all five with every save, so a value it did not change is the one it saw: written back, it would undo an
+   edit of settings.json whose refresh has not reached the page yet. Such a value is not written. */
+async function writeConfigSettings(settings, known) {
   const failed = [];
   if (!settings || typeof settings !== "object") return failed;
   const cfg = vscode.workspace.getConfiguration(CONFIG);
@@ -228,6 +231,7 @@ async function writeConfigSettings(settings) {
     if (!(k in settings)) continue;
     const v = normConfigValue(k, settings[k]);
     if (v === undefined) continue; // not a usable value: dropped, the default applies
+    if (known && Object.prototype.hasOwnProperty.call(known, k) && known[k] === v) continue; // unchanged by the page
     let cur;
     try {
       const i = cfg.inspect(k);
@@ -235,13 +239,16 @@ async function writeConfigSettings(settings) {
     } catch {
       cur = undefined;
     }
-    if (cur === v) continue;
-    try {
-      await cfg.update(k, v, vscode.ConfigurationTarget.Global);
-    } catch (e) {
-      failed.push(k);
-      host.log(`could not write the setting sessionlens.${k}: ` + String((e && e.message) || e));
+    if (cur !== v) {
+      try {
+        await cfg.update(k, v, vscode.ConfigurationTarget.Global);
+      } catch (e) {
+        failed.push(k);
+        host.log(`could not write the setting sessionlens.${k}: ` + String((e && e.message) || e));
+        continue; // kept in globalState; the next save tries again
+      }
     }
+    if (known) known[k] = v;
   }
   return failed;
 }
@@ -515,6 +522,7 @@ function wireMessages(
   { onOpenSession, onClose, onReady } = /** @type {{ onOpenSession?: Function, onClose?: Function, onReady?: Function }} */ ({}),
 ) {
   const inflight = new Set(); // AbortControllers of this webview's pending ai:call requests
+  let knownConfig = null; // the five VS Code settings as this page last saw them (writeConfigSettings); null: not read yet
   const keyStatus = () => Secrets.keyStatus(host.secrets, context.globalState.get("settings"), LensAI.PROVIDERS);
   const vctx = {
     httpProviders: HTTP_PROVIDERS,
@@ -557,6 +565,7 @@ function wireMessages(
         if (msg.payload.keys.includes("settings")) {
           // the five VS Code settings (phase 6) over whatever the panel stored before
           const conf = configuredSettings(false);
+          knownConfig = Object.assign({}, conf);
           if (Object.keys(conf).length) out.settings = Object.assign({}, out.settings || {}, conf);
         }
         reply(out);
@@ -565,7 +574,7 @@ function wireMessages(
         const values = Object.assign({}, msg.payload.values);
         if (values.settings) values.settings = stripHostOwned(values.settings); // CLI paths and addresses: never from a webview
         // the five VS Code settings (phase 6) go to the configuration; only what could not be written stays here
-        if (values.settings) values.settings = withoutConfigSettings(values.settings, await writeConfigSettings(values.settings));
+        if (values.settings) values.settings = withoutConfigSettings(values.settings, await writeConfigSettings(values.settings, knownConfig));
         // A settings object that still carries a key (old data from before phase 2) has it moved to SecretStorage
         // before it is written. If that fails, it is written as is: losing the key would be worse.
         if (Secrets.hasSecretFields(values.settings)) {
