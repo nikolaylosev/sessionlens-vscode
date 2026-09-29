@@ -16,8 +16,7 @@ const CODE = {
   typescript:
     'describe("login", () => {\n  it("R1 logs in", () => {\n    cy.get("#ok").should("exist");\n  });\n  it("R2 shows an error", () => {\n    cy.get(".err").should("be.visible");\n  });\n});\n',
   python: 'def test_r1_login():\n    """R1"""\n    assert ok\n\ndef test_r2_error():\n    """R2"""\n    assert err\n',
-  // Java-like syntaxes: the ID inside the test. A comment above every test but the first ends up in the body of the
-  // test before it (as in 0.1.103; not changed in phase 7), so these fixtures do not rely on it.
+  // Java-like syntaxes: the ID inside the test (the ID in a comment above each test: see ABOVE below)
   java: "class LoginTest {\n  @Test\n  void logsIn() {\n    // R1\n    assertTrue(ok);\n  }\n  @Test\n  void showsError() {\n    // R2\n    assertTrue(err);\n  }\n}\n",
   kotlin:
     "class LoginTest {\n    @Test\n    fun `R1 user logs in`() {\n        assertTrue(ok)\n    }\n\n    @Test fun r2ShowsError() {\n        // R2\n        assertTrue(err)\n    }\n}\n",
@@ -109,6 +108,36 @@ test("Kotlin: plain names and names in backticks; Robot: [Documentation] links, 
     S.tests("*** Tasks ***\nR1 Pay Invoice\n    Log    x\n", "robot", "t.robot").map((t) => t.name),
     ["R1 Pay Invoice"],
   );
+});
+
+// the ID in a comment right above each test; before 0.1.108 the comment above the second test ended up in the body of
+// the first, so the second looked unlinked (and a short first test could take the second's ID too)
+const ABOVE = {
+  "A.java":
+    "class LoginTest {\n  // R1\n  @Test\n  void logsIn() {\n    assertTrue(ok);\n  }\n\n  /**\n   * R2: wrong password\n   */\n  @Test\n  void showsError() {\n    assertTrue(err);\n  }\n}\n",
+  "A.kt":
+    "class LoginTest {\n    // R1\n    @Test\n    fun logsIn() {\n        assertTrue(ok)\n    }\n\n    // R2\n    @Test\n    fun `shows an error`() {\n        assertTrue(err)\n    }\n}\n",
+  "a.feature": "Feature: login\n\n  # R1\n  Scenario: user logs in\n    Given url base\n\n  # R2\n  Scenario: wrong password\n    Given url base\n",
+  "a.ts": '// R1\ntest("logs in", async () => {\n  await ok();\n});\n\n// R2\ntest("shows an error", async () => {\n  await err();\n});\n',
+  "A.cs":
+    "public class LoginTests {\n  // R1\n  [Fact]\n  public void LogsIn() {\n    Assert.True(ok);\n  }\n\n  // R2\n  [Fact]\n  public void ShowsError() {\n    Assert.True(err);\n  }\n}\n",
+  "a_test.go": "// R1\nfunc TestLogin(t *testing.T) {\n  ok(t)\n}\n\n// R2\nfunc TestError(t *testing.T) {\n  err(t)\n}\n",
+};
+
+test("a comment right above a test links that test, for the second and later tests too (0.1.108)", () => {
+  for (const [file, code] of Object.entries(ABOVE)) {
+    const ts = S.tests(code, "any", file);
+    assert.deepEqual(
+      ts.map((t) => [...S.refs(t.header)]),
+      [["R1"], ["R2"]],
+      file,
+    );
+    assert.ok(!/R2/.test(ts[0].body), `${file}: the second test's comment is not in the first test's body`);
+    assert.deepEqual(findings("any", file, code), [], file);
+  }
+  // a blank line between the comment and the test still means the comment is not the test's (as for the first test)
+  const gap = "class T {\n  @Test\n  void a() {\n    x();\n    y();\n    z();\n  }\n  // R2\n\n  @Test\n  void b() {}\n}\n";
+  assert.deepEqual([...S.refs(S.tests(gap, "java", "T.java")[1].header)], []);
 });
 
 test("profiles that worked in 0.1.103 read their files exactly as before", () => {

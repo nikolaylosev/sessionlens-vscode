@@ -147,17 +147,45 @@
   function supports(language, file) {
     return extractorFor(language, file) !== null;
   }
+  /* A comment line, per extractor: the same prefixes the leading group of its EXTRACT pattern accepts. A body runs up
+     to the next test's first line, so it also takes the comment right above the next test; extract() hands that
+     comment back to the test it belongs to (python needs nothing: its body is the indented lines only). */
+  const COMMENT_LINE = {
+    typescript: /^[ \t]*\/\/[^\n]*$/,
+    java: /^[ \t]*(?:\/\/|\*)[^\n]*$/,
+    kotlin: /^[ \t]*(?:\/\/|\*|\/\*\*)[^\n]*$/,
+    csharp: /^[ \t]*\/\/[^\n]*$/,
+    karate: /^[ \t]*#[^\n]*$/,
+    go: /^[ \t]*\/\/[^\n]*$/,
+  };
+  // → [body without the comment lines at its end, those lines]
+  function splitTrailingComment(body, x) {
+    const rx = COMMENT_LINE[x];
+    if (!rx) return [body, ""];
+    const lines = body.split("\n");
+    const end = lines.length && lines[lines.length - 1] === "" ? lines.length - 1 : lines.length; // the final "\n"
+    let start = end;
+    while (start > 0 && rx.test(lines[start - 1])) start--;
+    if (start === end) return [body, ""];
+    return [lines.slice(0, start).join("\n") + (start ? "\n" : ""), lines.slice(start, end).join("\n") + "\n"];
+  }
   function extract(code, x) {
     if (x === "robot") return robotTests(code);
     const rx = EXTRACT[x];
     rx.lastIndex = 0;
     const out = [];
-    for (const m of code.matchAll(rx)) {
-      const name = (x === "typescript" ? m[3] : m[2]).replace(/^`|`$/g, ""),
-        body = x === "typescript" ? m[4] : m[3];
+    const ms = [...code.matchAll(rx)];
+    let carried = ""; // the comment above this test, found at the end of the previous test's body
+    ms.forEach((m, i) => {
+      const name = (x === "typescript" ? m[3] : m[2]).replace(/^`|`$/g, "");
+      let body = x === "typescript" ? m[4] : m[3];
+      const lead = carried + (m[1] || "");
+      carried = "";
+      const next = ms[i + 1];
+      if (next && next.index === m.index + m[0].length) [body, carried] = splitTrailingComment(body, x);
       const doc = (body.match(/^\s*(?:"""|''')([\s\S]*?)(?:"""|''')/) || [])[1] || "";
-      out.push({ name, header: (m[1] || "") + " " + name + " " + doc + " " + body.split("\n").slice(0, 3).join(" "), body });
-    }
+      out.push({ name, header: lead + " " + name + " " + doc + " " + body.split("\n").slice(0, 3).join(" "), body });
+    });
     return out;
   }
   function tests(code, language, file) {
