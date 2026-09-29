@@ -66,6 +66,26 @@ test("every registry entry still has a detector, and its sources are accurate", 
   }
 });
 
+/* Checks that both a regex and an engine emit, where the regex findings stay even when the engine ran: the two find
+   different things under one name, so dropping the regex ones would lose findings (RULES-ARCHITECTURE.md §6.3). */
+const KEEP_BOTH = {
+  weak_assert: "regex: toBeDefined()/toBeTruthy()/expect(true).toBe(true); engines: no expect at all, a useless .not, a malformed expect",
+};
+
+test("SUPERSEDES agrees with the registry's sources (§6.3, §11.5)", () => {
+  const both = Object.keys(CHECKS).filter((c) => CHECKS[c].sources.includes("regex") && CHECKS[c].sources.includes("lint"));
+  for (const c of LensLint.SUPERSEDES) {
+    assert.ok(both.includes(c), `${c} is in SUPERSEDES but not emitted by both a regex and an engine: its regex findings would be dropped for nothing`);
+  }
+  for (const c of Object.keys(KEEP_BOTH)) assert.ok(both.includes(c), `${c}: in KEEP_BOTH but not emitted by both a regex and an engine`);
+  const undecided = both.filter((c) => !LensLint.SUPERSEDES.has(c) && !KEEP_BOTH[c]);
+  assert.deepEqual(
+    undecided,
+    [],
+    "emitted by both a regex and an engine: add to SUPERSEDES in lint.js if the engine finds the same thing, or to KEEP_BOTH here with the reason",
+  );
+});
+
 test("ai group and AI_CATEGORIES agree both ways", () => {
   const inGroup = Object.keys(CHECKS)
     .filter((c) => CHECKS[c].group === "ai" && c !== "ai_other")

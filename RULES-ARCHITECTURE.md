@@ -499,11 +499,16 @@ const merge = (regexFindings, lintFindings) =>
   **not in `SUPERSEDES`**, because they **have no regex function anyway**
   (see §5.2) — there is nothing to duplicate, so they do not need to be struck out. But
   this means that `SUPERSEDES` and "the list of checks without a regex function" are
-  **two different lists not connected by code**, which must be kept
-  consistent by hand. If tomorrow someone adds a regex fallback for
-  `no_assertion_after_action` (say, a simple keyword heuristic
-  for profiles without an engine), it must be added to
-  `SUPERSEDES`, otherwise findings will be duplicated.
+  **two different lists not connected by code**. Since v0.1.108
+  `test/rules-consistency.test.js` ties them to the registry's `sources`: every
+  check in `SUPERSEDES` must be emitted by both a regex and an engine, and every
+  check emitted by both must be either in `SUPERSEDES` or in the test's
+  `KEEP_BOTH` with the reason. If tomorrow someone adds a regex fallback for
+  `no_assertion_after_action`, the test fails until that choice is made.
+- **`weak_assert` keeps both** (`KEEP_BOTH`): the regex finds `toBeDefined()`,
+  `toBeTruthy()` and `expect(true).toBe(true)`; the engines map other rules to
+  the same name (no `expect` at all, a useless `.not`, a malformed `expect`).
+  Superseding it would drop the regex findings the engines do not make.
 
 ---
 
@@ -694,7 +699,7 @@ The "Source" column says where a finding of this check name physically comes fro
 | assumption_instead_of_question | process | medium | regex (lens.js) |
 | user_frustration | process | medium | regex (lens.js) |
 | assert_weakened | code | high | regex (lens.js) |
-| weak_assert | code | high | regex (lens.js) |
+| weak_assert | code | high | regex (lens.js) + engines (ESLint×2), both kept (§6.3) |
 | sleep_or_skip_added | code | high | regex (lens.js) + superseded by engines (ESLint×3, Robot) |
 | hardcoded_date | code | medium | regex (lens.js) |
 | fragile_wait | code | medium | regex (lens.js) + superseded by engines (ESLint×2) |
@@ -811,9 +816,9 @@ Status at v0.1.98. Closed items are kept for the record.
 3. ~~A hard-coded list of groups in `renderRules()`~~ — **closed**:
    `GROUPS_ORDER`.
 4. ~~Hard-coded names in `sortFindings`~~ — **closed**: `sortPriority`.
-5. **Open.** `SUPERSEDES` and "the list of checks without a regex function" are two
-   independent lists (§6.3). The registry has `sources`, so the link can
-   be checked by a test in a later phase.
+5. ~~`SUPERSEDES` and "the list of checks without a regex function" are two
+   independent lists~~ — **closed in v0.1.108**: `test/rules-consistency.test.js`
+   checks `SUPERSEDES` against the registry's `sources` (§6.3).
 6. **Open.** Calibration covers only the regex checks (§5.2, §9).
 7. ~~`f.demoted` silently blocks a manual override~~ — **closed**: the ⓘ icon
    in the Rules panel (§4.4).
