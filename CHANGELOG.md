@@ -9,8 +9,9 @@
 ### Changed
 - Gherkin findings carry their own source: in exported verdicts (`verdicts.json`) they are `"gherkin"` instead of
   `"formal"`. The panel shows them as before.
-- The extension is called **SessionLens** (was "SessionLens for VSCode"), in the stores, the Extensions view and the
-  sidebar. Its ID, `nikolaylosev.sessionlens-vscode`, is the same: nothing to reinstall, no data moves.
+- New name: **SessionLens: AI Agent Test Review** in the stores and the Extensions view, and **SessionLens** in the
+  sidebar (was "SessionLens for VSCode"). Its ID, `nikolaylosev.sessionlens-vscode`, is the same: nothing to
+  reinstall, no data moves.
 - The extension's description in the Marketplace and Open VSX says what it finds, and its keywords now include
   Claude, Codex, Playwright, Cypress, test automation, CLAUDE.md and AGENTS.md.
 
