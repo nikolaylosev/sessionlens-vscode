@@ -1189,6 +1189,7 @@ built form.
 | `npm run build:check` | `media/app.js` is what `src/webview` builds to (§19) | yes |
 | `npm run check:vsix` | the files `vsce` would package match an allow-list (`scripts/check-vsix.js`): run-time files only, no sources, tests, configs, screenshots or source maps | yes |
 | `npm run test:integration` | a real VS Code (`@vscode/test-electron`, `test-integration/`): activation, commands, view order, the migrations of phases 4 and 6 on data written in the old formats, opening a session tab, refusals of `validate.js` | yes (Linux under `xvfb-run`) |
+| `node scripts/release-notes.js vX.Y.Z` | the tag is the version in `package.json` and `CHANGELOG.md` has its section; prints the release notes | the release workflow (a tag `v*`) |
 
 The integration tests reach the extension through `activate()`'s return value, which exists only when
 `SESSIONLENS_TEST=1` (`testApi()` in `extension.js`): the `globalState`, `runMigrations()` (the same chain `host.ready`

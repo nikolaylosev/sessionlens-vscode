@@ -1,0 +1,99 @@
+name: Release
+
+# Push a tag vX.Y.Z on a commit of main whose package.json has version X.Y.Z and whose CHANGELOG.md has a section for
+# it. The build job checks and packages; the other three publish the same .vsix, each on its own, so a failed one can
+# be re-run alone ("Re-run failed jobs") without publishing anything twice.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      vsix: ${{ steps.pack.outputs.vsix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: The tag is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
+      - name: The tag is the version and CHANGELOG.md has its section
+        run: node scripts/release-notes.js "$GITHUB_REF_NAME" > release-notes.md
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build:check
+      - run: npm test
+      - run: xvfb-run -a npm run test:integration
+      - run: npm run check:vsix
+      - name: Package
+        id: pack
+        run: |
+          f="sessionlens-vscode-${GITHUB_REF_NAME#v}.vsix"
+          npx --yes @vscode/vsce@3 package -o "$f"
+          echo "vsix=$f" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            ${{ steps.pack.outputs.vsix }}
+            release-notes.md
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: release
+      - name: Create the release, or update the file of an existing one
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VSIX: ${{ needs.build.outputs.vsix }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$VSIX" --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$GITHUB_REF_NAME" "$VSIX" -R "$GITHUB_REPOSITORY" --title "${GITHUB_REF_NAME#v}" --notes-file release-notes.md
+          fi
+
+  marketplace:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: release
+      - name: Publish to the Visual Studio Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSIX: ${{ needs.build.outputs.vsix }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then echo "::error::the repository secret VSCE_PAT is not set"; exit 1; fi
+          npx --yes @vscode/vsce@3 publish --packagePath "$VSIX" --skip-duplicate
+
+  open-vsx:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: release
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSIX: ${{ needs.build.outputs.vsix }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then echo "::error::the repository secret OVSX_PAT is not set"; exit 1; fi
+          npx --yes ovsx publish "$VSIX" --skip-duplicate
