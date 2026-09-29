@@ -56,7 +56,8 @@ function fakeVscode(opts = {}) {
   const configChanged = new EventEmitter();
   // setConfig(): a change made outside the extension (settings.json by hand, another window, Settings Sync)
   const fireConfig = (keys) => configChanged.fire({ affectsConfiguration: (sec) => keys.some((k) => k === sec || k.startsWith(sec + ".")) });
-  // vscode.l10n: English strings are the keys; with language "ru" the translations come from l10n/bundle.l10n.ru.json
+  // vscode.l10n: English strings are the keys; a bundle is read from l10n/ if there is one (none since 0.1.110: the
+  // extension no longer calls vscode.l10n)
   const language = opts.language || "en";
   let bundle = {};
   if (language !== "en") {

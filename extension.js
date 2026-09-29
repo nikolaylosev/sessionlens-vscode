@@ -88,32 +88,20 @@ function buildHtml(webview, extensionUri, initialSessionId) {
   return html;
 }
 
-/* Phase 6: the host's own strings follow the language of VS Code (vscode.env.language), not the panel's: English
-   strings are the keys, l10n/bundle.l10n.<lang>.json the translations (only ru so far). The panel itself stays in
-   English (media/i18n.js). vscode.l10n has no plurals, hence countLabel(). */
+/* The host's own strings are English whatever the language of VS Code, like the panel (0.1.110: the Russian
+   translation of the host was removed; half a Russian window around an English panel read worse than English).
+   t() fills {0}, {1}… as vscode.l10n.t did, so the calls stay as they are. */
 const fmt = (message, args) => String(message).replace(/\{(\d+)\}/g, (m, i) => (args[i] !== undefined ? String(args[i]) : m));
 function t(message, ...args) {
-  if (vscode.l10n && typeof vscode.l10n.t === "function") return vscode.l10n.t(message, ...args);
   return fmt(message, args);
 }
-function pluralCategory(n) {
-  try {
-    return new Intl.PluralRules((vscode.env && vscode.env.language) || "en").select(n);
-  } catch {
-    return n === 1 ? "one" : "other";
-  }
-}
-// Each form is a separate key; a language without a translation for "few"/"many" gets its "other" form.
 const COUNT_FORMS = {
-  finding: { one: "{0} finding", other: "{0} findings", few: "{0} findings (few)", many: "{0} findings (many)" },
-  verdict: { one: "{0} verdict", other: "{0} verdicts", few: "{0} verdicts (few)", many: "{0} verdicts (many)" },
+  finding: { one: "{0} finding", other: "{0} findings" },
+  verdict: { one: "{0} verdict", other: "{0} verdicts" },
 };
 function countLabel(n, kind) {
   const forms = COUNT_FORMS[kind];
-  const key = forms[pluralCategory(n)] || forms.other;
-  const out = t(key, n);
-  if (key !== forms.one && key !== forms.other && out === fmt(key, [n])) return t(forms.other, n);
-  return out;
+  return fmt(n === 1 ? forms.one : forms.other, [n]);
 }
 // what the tree, Open session… and a tab's title show for a session: its name, or the task id (Lens.displayName)
 function describeSession(s) {

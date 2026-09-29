@@ -17,5 +17,5 @@ npm test · npm run lint · npm run format:check · npm run typecheck · npm run
 - One topic per branch and pull request; formatting-only changes in their own commit.
 - For anything a user can notice: a line in CHANGELOG.md and a patch version bump in package.json.
 - Code, comments, docs and commit messages in English. Russian stays only in the recognition patterns
-  (lens.js, spec.js, ai.js) and the host translation files (*.ru.json).
+  (lens.js, spec.js, ai.js). The extension's UI is English only: no translation files (decided in 0.1.110).
 - PHASE-*.md and PR-*.md are local planning notes: never commit them.

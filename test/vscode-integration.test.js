@@ -1,5 +1,5 @@
 "use strict";
-/* Phase 6: VS Code integration. package.json contributions and their nls files, the host's l10n, the five settings
+/* Phase 6: VS Code integration. package.json contributions and their nls file, the host's strings, the five settings
    in VS Code Settings (overlay, write, migration, changes from outside), the palette and Sessions-tree commands, the
    page:ready / __slCommand channel, the tree's visibility, tab titles after a rename, and the Output channel. */
 const test = require("node:test");
@@ -16,9 +16,6 @@ const root = path.join(__dirname, "..");
 const readJson = (f) => JSON.parse(fs.readFileSync(path.join(root, f), "utf8"));
 const PKG = readJson("package.json");
 const NLS = readJson("package.nls.json");
-const NLS_RU = readJson("package.nls.ru.json");
-const RU = readJson("l10n/bundle.l10n.ru.json");
-const EXT_SRC = fs.readFileSync(path.join(root, "extension.js"), "utf8");
 const APP_SRC = fs.readFileSync(path.join(root, "media", "app.js"), "utf8");
 const FIVE = ["minGapMs", "maxCode", "verify", "lint", "rulesTarget"];
 
@@ -69,19 +66,23 @@ function recordPanels(vscode) {
   return panels;
 }
 
-// ---------- package.json, nls, l10n ----------
+// ---------- package.json, nls, the host's strings ----------
 
-test("package.json: every %key% is in package.nls.json and package.nls.ru.json; no key is unused", () => {
+test("package.json: every %key% is in package.nls.json; no key is unused; no translations (0.1.110)", () => {
   const text = JSON.stringify(PKG);
   const used = new Set([...text.matchAll(/"%([^%"]+)%"/g)].map((m) => m[1]));
   assert.ok(used.size > 20);
   for (const k of used) {
     assert.ok(k in NLS, `en: ${k}`);
-    assert.ok(k in NLS_RU, `ru: ${k}`);
   }
   for (const k of Object.keys(NLS)) assert.ok(used.has(k), `unused: ${k}`);
-  assert.deepEqual(Object.keys(NLS_RU).sort(), Object.keys(NLS).sort());
-  assert.equal(PKG.l10n, "./l10n");
+  // English only, whatever the language of VS Code: no package.nls.<lang>.json, no l10n bundle
+  assert.equal(PKG.l10n, undefined);
+  assert.deepEqual(
+    fs.readdirSync(root).filter((f) => /^package\.nls\..+\.json$/.test(f)),
+    [],
+  );
+  assert.equal(fs.existsSync(path.join(root, "l10n")), false);
   // the English texts of 0.1.102 did not change, except the name (0.1.109: "SessionLens for VSCode" → this one;
   // the Marketplace refused plain "SessionLens", which another extension has)
   assert.equal(NLS.displayName, "SessionLens: AI Agent Test Review");
@@ -101,7 +102,6 @@ test("package.json: activation, views, commands and menus", async () => {
   assert.equal(views[1].when, "sessionlens.activeTab == 'sessions' || !sessionlens.activeTab");
   assert.equal(PKG.contributes.viewsWelcome[0].view, "sessionlensSessionsTree");
   assert.match(NLS["welcome.sessions"], /\(command:sessionlens\.importTranscript\)/);
-  assert.match(NLS_RU["welcome.sessions"], /\(command:sessionlens\.importTranscript\)/);
   // every contributed command is registered by activate(), and nothing else is
   const h = await hostOnly();
   const contributed = PKG.contributes.commands.map((c) => c.command).sort();
@@ -117,11 +117,11 @@ test("package.json: activation, views, commands and menus", async () => {
     ["sessionlens.openSessionFromTree", "sessionlens.renameSession", "sessionlens.deleteSession"],
   );
   for (const m of ctx) assert.equal(m.when, "view == sessionlensSessionsTree && viewItem == sessionlensSession");
-  // in a checkout: .vscodeignore keeps the translations in the package; in the unpacked .vsix it is not there, but the
-  // translations themselves must be
+  // in a checkout: .vscodeignore keeps package.nls.json in the package; in the unpacked .vsix it is not there, but the
+  // file itself must be
   const ignoreFile = path.join(root, ".vscodeignore");
-  if (fs.existsSync(ignoreFile)) assert.ok(!/l10n|nls/.test(fs.readFileSync(ignoreFile, "utf8")), ".vscodeignore keeps the translations in the package");
-  for (const f of ["package.nls.json", "package.nls.ru.json", path.join("l10n", "bundle.l10n.ru.json")]) assert.ok(fs.existsSync(path.join(root, f)), f);
+  if (fs.existsSync(ignoreFile)) assert.ok(!/nls/.test(fs.readFileSync(ignoreFile, "utf8")), ".vscodeignore keeps package.nls.json in the package");
+  assert.ok(fs.existsSync(path.join(root, "package.nls.json")), "package.nls.json");
 });
 
 test("package.json: the five settings are application-scoped and their defaults are the panel's", () => {
@@ -136,24 +136,6 @@ test("package.json: the five settings are application-scoped and their defaults 
   assert.equal(props["sessionlens.rulesTarget"].default, "claude"); // app.js: rulesTarget || "claude"
   assert.deepEqual(props["sessionlens.rulesTarget"].enum, ["claude", "codex", "both"]);
   assert.equal(props["sessionlens.claudeCliPath"].scope, "machine");
-});
-
-test("l10n: every string extension.js passes to t() is in the Russian bundle, and nothing else is", () => {
-  // t("…") or t('…') (Prettier picks the quote that needs fewer escapes); the literal is evaluated as JavaScript
-  const keys = new Set([...EXT_SRC.matchAll(/\bt\(\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)].map((m) => Function(`return ${m[1]}`)()));
-  const forms = /COUNT_FORMS = \{[\s\S]*?\n\};/.exec(EXT_SRC)[0];
-  for (const m of forms.matchAll(/"(\{0\}[^"]*)"/g)) keys.add(m[1]);
-  assert.ok(keys.size > 20);
-  for (const k of keys) assert.ok(k in RU, `missing: ${k}`);
-  for (const k of Object.keys(RU)) assert.ok(keys.has(k), `unused: ${k}`);
-  for (const [k, v] of Object.entries(RU)) {
-    const ph = (s) =>
-      [...s.matchAll(/\{\d+\}/g)]
-        .map((m) => m[0])
-        .sort()
-        .join();
-    assert.equal(ph(v), ph(k), `placeholders of ${k}`);
-  }
 });
 
 async function treeDescriptions(language, counts) {
@@ -172,28 +154,23 @@ async function treeDescriptions(language, counts) {
   return Object.fromEntries(items.map((it) => [it.id, it.description]));
 }
 
-test("l10n: the tree's counts follow vscode.env.language, with Russian plural forms", async () => {
-  const ru = await treeDescriptions("ru", [1, 2, 5, 11, 21]);
-  assert.match(ru.c0, /· 1 находка · 1 вердикт ·/);
-  assert.match(ru.c1, /· 2 находки · 2 вердикта ·/);
-  assert.match(ru.c2, /· 5 находок · 5 вердиктов ·/);
-  assert.match(ru.c3, /· 11 находок · 11 вердиктов ·/);
-  assert.match(ru.c4, /· 21 находка · 21 вердикт ·/);
-  const en = await treeDescriptions("en", [1, 2]);
-  assert.match(en.c0, /^qa-ts · 1 finding · 1 verdict · 2026-09-01$/);
-  assert.match(en.c1, /^qa-ts · 2 findings · 2 verdicts · 2026-09-02$/);
-  // a language without a bundle falls back to English, and to "other" where English has no "few"/"many"
-  const uk = await treeDescriptions("uk", [2, 5]);
-  assert.match(uk.c0, /2 findings · 2 verdicts/);
-  assert.match(uk.c1, /5 findings · 5 verdicts/);
+test("host strings: English whatever the language of VS Code (0.1.110), counts in English plural forms", async () => {
+  for (const language of ["en", "ru", "uk"]) {
+    const d = await treeDescriptions(language, [1, 2, 5, 21]);
+    assert.match(d.c0, /^qa-ts · 1 finding · 1 verdict · 2026-09-01$/, language);
+    assert.match(d.c1, /^qa-ts · 2 findings · 2 verdicts · 2026-09-02$/, language);
+    assert.match(d.c2, /· 5 findings · 5 verdicts ·/, language);
+    assert.match(d.c3, /· 21 findings · 21 verdicts ·/, language);
+  }
 });
 
-test("l10n: host dialogs are in the language of VS Code, not the panel's", async () => {
+test("host strings: a dialog is in English with VS Code in Russian", async () => {
   const h = await hostOnly({ vscode: { language: "ru", warningAnswer: undefined } });
   const r = await h.wv.send("baseurl:set", { provider: "local", url: "http://127.0.0.1:9999", lang: "en" });
   assert.equal(r.cancelled, true);
-  assert.match(h.calls.warning[0][0], /^SessionLens: отправлять запросы .* на http:\/\/127\.0\.0\.1:9999\?$/);
-  assert.equal(h.calls.warning[0][2], "Использовать этот адрес");
+  assert.match(h.calls.warning[0][0], /^SessionLens: send .* requests to http:\/\/127\.0\.0\.1:9999\?$/);
+  assert.equal(h.calls.warning[0][2], "Use this address");
+  assert.ok(!/[А-Яа-яЁё]/.test(JSON.stringify(h.calls.warning)), "no Cyrillic in the dialog");
 });
 
 // ---------- settings ----------

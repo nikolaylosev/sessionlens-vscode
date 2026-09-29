@@ -2,7 +2,7 @@
   "name": "sessionlens-vscode",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.109",
+  "version": "0.1.110",
   "license": "MIT",
   "publisher": "nikolaylosev",
   "engines": {
@@ -233,7 +233,6 @@
     "prettier": "^3.9.9",
     "typescript": "^5.9.3"
   },
-  "l10n": "./l10n",
   "repository": {
     "type": "git",
     "url": "https://github.com/nikolaylosev/sessionlens-vscode.git"
