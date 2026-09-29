@@ -843,10 +843,9 @@ Status at v0.1.98. Closed items are kept for the record.
     they match.
 15. ~~A page that has not yet received the refresh after an edit of `settings.json` can write an old value back~~ —
     **closed in v0.1.109**: the host writes only the values the page changed (§16.1).
-16. **Open (since v0.1.103).** Host strings: the `t("…")` keys in `extension.js`
-    and `l10n/bundle.l10n.ru.json`, the strings of `package.json` and the two
-    `package.nls*.json` — two lists each; `test/vscode-integration.test.js`
-    checks that they match.
+16. ~~Host strings: the `t("…")` keys and the Russian bundle, `package.json` and two `package.nls*.json` are two
+    lists each~~ — **gone in v0.1.110**: the host translation was removed (§16.5); one `package.nls.json` is left,
+    and `test/vscode-integration.test.js` checks its keys against `package.json`.
 
 ## 12. How to add a new check safely (a practical checklist)
 
@@ -887,8 +886,7 @@ Status at v0.1.98. Closed items are kept for the record.
 | `store.js` | Sessions in files: writing through a temporary file and rename, `rev`, summaries (`*.meta.json`), reconciliation on open (see §15) |
 | `validate.js` | The trust boundary: the table of validators of webview → host messages, the storage key whitelist, checking skill paths (see §14) |
 | `extension.js` | The host: webview messages, VS Code settings (`CONFIG_SETTINGS`), palette and tree commands, the Sessions tree, the Output channel, host strings through `t()` (see §16) |
-| `package.nls.json`, `package.nls.ru.json` | The strings of `package.json`: commands, views, setting descriptions, the tree's welcome text |
-| `l10n/bundle.l10n.ru.json` | Russian host strings (`vscode.l10n`); the key is the English string |
+| `package.nls.json` | The strings of `package.json`: commands, views, setting descriptions, the tree's welcome text (English only) |
 
 ---
 
@@ -1107,10 +1105,13 @@ the tooltip. One function for the tab title (on opening, on restoring after a re
 
 ### 16.5 The host language
 
-Host strings are `t(message, ...args)` on top of `vscode.l10n.t`, the language is `vscode.env.language`; the translation is in
-`l10n/bundle.l10n.ru.json`. The strings of `package.json` are in `package.nls*.json`. Plurals are `countLabel()`:
-the category from `Intl.PluralRules`, a separate key per form (`{0} findings (few)` and so on); a language without a translation of the
-`few`/`many` forms gets `other`. The panel stays in English (`i18n.js`); the host no longer uses `payload.lang`.
+English, whatever the language of VS Code, like the panel (`i18n.js`). From v0.1.103 to v0.1.109 the host followed
+`vscode.env.language` and had a Russian translation (`l10n/bundle.l10n.ru.json`, `package.nls.ru.json`); v0.1.110
+removed it, because a Russian frame around the English panel mixed two languages in one view, and the panel is not
+translated (the owner's decision: rules for `CLAUDE.md` and model prompts are English anyway, and a verdict's key
+contains the finding's text). `t(message, ...args)` only fills `{0}`, `{1}`…; `countLabel()` has English forms. The
+strings of `package.json` are in `package.nls.json`. Russian recognition patterns in `lens.js`, `spec.js` and `ai.js`
+stay: they read what a person wrote in a transcript, they do not translate anything.
 
 ### 16.6 Output channel
 
