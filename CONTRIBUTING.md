@@ -1,4 +1,4 @@
-# Contributing to SessionLens for VSCode
+# Contributing to SessionLens
 
 ## Requirements
 

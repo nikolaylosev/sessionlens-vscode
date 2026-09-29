@@ -1,7 +1,7 @@
 {
-  "displayName": "SessionLens for VSCode",
-  "description": "Claude Code and Codex autotest session review for AQA engineers: findings, verdicts, rules for CLAUDE.md/AGENTS.md.",
-  "container.title": "SessionLens for VSCode",
+  "displayName": "SessionLens",
+  "description": "Review Claude Code and Codex sessions that write autotests: tests never run, weakened asserts, sleeps. Turn your verdicts into rules for CLAUDE.md and AGENTS.md.",
+  "container.title": "SessionLens",
   "view.sessions": "Sessions",
   "view.panel": "Calibration & Settings",
   "welcome.sessions": "No sessions yet. Load a Claude Code or Codex transcript to review it.\n[Import transcript…](command:sessionlens.importTranscript)",
