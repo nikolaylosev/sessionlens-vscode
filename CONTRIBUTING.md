@@ -53,3 +53,20 @@ a regression.
 - One topic per pull request; keep formatting-only changes in their own commit.
 - Describe what changed, what was tested and what was not (for example, manual checks in a real VS Code).
 - Add a line to `CHANGELOG.md` for anything a user can notice.
+
+## Releases
+
+A release is a tag. On `main`, with `package.json` at the new version and a `## <version>` section in `CHANGELOG.md`:
+
+```
+git tag v0.1.109
+git push origin v0.1.109
+```
+
+`.github/workflows/release.yml` then checks that the tag is on `main` and matches the version, runs every check,
+packages the `.vsix`, and in separate jobs creates the GitHub release (the changelog section plus the request to report
+false findings, from `scripts/release-notes.js`), publishes to the Visual Studio Marketplace and publishes to Open VSX.
+A failed job can be re-run on its own; publishing a version that is already there is skipped.
+
+The two stores need repository secrets: `VSCE_PAT` (an Azure DevOps token with the Marketplace › Manage scope) and
+`OVSX_PAT` (an Open VSX access token).
