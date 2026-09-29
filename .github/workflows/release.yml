@@ -26,7 +26,7 @@ jobs:
       - name: The tag is on main
         run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
       - name: The tag is the version and CHANGELOG.md has its section
-        run: node scripts/release-notes.js "$GITHUB_REF_NAME" > release-notes.md
+        run: node scripts/release-notes.js "$GITHUB_REF_NAME" > /dev/null
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
@@ -41,6 +41,9 @@ jobs:
           f="sessionlens-vscode-${GITHUB_REF_NAME#v}.vsix"
           npx --yes @vscode/vsce@3 package -o "$f"
           echo "vsix=$f" >> "$GITHUB_OUTPUT"
+      # written only now: a file in the folder before packaging would go into the .vsix (check:vsix refuses it)
+      - name: Release notes
+        run: node scripts/release-notes.js "$GITHUB_REF_NAME" > release-notes.md
       - uses: actions/upload-artifact@v7
         with:
           name: release
