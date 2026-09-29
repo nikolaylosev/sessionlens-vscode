@@ -206,15 +206,20 @@
   },
   "icon": "media/icon.png",
   "keywords": [
-    "llm",
-    "ai agent",
     "claude code",
-    "session review",
+    "claude",
+    "codex",
+    "ai agent",
+    "llm",
+    "test automation",
+    "playwright",
+    "cypress",
     "qa",
-    "api testing",
+    "testing",
     "code review",
-    "rest api",
-    "testing"
+    "session review",
+    "CLAUDE.md",
+    "AGENTS.md"
   ],
   "devDependencies": {
     "@eslint/js": "^9.39.5",
