@@ -6,6 +6,10 @@
 - A setting changed in `settings.json` (or VS Code Settings) is no longer switched back by a SessionLens page that
   saves something else before it has picked up the change. Only the values you change in the panel are written.
 
+### Changed
+- Gherkin findings carry their own source: in exported verdicts (`verdicts.json`) they are `"gherkin"` instead of
+  `"formal"`. The panel shows them as before.
+
 ## 0.1.108
 
 ### Fixed
