@@ -28,6 +28,13 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 
 ## Quick start
 
+**Just want to see it first?** Open the panel and press **Try a demo session** on the Sessions tab. It opens a made-up
+session in which an agent writes Playwright tests for a login page and makes the usual mistakes: it reads product
+code before the plan, relaxes an assertion right after a failure instead of finding out why, adds a fixed wait and
+retries, skips one requirement, and reports that all tests pass without running them again. Try **Confirm** on a
+finding and see the rule it proposes on the **Calibration** tab. The demo's verdicts do not count for calibration;
+delete the session when you are done.
+
 1. **Open the panel.** Click the SessionLens icon in the Activity Bar, or run **SessionLens: Open panel** from the Command Palette. The sidebar has two parts: the **Calibration & Settings** panel with its own tabs on top, and a native **Sessions** list under it (hidden while another tab of the panel is open). If you moved these parts yourself earlier, VS Code keeps your order; drag a part by its title to change it. Most actions are also in the Command Palette, see [Commands and VS Code settings](#commands-and-vs-code-settings).
 2. **Load a session.** On the **Sessions** tab of Calibration & Settings, pick a **Profile** that matches the code the agent was writing (for example `qa-ts`), then drop a transcript onto the panel, choose a file, or paste the text. It then shows up in the **Sessions** list below the panel.
 3. **Open it.** Click the session in the **Sessions** list. It opens in its own editor tab, so several sessions can be open side by side, and closing one is just closing that tab.

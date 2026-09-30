@@ -67,6 +67,8 @@ export function initSessions() {
       $("#paste-row").hidden = true;
     }
   });
+  $("#demo-go").title = T("demo_try_title");
+  $("#demo-go").addEventListener("click", () => openDemo());
   $("#profile").addEventListener("change", async (e) => {
     state.settings.profile = e.target.value;
     renderProfileInfo();
@@ -196,6 +198,38 @@ export async function importText(text, name) {
     window.__slOpenSession(last);
     show("sessions");
   }
+}
+
+/* "Try a demo session": the made-up session in media/demo-session.js (LensDemo), imported and analyzed like a file the
+   person picks, with its own profile and specification. It has a fixed id, so a second click opens the one already
+   there instead of adding a copy; deleted, it can be tried again. Its verdicts do not count for calibration
+   (calibStats, profileVerdicts in store.js): they are about a made-up session, not the person's own. */
+export async function openDemo() {
+  const D = LensDemo;
+  if (!state.index[D.ID]) {
+    const cfg = Lens.profile(D.PROFILE);
+    await needEngine(cfg.profile);
+    const s = {
+      id: D.ID,
+      name: D.NAME,
+      nameSet: true,
+      task: "",
+      profile: cfg.profile,
+      created: new Date().toISOString(),
+      events: Lens.importAny(D.TRANSCRIPT, cfg),
+      findings: [],
+      verdicts: {},
+      spec: D.SPEC,
+      dropped: [],
+      source_text: D.TRANSCRIPT,
+      seg: null,
+    };
+    analyze(s, "import");
+    await putNew(s);
+  }
+  state.current = D.ID;
+  window.__slOpenSession(D.ID);
+  show("sessions");
 }
 
 export function profileSummary(info) {

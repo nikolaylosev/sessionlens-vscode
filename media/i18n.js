@@ -368,6 +368,8 @@
       reviewed_dot: "✓",
       pick_file: "Choose file",
       paste_toggle: "Paste text",
+      demo_try: "Try a demo session",
+      demo_try_title: "Open a made-up session of an agent writing Playwright tests, to see what SessionLens finds",
       profile: "Profile",
       paste_ph: "Paste the session text and press “Analyse”",
       paste_name_ph: "name, e.g. AUTH-142 Ivan",

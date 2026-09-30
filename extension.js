@@ -13,7 +13,19 @@ const V = require("./validate.js");
 const { createStore } = require("./store.js");
 
 // The page's own scripts (after vscode-bridge.js, inserted separately below).
-const SCRIPT_FILES = ["lint-robot.js", "checks.js", "lens.js", "lint.js", "rules.js", "spec.js", "ai.js", "segment.js", "dialogs.js", "app.js"];
+const SCRIPT_FILES = [
+  "lint-robot.js",
+  "checks.js",
+  "lens.js",
+  "lint.js",
+  "rules.js",
+  "spec.js",
+  "ai.js",
+  "segment.js",
+  "dialogs.js",
+  "demo-session.js",
+  "app.js",
+];
 // Phase 5: the lint engines are not <script>s of the page. lint.js (LensLint.ensure) loads the ones a session's language
 // needs, when it is analyzed; their webview URIs travel as one data-engines attribute (JSON), read by vscode-bridge.js.
 // Must list every file of lint.js's ENGINE_FILES (a test checks it).

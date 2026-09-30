@@ -193,6 +193,10 @@ export function onGenChanged() {
 }
 
 // ---------- calibration stats ----------
+// the demo session (LensDemo) is made up: its verdicts say nothing about how precise a check is on the person's own
+// sessions, so they count neither here nor for a profile's validation below. Its confirmed findings still propose
+// rules on the Calibration tab, which is what the demo shows.
+const isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
 // from the summaries: the same numbers 0.1.100 counted over every session's findings and verdicts
 export function calibStats() {
   const st = {};
@@ -202,18 +206,19 @@ export function calibStats() {
     if (v) x[v.v]++;
   };
   for (const m of metas())
-    for (const [check, c] of Object.entries(m.checkStats || {})) {
-      const x = (st[check] = st[check] || { total: 0, ok: 0, fp: 0 });
-      x.total += c.total;
-      x.ok += c.ok;
-      x.fp += c.fp;
-    }
+    if (!isDemo(m))
+      for (const [check, c] of Object.entries(m.checkStats || {})) {
+        const x = (st[check] = st[check] || { total: 0, ok: 0, fp: 0 });
+        x.total += c.total;
+        x.ok += c.ok;
+        x.fp += c.fp;
+      }
   for (const f of state.external) add(f.check, f.verdict ? { v: f.verdict } : null);
   return st;
 }
 
 export function profileVerdicts(profile) {
   let n = 0;
-  for (const m of metas()) if (m.profile === profile) n += m.verdictsCount || 0;
+  for (const m of metas()) if (m.profile === profile && !isDemo(m)) n += m.verdictsCount || 0;
   return n;
 }
