@@ -509,8 +509,8 @@ first (**Calibration → Export verdicts.json**, **Rules → Export rules.json**
 ## Found a false finding?
 
 If SessionLens flags something that is not a mistake, or misses one it should catch, please
-[open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues/new) with a short, anonymized piece of the
-session that shows it. Every such report helps tune the checks.
+[report it with the false finding form](https://github.com/nikolaylosev/sessionlens-vscode/issues/new?template=false-finding.yml)
+and add a short, anonymized piece of the session that shows it. Every such report helps tune the checks.
 
 - **Say** which profile the session used, the check's name as the finding shows it, and the SessionLens version.
 - **Paste** only the few lines the finding is about: the agent's step or the test code, not the whole transcript.

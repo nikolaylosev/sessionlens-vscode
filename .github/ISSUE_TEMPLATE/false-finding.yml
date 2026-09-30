@@ -1,0 +1,88 @@
+name: False or missed finding
+description: SessionLens flagged something that is not a mistake, or missed one it should catch.
+title: "False finding: <check name>"
+labels: ["false finding"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Every report like this helps tune the checks.
+
+        **Issues are public.** Before you paste anything, remove file paths and user names, host names and URLs,
+        tokens, keys and passwords, company and product names, and customer data. Replace them with placeholders
+        such as `<path>` or `<token>`.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What went wrong
+      options:
+        - SessionLens flagged something that is not a mistake
+        - SessionLens missed a mistake it should catch
+        - The finding is right, but its severity or wording is wrong
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Profile
+      description: The profile the session was analysed with (shown in the session's header).
+      options:
+        - qa-ts
+        - qa-cypress
+        - qa-detox
+        - qa-python
+        - qa-java
+        - qa-c#
+        - qa-api
+        - qa-mobile
+        - qa-robot
+        - qa-generic
+    validations:
+      required: true
+  - type: input
+    id: check
+    attributes:
+      label: Check
+      description: The check's name as the finding shows it under the message. For a missed mistake, the check you expected, if you know it.
+      placeholder: pass_claim_without_run
+  - type: dropdown
+    id: source
+    attributes:
+      label: Tag next to the severity
+      description: The small tag after HIGH, MEDIUM or LOW, if the finding has one.
+      options:
+        - No tag
+        - eslint (static analysis)
+        - spec
+        - model
+        - Not sure, or a missed mistake
+  - type: input
+    id: version
+    attributes:
+      label: SessionLens version
+      description: In the Extensions view, next to SessionLens.
+      placeholder: 0.1.110
+    validations:
+      required: true
+  - type: textarea
+    id: fragment
+    attributes:
+      label: Fragment
+      description: Only the few lines the finding is about, anonymized. The agent's step or the test code, not the whole transcript.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: Why this is not a mistake, or what SessionLens should have said.
+    validations:
+      required: true
+  - type: checkboxes
+    id: private
+    attributes:
+      label: Before you post
+      options:
+        - label: I removed paths, names, hosts, URLs, secrets and customer data from what I pasted.
+          required: true
