@@ -106,3 +106,25 @@ test("the demo does not count for calibration: its checks are not in the precisi
   assert.deepEqual(rows, []);
   sb.close();
 });
+
+test("⚙ Settings → Hide the Try a demo session button: hides it at once, is saved, and brings it back when unticked", async () => {
+  const sb = await demoPage();
+  const btn = () => sb.document.querySelector("#demo-go");
+  assert.equal(btn().hidden, false, "shown by default");
+  click(sb, '.tab[data-view="settings"]');
+  await sb.idle();
+  const box = sb.document.querySelector("#s-hide-demo");
+  assert.equal(box.checked, false);
+  const toggle = async () => {
+    box.checked = !box.checked;
+    box.dispatchEvent(new sb.window.Event("change", { bubbles: true }));
+    await sb.idle();
+  };
+  await toggle();
+  assert.equal(btn().hidden, true);
+  const saved = sb.sent.filter((m) => m.type === "storage:set" && m.payload.values.settings).pop();
+  assert.equal(saved.payload.values.settings.hideDemo, true);
+  await toggle();
+  assert.equal(btn().hidden, false);
+  sb.close();
+});

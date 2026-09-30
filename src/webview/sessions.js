@@ -300,5 +300,6 @@ export function renderList() {
       `<option value="${esc(p)}" ${p === state.settings.profile ? "selected" : ""}>${esc(p)} — ${esc(T("profile_desc_" + p))}${!Lens.isValidated(p, profileVerdicts(p)) ? T("unverified_opt") : ""}</option>`,
   ).join("");
   renderProfileInfo();
+  $("#demo-go").hidden = state.settings.hideDemo === true; // ⚙ Settings → Hide the "Try a demo session" button
   $("#session-list").innerHTML = ""; // sessions are listed and opened in the native Sessions tree (extension.js)
 }

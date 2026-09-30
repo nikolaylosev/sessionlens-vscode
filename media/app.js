@@ -1093,6 +1093,11 @@ ${en.raw}`).join("\n\n\n");
       state.settings.routesOpen = $("#s-routes-d").open;
       await save();
     });
+    $("#s-hide-demo").addEventListener("change", async () => {
+      state.settings.hideDemo = $("#s-hide-demo").checked;
+      await save();
+      renderList();
+    });
     $("#s-debug-model").addEventListener("change", async () => {
       state.settings.debugModel = $("#s-debug-model").checked;
       await save();
@@ -1112,7 +1117,18 @@ ${en.raw}`).join("\n\n\n");
       $("#s-status").textContent = T("saved");
       setTimeout(() => $("#s-status").textContent = "", 1500);
     });
-    SETTINGS_DEFAULTS = { provider: "", apiKey: "", model: "", baseUrl: "", minGapMs: 6500, maxCode: 4e4, verify: true, lint: true, debugModel: false };
+    SETTINGS_DEFAULTS = {
+      provider: "",
+      apiKey: "",
+      model: "",
+      baseUrl: "",
+      minGapMs: 6500,
+      maxCode: 4e4,
+      verify: true,
+      lint: true,
+      debugModel: false,
+      hideDemo: false
+    };
     $("#s-reset-settings").addEventListener("click", async () => {
       if (!await confirmDialog(T("s_reset_settings_confirm"))) return;
       const st = state.settings, lintChanged = st.lint !== SETTINGS_DEFAULTS.lint;
@@ -1312,6 +1328,7 @@ ${en.raw}`).join("\n\n\n");
     $("#s-gap").value = Number.isFinite(state.settings.minGapMs) ? state.settings.minGapMs : 6500;
     $("#s-verify").checked = state.settings.verify !== false;
     $("#s-lint").checked = state.settings.lint !== false;
+    $("#s-hide-demo").checked = state.settings.hideDemo === true;
     $("#s-debug-model").checked = state.settings.debugModel === true;
     $("#s-addmodel-d").open = state.settings.addModelOpen === true;
     $("#s-routes-d").open = state.settings.routesOpen === true;
@@ -1554,6 +1571,7 @@ ${en.raw}`).join("\n\n\n");
       (p) => `<option value="${esc(p)}" ${p === state.settings.profile ? "selected" : ""}>${esc(p)} — ${esc(T("profile_desc_" + p))}${!Lens.isValidated(p, profileVerdicts(p)) ? T("unverified_opt") : ""}</option>`
     ).join("");
     renderProfileInfo();
+    $("#demo-go").hidden = state.settings.hideDemo === true;
     $("#session-list").innerHTML = "";
   }
 
