@@ -196,7 +196,7 @@ test('analyzed while the engine was loading: saved as pending with gen "", analy
   assert.equal(done.session.lintPending, undefined);
   assert.match(done.analyzedGen, /^[0-9a-f]{8}$/);
   assert.ok(done.session.findings.some((f) => f.source === "lint"));
-  assert.match(tab.document.querySelector("#lint-note").textContent, /1 findings/);
+  assert.match(tab.document.querySelector("#lint-note").textContent, /ESLint: 1 finding in/);
 
   tab.window.dispatchEvent(new tab.window.CustomEvent("sl:engine-ready", { detail: { language: "java" } }));
   await wait(100);

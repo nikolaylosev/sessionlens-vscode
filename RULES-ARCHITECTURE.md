@@ -71,6 +71,11 @@ write `console.warn` once per name.
 `I18N.langs`, so if another language is added, missing keys will be caught
 automatically.
 
+**Counts.** A word after a number is written `{n} {n|session|sessions}`: `I18N.t()`
+picks the first form when `vars.n` is 1 and the second otherwise, before `{n}` is
+filled in (0.1.111). `test/i18n-plural.test.js` fails on a plain `{n} sessions`.
+Finding messages are not changed this way: a verdict's key includes the message.
+
 ## 2. Anatomy of a finding
 
 A finding is a flat object. The general shape (the union of all sources):

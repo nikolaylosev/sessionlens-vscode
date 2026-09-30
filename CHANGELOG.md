@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.111
+
+### Fixed
+- The panel says "1 confirmed in 1 session", "1 high finding has no verdict", "(1 requirement)" and so on: with a count
+  of one, the rules on the Calibration tab, the effect of a moved rule, the specification, ESLint and model status
+  lines, the PR report and a few messages used the plural.
+
 ## 0.1.110
 
 ### Added
