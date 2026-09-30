@@ -600,10 +600,10 @@
       cal_raw_clear_confirm: "Delete the saved requests and replies?",
       s_reset_settings: "Reset settings",
       s_reset_settings_sub:
-        "Puts every setting on this page back to its default: theme, language, all configured models and their keys, the model per request, the Claude Code command, request pacing, code limit, ESLint, verification and the debug model toggle. Your sessions, verdicts, rules and prompts are not touched.",
+        "Puts every setting on this page back to its default: theme, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the “Try a demo session” button checkbox. Your sessions, verdicts, rules and prompts are not touched, nor are the Claude Code and Codex CLI paths (VS Code settings).",
       s_reset_settings_btn: "Reset settings to defaults",
       s_reset_settings_confirm:
-        "Reset every setting on this page to its default? Saved API keys, models, per-request models and the Claude Code command will be removed. Sessions, verdicts, rules and prompts are kept.",
+        "Reset every setting on this page to its default? Saved API keys, models and per-request models will be removed. Sessions, verdicts, rules and prompts are kept.",
       s_reset_settings_done: "Settings reset to defaults.",
       err_empty_reply: "Empty Gemini reply",
       seg_err_empty: "the model returned an empty segmentation",
