@@ -58,7 +58,11 @@
   // tests in code: [{name, header, body, file}] — header = name + docstring/comment/first lines where IDs are referenced
   const EXTRACT = {
     python: /(?:^|\n)((?:[ \t]*#[^\n]*\n)*)[ \t]*(?:async\s+)?def\s+(test\w*)\s*\([^)]*\)[^\n]*:\s*\n((?:[ \t]+[^\n]*\n?)*)/g,
-    typescript: /((?:[ \t]*\/\/[^\n]*\n)*)[ \t]*(?:it|test)(?:\.\w+)?\s*\(\s*(['"`])([^'"`]+)\2[^\n]*\n((?:(?![ \t]*(?:it|test)\s*\()[^\n]*\n?)*)/g,
+    // it/test with a modifier that still makes a test (only, skip, fixme…), not test.describe/step/beforeEach…; not the
+    // end of another word (submit("…")). A body stops at the next test or a describe/context block (0.1.110: a describe
+    // block was a test named after it, and a test.skip(…) after a test was swallowed by that test's body).
+    typescript:
+      /((?:[ \t]*\/\/[^\n]*\n)*)[ \t]*(?<![\w.$])(?:it|test)(?:\.(?:only|skip|fixme|fail|slow|concurrent|todo))?\s*\(\s*(['"`])([^'"`]+)\2[^\n]*\n((?:(?![ \t]*(?:(?:it|test)(?:\.(?:only|skip|fixme|fail|slow|concurrent|todo))?|(?:test\.)?describe(?:\.\w+)?|context)\s*\()[^\n]*\n?)*)/g,
     java: /((?:[ \t]*(?:\/\/|\*)[^\n]*\n)*)[ \t]*@Test[^\n]*\n\s*(?:public\s+)?void\s+(\w+)\s*\([^)]*\)[^\n]*\n((?:(?![ \t]*@Test)[^\n]*\n?)*)/g,
     csharp:
       /((?:[ \t]*\/\/[^\n]*\n)*)[ \t]*\[(?:Test|Fact|Theory|TestMethod|TestCase)\b[^\n]*\n(?:[ \t]*\[[^\n]*\n)*\s*(?:public\s+)?(?:async\s+)?(?:Task|void)\s+(\w+)\s*\([^)]*\)[^\n]*\n((?:(?![ \t]*\[(?:Test|Fact|Theory|TestMethod|TestCase)\b)[^\n]*\n?)*)/g,

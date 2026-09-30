@@ -8,6 +8,12 @@
   same session. Its verdicts do not count for calibration. ⚙ Settings → **Hide the "Try a demo session" button**
   removes the button once you no longer need it.
 
+### Fixed
+- Specification coverage in TypeScript/JavaScript (Playwright, Jest, Cypress, Detox): a `test.describe(…)` block is no
+  longer taken for a test, which gave a false "test without requirement" in nearly every Playwright file; `test.step`
+  and hooks are not tests either; and a `test.skip(…)` / `test.only(…)` right after another test is found as a test of
+  its own instead of being read as part of the one above.
+
 ### Changed
 - SessionLens is in English whatever the language of VS Code. With VS Code in Russian, the commands, the sidebar
   titles, the Sessions list and the dialogs used to be in Russian around the English panel; now everything is in

@@ -140,6 +140,47 @@ test("a comment right above a test links that test, for the second and later tes
   assert.deepEqual([...S.refs(S.tests(gap, "java", "T.java")[1].header)], []);
 });
 
+test("TS/JS: describe, step and hooks are not tests; test.skip after a test is a test of its own (0.1.110)", () => {
+  const playwright = [
+    'import { test, expect } from "@playwright/test";',
+    "",
+    'test.describe("login", () => {',
+    "  test.beforeEach(async ({ page }) => {",
+    '    await page.goto("/login");',
+    "  });",
+    "",
+    "  // R1",
+    '  test("logs in", async ({ page }) => {',
+    '    await test.step("fill the form", async () => {',
+    '      await submit("form");',
+    "    });",
+    "    await expect(page).toHaveURL(/dashboard/);",
+    "  });",
+    "",
+    '  test.skip("R2 shows an error", async ({ page }) => {',
+    '    await edit("x");',
+    "  });",
+    "});",
+    "",
+  ].join("\n");
+  const ts = S.tests(playwright, "typescript", "tests/login.spec.ts");
+  assert.deepEqual(
+    ts.map((t) => [t.name, [...S.refs(t.header)]]),
+    [
+      ["logs in", ["R1"]],
+      ["R2 shows an error", ["R2"]],
+    ],
+  );
+  assert.deepEqual(findings("typescript", "tests/login.spec.ts", playwright), []);
+  const cypress =
+    'describe("login", () => {\n  context("wrong password", () => {\n    it("R2 shows an error", () => {\n      cy.get(".err").should("be.visible");\n    });\n  });\n  it.only("R1 logs in", () => {\n    cy.url().should("include", "/dashboard");\n  });\n});\n';
+  assert.deepEqual(
+    S.tests(cypress, "cypress", "cypress/e2e/login.cy.ts").map((t) => t.name),
+    ["R2 shows an error", "R1 logs in"],
+  );
+  assert.deepEqual(findings("cypress", "cypress/e2e/login.cy.ts", cypress), []);
+});
+
 test("profiles that worked in 0.1.103 read their files exactly as before", () => {
   const same = [
     ["typescript", "a.ts", CODE.typescript],
