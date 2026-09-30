@@ -2,6 +2,12 @@
 
 ## 0.1.110
 
+### Added
+- **Try a demo session** on the Sessions tab: a made-up session of an agent writing Playwright tests for a login page,
+  with its specification, to see what SessionLens finds without a session of your own. Pressed again, it opens the
+  same session. Its verdicts do not count for calibration. ⚙ Settings → **Hide the "Try a demo session" button**
+  removes the button once you no longer need it.
+
 ### Changed
 - SessionLens is in English whatever the language of VS Code. With VS Code in Russian, the commands, the sidebar
   titles, the Sessions list and the dialogs used to be in Russian around the English panel; now everything is in

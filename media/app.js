@@ -1093,6 +1093,11 @@ ${en.raw}`).join("\n\n\n");
       state.settings.routesOpen = $("#s-routes-d").open;
       await save();
     });
+    $("#s-hide-demo").addEventListener("change", async () => {
+      state.settings.hideDemo = $("#s-hide-demo").checked;
+      await save();
+      renderList();
+    });
     $("#s-debug-model").addEventListener("change", async () => {
       state.settings.debugModel = $("#s-debug-model").checked;
       await save();
@@ -1112,7 +1117,18 @@ ${en.raw}`).join("\n\n\n");
       $("#s-status").textContent = T("saved");
       setTimeout(() => $("#s-status").textContent = "", 1500);
     });
-    SETTINGS_DEFAULTS = { provider: "", apiKey: "", model: "", baseUrl: "", minGapMs: 6500, maxCode: 4e4, verify: true, lint: true, debugModel: false };
+    SETTINGS_DEFAULTS = {
+      provider: "",
+      apiKey: "",
+      model: "",
+      baseUrl: "",
+      minGapMs: 6500,
+      maxCode: 4e4,
+      verify: true,
+      lint: true,
+      debugModel: false,
+      hideDemo: false
+    };
     $("#s-reset-settings").addEventListener("click", async () => {
       if (!await confirmDialog(T("s_reset_settings_confirm"))) return;
       const st = state.settings, lintChanged = st.lint !== SETTINGS_DEFAULTS.lint;
@@ -1312,6 +1328,7 @@ ${en.raw}`).join("\n\n\n");
     $("#s-gap").value = Number.isFinite(state.settings.minGapMs) ? state.settings.minGapMs : 6500;
     $("#s-verify").checked = state.settings.verify !== false;
     $("#s-lint").checked = state.settings.lint !== false;
+    $("#s-hide-demo").checked = state.settings.hideDemo === true;
     $("#s-debug-model").checked = state.settings.debugModel === true;
     $("#s-addmodel-d").open = state.settings.addModelOpen === true;
     $("#s-routes-d").open = state.settings.routesOpen === true;
@@ -1371,6 +1388,8 @@ ${en.raw}`).join("\n\n\n");
         $("#paste-row").hidden = true;
       }
     });
+    $("#demo-go").title = T("demo_try_title");
+    $("#demo-go").addEventListener("click", () => openDemo());
     $("#profile").addEventListener("change", async (e) => {
       state.settings.profile = e.target.value;
       renderProfileInfo();
@@ -1481,6 +1500,33 @@ ${en.raw}`).join("\n\n\n");
       show("sessions");
     }
   }
+  async function openDemo() {
+    const D = LensDemo;
+    if (!state.index[D.ID]) {
+      const cfg = Lens.profile(D.PROFILE);
+      await needEngine(cfg.profile);
+      const s = {
+        id: D.ID,
+        name: D.NAME,
+        nameSet: true,
+        task: "",
+        profile: cfg.profile,
+        created: (/* @__PURE__ */ new Date()).toISOString(),
+        events: Lens.importAny(D.TRANSCRIPT, cfg),
+        findings: [],
+        verdicts: {},
+        spec: D.SPEC,
+        dropped: [],
+        source_text: D.TRANSCRIPT,
+        seg: null
+      };
+      analyze(s, "import");
+      await putNew(s);
+    }
+    state.current = D.ID;
+    window.__slOpenSession(D.ID);
+    show("sessions");
+  }
   function profileSummary(info) {
     const runners = info.runners.map((r) => r.trim());
     const spec = info.spec && info.spec.read.length ? T("pi_s_spec") : T("pi_s_nospec");
@@ -1525,6 +1571,7 @@ ${en.raw}`).join("\n\n\n");
       (p) => `<option value="${esc(p)}" ${p === state.settings.profile ? "selected" : ""}>${esc(p)} — ${esc(T("profile_desc_" + p))}${!Lens.isValidated(p, profileVerdicts(p)) ? T("unverified_opt") : ""}</option>`
     ).join("");
     renderProfileInfo();
+    $("#demo-go").hidden = state.settings.hideDemo === true;
     $("#session-list").innerHTML = "";
   }
 
@@ -2230,6 +2277,7 @@ ${s.seg_raw}` : s.seg && s.seg.raw;
       });
     startBackground(BG_AFTER_CHANGE_MS);
   }
+  var isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
   function calibStats() {
     const st = {};
     const add = (check, v) => {
@@ -2238,18 +2286,19 @@ ${s.seg_raw}` : s.seg && s.seg.raw;
       if (v) x[v.v]++;
     };
     for (const m of metas())
-      for (const [check, c] of Object.entries(m.checkStats || {})) {
-        const x = st[check] = st[check] || { total: 0, ok: 0, fp: 0 };
-        x.total += c.total;
-        x.ok += c.ok;
-        x.fp += c.fp;
-      }
+      if (!isDemo(m))
+        for (const [check, c] of Object.entries(m.checkStats || {})) {
+          const x = st[check] = st[check] || { total: 0, ok: 0, fp: 0 };
+          x.total += c.total;
+          x.ok += c.ok;
+          x.fp += c.fp;
+        }
     for (const f of state.external) add(f.check, f.verdict ? { v: f.verdict } : null);
     return st;
   }
   function profileVerdicts(profile) {
     let n = 0;
-    for (const m of metas()) if (m.profile === profile) n += m.verdictsCount || 0;
+    for (const m of metas()) if (m.profile === profile && !isDemo(m)) n += m.verdictsCount || 0;
     return n;
   }
 

@@ -131,6 +131,11 @@ export function initSettings() {
     state.settings.routesOpen = $("#s-routes-d").open;
     await save();
   });
+  $("#s-hide-demo").addEventListener("change", async () => {
+    state.settings.hideDemo = $("#s-hide-demo").checked;
+    await save();
+    renderList(); // the button is on the Sessions tab
+  });
   $("#s-debug-model").addEventListener("change", async () => {
     state.settings.debugModel = $("#s-debug-model").checked;
     await save();
@@ -152,7 +157,18 @@ export function initSettings() {
   });
   /* Every setting on this page back to what a fresh install has. Sessions, verdicts, rules, prompts and the profile
      (which live on other pages) are left alone. Saved keys and configured models go too, hence the confirmation. */
-  SETTINGS_DEFAULTS = { provider: "", apiKey: "", model: "", baseUrl: "", minGapMs: 6500, maxCode: 40000, verify: true, lint: true, debugModel: false };
+  SETTINGS_DEFAULTS = {
+    provider: "",
+    apiKey: "",
+    model: "",
+    baseUrl: "",
+    minGapMs: 6500,
+    maxCode: 40000,
+    verify: true,
+    lint: true,
+    debugModel: false,
+    hideDemo: false,
+  };
   $("#s-reset-settings").addEventListener("click", async () => {
     if (!(await confirmDialog(T("s_reset_settings_confirm")))) return;
     const st = state.settings,
@@ -390,6 +406,7 @@ export function renderSettings() {
   $("#s-gap").value = Number.isFinite(state.settings.minGapMs) ? state.settings.minGapMs : 6500;
   $("#s-verify").checked = state.settings.verify !== false;
   $("#s-lint").checked = state.settings.lint !== false;
+  $("#s-hide-demo").checked = state.settings.hideDemo === true;
   $("#s-debug-model").checked = state.settings.debugModel === true;
   $("#s-addmodel-d").open = state.settings.addModelOpen === true;
   $("#s-routes-d").open = state.settings.routesOpen === true;

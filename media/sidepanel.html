@@ -23,6 +23,7 @@
     <div class="row">
       <label class="btn"><span data-i18n="pick_file"></span><input type="file" id="file" hidden></label>
       <button class="btn ghost" id="paste-toggle" data-i18n="paste_toggle"></button>
+      <button class="btn ghost" id="demo-go" data-i18n="demo_try"></button>
     </div>
     <div class="row"><label><span data-i18n="profile"></span> <select id="profile"></select></label></div>
     <div class="pinfo" id="profile-info"></div>
@@ -158,6 +159,8 @@
   <div class="row actions"><button class="btn" id="s-save" data-i18n="s_save"></button><span id="s-status" class="muted"></span></div>
   <h2 data-i18n="s_schema"></h2>
   <p class="muted" data-i18n="s_schema_sub"></p>
+  <label style="display:block;margin-top:14px"><input id="s-hide-demo" type="checkbox"> <span data-i18n="s_hide_demo"></span></label>
+  <p class="muted" data-i18n="s_hide_demo_sub"></p>
   <label style="display:block;margin-top:14px"><input id="s-debug-model" type="checkbox"> <span data-i18n="s_debug_model"></span></label>
   <p class="muted" data-i18n="s_debug_model_sub"></p>
   <h2 data-i18n="s_reset_settings"></h2>
@@ -178,6 +181,7 @@
 <script src="ai.js"></script>
 <script src="segment.js"></script>
 <script src="dialogs.js"></script>
+<script src="demo-session.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

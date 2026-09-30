@@ -379,6 +379,9 @@ Walk-through:
   covers only 29 of 54 checks (all the regex checks); the other 25 are
   never calibrated automatically, only by hand in the Rules panel
   (enable/disable/severity).
+- **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStats()` and `profileVerdicts()`
+  (`src/webview/store.js`): its verdicts are about a made-up session. Its confirmed findings still propose rules on
+  the Calibration tab, which is what the demo is for.
 
 ### 5.3 `sortFindings` — display order
 
@@ -879,6 +882,7 @@ Status at v0.1.98. Closed items are kept for the record.
 | `media/lint-robot.js` | A line-based Robot Framework parser of its own, its own rules, synchronous |
 | `media/vendor-eslint*.js` | ESLint bundles (ready-made/built), their own rules |
 | `media/spec.js` | 4 checks where the specification meets the tests; which tests are found (§17) |
+| `media/demo-session.js` | `LensDemo` (since v0.1.110): the made-up transcript and specification behind "Try a demo session"; imported like a picked file, with a fixed id; `test/demo-session.test.js` pins its findings |
 | `media/ai.js` | 7 model review checks, prompts, the model's answer schema |
 | `media/i18n.js` | All `r_<check>`/`<check>_msg`/`g_<group>` texts; `I18N.has(lang, key)` for tests |
 | `test/` | `rules-consistency` (registry ↔ detectors ↔ i18n), `finding-pipeline` (one finding per source), `book-snapshot`, `render-snapshot`, `spec-extract`, `profile-info` |

@@ -28,6 +28,13 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 
 ## Quick start
 
+**Just want to see it first?** Open the panel and press **Try a demo session** on the Sessions tab. It opens a made-up
+session in which an agent writes Playwright tests for a login page and makes the usual mistakes: it reads product
+code before the plan, relaxes an assertion right after a failure instead of finding out why, adds a fixed wait and
+retries, skips one requirement, and reports that all tests pass without running them again. Try **Confirm** on a
+finding and see the rule it proposes on the **Calibration** tab. The demo's verdicts do not count for calibration;
+delete the session when you are done.
+
 1. **Open the panel.** Click the SessionLens icon in the Activity Bar, or run **SessionLens: Open panel** from the Command Palette. The sidebar has two parts: the **Calibration & Settings** panel with its own tabs on top, and a native **Sessions** list under it (hidden while another tab of the panel is open). If you moved these parts yourself earlier, VS Code keeps your order; drag a part by its title to change it. Most actions are also in the Command Palette, see [Commands and VS Code settings](#commands-and-vs-code-settings).
 2. **Load a session.** On the **Sessions** tab of Calibration & Settings, pick a **Profile** that matches the code the agent was writing (for example `qa-ts`), then drop a transcript onto the panel, choose a file, or paste the text. It then shows up in the **Sessions** list below the panel.
 3. **Open it.** Click the session in the **Sessions** list. It opens in its own editor tab, so several sessions can be open side by side, and closing one is just closing that tab.
@@ -134,6 +141,7 @@ Only the instruction part is editable. The specification, code and transcript ar
 - **Code limit in the prompt:** how many characters of code are sent to the model (40000 by default). Lower it for small local models.
 - **Verification call:** on by default. It doubles the number of requests and makes model findings noticeably more precise.
 - **Static analysis:** on by default. `qa-ts` (ESLint via eslint-plugin-playwright), `qa-cypress` (ESLint via eslint-plugin-cypress), `qa-detox` (ESLint, hand-authored rules — see [Detox](#detox-only-for-the-qa-detox-profile)), `qa-java`/`qa-c#`/`qa-python` (a real parse tree via tree-sitter, also hand-authored — see [Java](#java-only-for-the-qa-java-profile), [C#](#c-only-for-the-qa-c-profile), [Python](#python-only-for-the-qa-python-profile)), and `qa-robot` (a small hand-written parser — see [Robot Framework](#robot-framework-only-for-the-qa-robot-profile)). Each engine is loaded the first time a session of its profile is analyzed, and only in the page that analyzes it (a session tab, or the sidebar during an import); until then the finding list says "static analysis: engine loading…". With static analysis off, nothing is loaded.
+- **Hide the "Try a demo session" button:** off by default. Tick it once you have sessions of your own and no longer need the demo on the Sessions tab. It applies at once; a demo session you already opened stays in the list until you delete it.
 - **Debug model:** off by default. Turn it on to see **Model request and reply** — the exact prompt sent to the model and its raw reply — in a session (below Transcript) and on the Calibration tab. It's meant for troubleshooting a request, not everyday use: the prompts include the session's code and transcript excerpts.
 - **Reset settings:** **Reset settings to defaults** puts every setting on this page back to what a fresh install has: theme (it follows VS Code again), language, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification and the debug model toggle. The four VS Code settings above are set back to their defaults too. It asks for confirmation first, because saved keys are removed. Sessions, verdicts, rule wording, prompts and the profile are kept. The Claude Code and Codex CLI paths are VS Code settings and are not changed.
 - **Danger zone:** **Delete everything** removes all sessions and calibration history. Settings and rule wording are kept.

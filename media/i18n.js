@@ -368,6 +368,8 @@
       reviewed_dot: "✓",
       pick_file: "Choose file",
       paste_toggle: "Paste text",
+      demo_try: "Try a demo session",
+      demo_try_title: "Open a made-up session of an agent writing Playwright tests, to see what SessionLens finds",
       profile: "Profile",
       paste_ph: "Paste the session text and press “Analyse”",
       paste_name_ph: "name, e.g. AUTH-142 Ivan",
@@ -420,6 +422,9 @@
       s_schema: "Findings format",
       s_schema_sub:
         'Open schema: {check, severity, seq, message, evidence?, source, verdict?}. External findings (another tool, Code Review) are imported in the Calibration tab as a JSON array with a session field and take part in calibration as source: "external".',
+      s_hide_demo: "Hide the “Try a demo session” button",
+      s_hide_demo_sub:
+        "Applies at once. A demo session you already opened stays in the Sessions list until you delete it; turn this off to get the button back.",
       s_debug_model: "Debug model",
       s_debug_model_sub:
         "Shows the exact prompt sent to the model and its raw reply — in a session (below Transcript) and on the Calibration tab. Off by default. Turn it on only when you need to check what the model was actually asked and answered; the prompts include the session code and transcript excerpts that were sent.",

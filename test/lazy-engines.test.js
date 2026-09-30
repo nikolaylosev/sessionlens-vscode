@@ -56,6 +56,7 @@ test("the page lists only the core scripts; extension.js hands over every engine
     "ai.js",
     "segment.js",
     "dialogs.js",
+    "demo-session.js", // 0.1.110: the "Try a demo session" transcript, a few KB of text
     "app.js",
   ]);
   const ext = fs.readFileSync(path.join(root, "extension.js"), "utf8");
