@@ -9,7 +9,7 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 > [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues/new) (see
 > [Found a false finding?](#found-a-false-finding) for what to include).
 
-![The SessionLens sidebar: the Sessions tab with the details of the selected profile, and the Sessions list under it](media/screenshots/panel-profile.png)
+![The demo session: Try a demo session, a Red session, Confirm on "Claims tests pass while the last run was 1 passed / 1 failed", and the rule it proposes on the Calibration tab](media/screenshots/demo.gif)
 
 ## Contents
 
@@ -71,6 +71,8 @@ If you moved the two parts around in an earlier version, VS Code keeps your orde
 
 The **Sessions** tab itself, inside Calibration & Settings, is where you load a transcript:
 
+![The SessionLens sidebar: the Sessions tab with Choose file, Paste text, Try a demo session and the profile, and the Sessions list under it](media/screenshots/panel-profile.png)
+
 - **Accepted input:** Claude Code `.jsonl` (from `~/.claude/projects`), Codex `rollout-*.jsonl` (from `~/.codex/sessions`, CLI or the VS Code extension), `conversations.json` from claude.ai, an `/export`, or plain chat text. A file with several conversations asks for part of a name to load only one. In the VS Code build, **Choose file** first asks whether the transcript is from Claude Code, Codex or somewhere else, then opens VS Code's own dialog straight inside `~/.claude/projects` or `~/.codex/sessions` — both are hidden by a leading dot (with no way to browse from one into the other once you're inside), but everything one level below either is a normal, visible folder or file.
 - **Profile:** the language and test runner to analyse for. See [Profiles](#profiles).
 - **Paste text:** paste a transcript, give it a name (for example `AUTH-142 Ivan`) and press **Analyse**.
@@ -94,6 +96,8 @@ Everything about one session. It opens in its own editor tab when you click a se
 - **Mark reviewed**, **Rename** and **Delete** manage the session itself. **Delete** also closes this tab, since there is nothing left to show in it.
 
 ### Calibration
+
+![The Calibration tab: the check precision table, and a rule for CLAUDE.md and AGENTS.md proposed from a confirmed finding, with its evidence](media/screenshots/calibration.png)
 
 Learning from your verdicts.
 
