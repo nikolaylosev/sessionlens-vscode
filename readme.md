@@ -4,6 +4,11 @@ SessionLens is built for QA automation (AQA) engineers who write autotests with 
 
 It is built for sessions in which an agent writes or fixes automated tests, but the process checks work for any coding session.
 
+> **SessionLens is experimental.** The checks are still being tuned, and your feedback is what turns them into a more
+> useful tool. If a finding is wrong, a check is missing, or something is hard to use, please
+> [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues/new) (see
+> [Found a false finding?](#found-a-false-finding) for what to include).
+
 ![The SessionLens sidebar: the Sessions tab with the details of the selected profile, and the Sessions list under it](media/screenshots/panel-profile.png)
 
 ## Contents
@@ -504,3 +509,9 @@ session that shows it. Every such report helps tune the checks.
 - **Remove** anything private before you post: file paths and user names, host names and URLs, tokens, keys and
   passwords, company and product names, and customer data. Replace them with placeholders such as `<path>` or
   `<token>`. Issues are public.
+
+---
+
+**Enjoying the extension?** A [star on GitHub](https://github.com/nikolaylosev/sessionlens-vscode) or a review on the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=nikolaylosev.sessionlens-vscode&ssr=false#review-details)
+or [Open VSX](https://open-vsx.org/extension/nikolaylosev/sessionlens-vscode) helps a lot!

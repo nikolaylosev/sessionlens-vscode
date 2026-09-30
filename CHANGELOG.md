@@ -6,6 +6,8 @@
 - SessionLens is in English whatever the language of VS Code. With VS Code in Russian, the commands, the sidebar
   titles, the Sessions list and the dialogs used to be in Russian around the English panel; now everything is in
   English. Russian in transcripts is still understood.
+- The readme says SessionLens is experimental and asks for feedback, and ends with a request for a GitHub star or a
+  review in the Marketplace or Open VSX.
 
 ## 0.1.109
 
