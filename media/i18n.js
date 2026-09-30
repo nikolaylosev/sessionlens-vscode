@@ -81,7 +81,7 @@
       ai_fix_justification: "fix justification",
       ai_spec_defect: "spec defect",
       what_review: "review",
-      review_per_file: "one request per file, {n} files",
+      review_per_file: "one request per file, {n} {n|file|files}",
       ai_other: "off-task (model ignored the categories)",
       what_verify: "verification",
       what_segmentation: "segmentation",
@@ -120,7 +120,7 @@
       lint_nocode: "static analysis: no code in the session",
       lint_errors: " · {n} block(s) failed to parse",
       lint_more: "(+{n} more of the same in this file)",
-      lint_ran: "ESLint: {n} findings in {b} block(s){e}",
+      lint_ran: "ESLint: {n} {n|finding|findings} in {b} block(s){e}",
       lint_csp:
         "ESLint blocked by the extension security policy — remove the extension in chrome://extensions and load the folder again (a stale vendor-eslint.js is cached)",
       lint_failed: "ESLint could not parse any of {n} block(s) — regex checks kept. First error: {why}",
@@ -130,7 +130,7 @@
       seg_run: "Segment with model",
       seg_none: "regex parsing",
       seg_model: "model segmentation",
-      seg_status: "segmented: {n} blocks, {c}% of lines covered{spec}",
+      seg_status: "segmented: {n} {n|block|blocks}, {c}% of lines covered{spec}",
       seg_spec: " · spec found",
       seg_wait: "segmenting…",
       seg_fallback: "segmentation failed ({msg}) — regex parsing kept",
@@ -138,7 +138,7 @@
       seg_nothing: "no messages to segment",
       seg_chunked: "message by message: {ok} done, {failed} left to the regex parser",
       seg_all_chunks_failed: "the model segmented none of the {n} messages — regex parsing kept",
-      seg_status_chunks: "segmented: {n} blocks, {c}% of lines covered · {ok}/{total} messages{spec}",
+      seg_status_chunks: "segmented: {n} {n|block|blocks}, {c}% of lines covered · {ok}/{total} messages{spec}",
       seg_failed_hdr: "SEGMENTATION FAILED",
       seg_use_spec: "Use the found specification",
       seg_reset: "Back to regex parsing",
@@ -171,7 +171,7 @@
       spec_none: "(none)",
       spec_auto: " · numbered automatically",
       spec_unparsed: "(text given, no requirements recognised — number them or use R1., R2.)",
-      spec_count: "({n} requirements{oos})",
+      spec_count: "({n} {n|requirement|requirements}{oos})",
       spec_oos: ", {n} out of scope",
       ai_last: "last run {at}",
       ai_truncated: " · code was truncated",
@@ -213,7 +213,7 @@
       user: "User",
       agent: "Agent",
       no_msgs: "No messages.",
-      ai_status: "model: {n} findings{dropped}{repaired}{err}",
+      ai_status: "model: {n} {n|finding|findings}{dropped}{repaired}{err}",
       ai_dropped: ", {n} dropped by verification",
       ai_repaired: " · JSON was repaired",
       ai_wait: "calling the model…",
@@ -222,10 +222,10 @@
       ai_verify_again: "Verify again",
       ai_reverify_wait: "verifying again…",
       ai_reverify_status: "verification: {n} kept{dropped}",
-      export_block: "{n} high findings have no verdict. Mark “Confirm” or “False” — only reviewed findings go into the PR report.",
+      export_block: "{n} high {n|finding has|findings have} no verdict. Mark “Confirm” or “False” — only reviewed findings go into the PR report.",
       md_title: "## Session review: {t}",
       md_verdict: "**Verdict:** {v} · profile {p} · reads {r}, edits {e}, Read:Edit {re}, runs {runs}, edits to green {g}",
-      md_spec: "**Specification:** {n} requirements{unc}",
+      md_spec: "**Specification:** {n} {n|requirement|requirements}{unc}",
       md_unc: ", untested: {list}",
       md_none: "none",
       md_no_spec: "**Specification:** not provided",
@@ -242,7 +242,7 @@
       st_demoted: "demoted",
       st_need: "need {n} more",
       st_ok: "ok",
-      rule_hdr: "{k} — {n} confirmed in {s} sessions",
+      rule_hdr: "{k} — {n} confirmed in {s} {s|session|sessions}",
       applied: "moved to {f} {d}",
       mark_applied: "Moved to {f}",
       rule_del_confirm: "Remove this rule from the {f} proposal list? Confirmed findings and verdicts are kept.",
@@ -256,7 +256,7 @@
       pick_source_codex: "Codex",
       pick_source_other: "Somewhere else",
       eff_no_after: "effect: before {b} per session ({n}); no sessions after yet",
-      eff: "effect: before {b} per session ({nb} sessions) → after {a} ({na}){d}{few}",
+      eff: "effect: before {b} per session ({nb} {nb|session|sessions}) → after {a} ({na}){d}{few}",
       eff_few: " · little data",
       eff_before: "before",
       eff_after: "after",
@@ -327,7 +327,7 @@
       rules_text_ph: "the rule as the agent should read it",
       rules_good_ph: "the right way — one line of code or one step",
       rules_bad_file: "not a rules file",
-      rules_imported: "Imported {n} rules.",
+      rules_imported: "Imported {n} {n|rule|rules}.",
       rules_ignored: "Ignored {n}: {why}.",
       rules_ign_no_check: "row {row} has no check",
       rules_ign_unknown_check: "unknown check “{check}”",
@@ -595,7 +595,7 @@
       err_no_key_for: "No API key for {p} — enter it in Settings",
       cal_raw_note:
         "The latest requests made from this tab (Compress rules.md and Generate skill), newest first: the exact prompt sent and the model's reply, failed calls included. The last 6 are kept.",
-      cal_raw_count: "({n} requests)",
+      cal_raw_count: "({n} {n|request|requests})",
       cal_raw_clear: "Clear",
       cal_raw_clear_confirm: "Delete the saved requests and replies?",
       s_reset_settings: "Reset settings",
@@ -618,6 +618,8 @@
   function t(key, vars) {
     let s = (D[lang] && D[lang][key]) ?? D.en[key] ?? key;
     if (Array.isArray(s)) return s;
+    // {n|one|other}: the word for the count in vars.n ("1 session", "2 sessions"), before {n} itself is filled in
+    if (vars) s = s.replace(/\{(\w+)\|([^|{}]*)\|([^|{}]*)\}/g, (m, k, one, other) => (k in vars ? (Number(vars[k]) === 1 ? one : other) : m));
     if (vars) for (const [k, v] of Object.entries(vars)) s = s.split("{" + k + "}").join(String(v));
     return s;
   }
