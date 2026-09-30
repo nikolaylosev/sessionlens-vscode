@@ -1133,6 +1133,12 @@ by the file's extension. The extractors (`EXTRACT` and `robotTests`): `typescrip
 as TS/JS (as in 0.1.103), `mobile` and `any` try all of their syntaxes. The result `null` means "this file
 cannot be read": it does not take part in coverage. If a session has no readable file at all, `coverage()` returns
 `null`, `checks()` raises neither `spec_uncovered` nor `test_without_requirement`, and the panel shows `no_readable_tests`.
+
+The `typescript` extractor takes `it(…)`/`test(…)` with a title, also with a modifier that still makes a test (`.only`,
+`.skip`, `.fixme`, `.fail`, `.slow`, `.concurrent`, `.todo`), and not as the end of another word. A body stops at the
+next test or a `describe`/`context` block. Up to 0.1.109 any `test.<word>(` counted, so `test.describe("…")` was a test
+named after the block (a false `test_without_requirement` in nearly every Playwright file), and a `test.skip(…)` after
+a test was swallowed by that test's body.
 `no_spec` works as before.
 
 Before 0.1.104 everything without a pattern of its own was silently read with the Python pattern, no tests were found, and every
