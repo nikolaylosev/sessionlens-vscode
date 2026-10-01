@@ -81,6 +81,15 @@
   "edited": false
  },
  {
+  "check": "product_code_edited",
+  "group": "process",
+  "rule": "In a testing task, do not change the product code. A failing test is a finding: report it as a possible product bug and wait — a quiet fix hides it.",
+  "severity": "high",
+  "enabled": true,
+  "good": "report it and wait: “R3 fails — the total ignores the discount. Product bug?”",
+  "edited": false
+ },
+ {
   "check": "assert_weakened",
   "group": "code",
   "rule": "Do not weaken existing assertions (== → in, concrete value → ANY / is not None, removing checks). A failing assertion calls for triage, not an edit.",

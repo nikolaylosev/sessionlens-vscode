@@ -11,6 +11,9 @@
 - `test_deleted`: a test removed from a file, or a test file deleted (`rm`, `git rm`, or a deleted file in a Codex
   patch). High right after a failing run, medium otherwise. A test renamed with the same body, moved to another file
   or restored later is not reported. Reported in every profile with code checks.
+- `product_code_edited` (Process group): the agent changed product code (a file in the profile's source folders) in a
+  testing task. High right after a failing run, medium otherwise. Tests, fixtures, page objects, mocks, test utils, a
+  runner's config and a file named in the approved plan are not reported.
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",

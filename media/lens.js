@@ -53,6 +53,7 @@
     "conditional_logic",
     "duplicate_assert",
     "test_deleted",
+    "product_code_edited",
   ];
   const API = [
     "status_only_assert",
@@ -1065,6 +1066,19 @@
     const p = (path || "").replace(/^\.?\//, "");
     return dirs.some((d) => p === d || p.startsWith(d + "/"));
   };
+  // the last test run before seq, if it was red; null if it was green or there was none
+  const redRunBefore = (ev, seq) => {
+    const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
+    const l = runs[runs.length - 1];
+    return l && (l.tests.failed || l.tests.errors) ? l : null;
+  };
+  // a test file by its name, in any language the profiles know
+  const TEST_FILE_RX = /(?:^|\/)(?:test_[^/]*\.py|[^/]*_test\.(?:py|go)|[^/]*\.(?:spec|test|cy)\.[cm]?[jt]sx?|[^/]*Tests?\.(?:java|kt|cs))$/;
+  // test-side code that is not a test: fixtures, helpers, page objects, mocks, support files (and conftest.py)
+  const TEST_SIDE_RX =
+    /(?:^|\/)(?:__tests__|__mocks__|tests?|e2e|specs?|fixtures?|support|mocks?|testing|test-?utils|page-?objects?|pages)\/|(?:^|\/)conftest\.py$/i;
+  // a test runner's config file: playwright.config.ts, cypress.config.ts, wdio.conf.ts, .detoxrc.js…
+  const RUNNER_CONFIG_RX = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*)$/i;
   function phases(ev) {
     const first = (k) => {
       const e = ev.find((x) => k.includes(x.kind));
@@ -1267,14 +1281,9 @@
       const seen = versions.flatMap((e) => Object.keys(tests(e.new_content)).map((name) => ({ file: e.file, seq: e.seq, name })));
       // kept: the same test elsewhere at any time (moved) or in the same file after the deletion (restored)
       const kept = (file, seq, name) => seen.some((t) => t.name === name && (t.file !== file || t.seq > seq));
-      const red = (seq) => {
-        const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
-        const l = runs[runs.length - 1];
-        return l && (l.tests.failed || l.tests.errors) ? l : null;
-      };
       const out = [];
       const push = (key, file, seq, names) => {
-        const r = red(seq);
+        const r = redRunBefore(ev, seq);
         const vars = { file, n: names.length, names: names.join(", "), after: r ? T("after_red_run", { seq: r.seq }) : "" };
         out.push(F("test_deleted", r ? "high" : "medium", seq, T(key, vars)));
       };
@@ -1294,10 +1303,7 @@
       }
       // ---- a test file deleted ----
       const same = (a, b) => a === b || a.endsWith("/" + b) || b.endsWith("/" + a);
-      const testFile = (f) =>
-        isCode(f, cfg) &&
-        (/(?:^|\/)(?:test_[^/]*\.py|[^/]*_test\.(?:py|go)|[^/]*\.(?:spec|test|cy)\.[cm]?[jt]sx?|[^/]*Tests?\.(?:java|kt|cs))$/.test(f) ||
-          inDirs(f, cfg.test_dirs));
+      const testFile = (f) => isCode(f, cfg) && (TEST_FILE_RX.test(f) || inDirs(f, cfg.test_dirs));
       for (const e of ev) {
         let targets = [];
         if (e.kind === "delete" && e.file) targets = [e.file];
@@ -1338,6 +1344,32 @@
         }
       }
       return out;
+    },
+    /* In a testing task the product is what is under test: an agent that changes it to make a test pass hides the bug
+       the test found. A file in the profile's src_dirs that is not test-side code (a test, a fixture, a page object,
+       a runner config); a file the approved plan names is not reported. High right after a red run. */
+    product_code_edited(ev, cfg) {
+      const p = planSeq(ev, cfg);
+      const planned = approvalSeq(ev, p) != null ? [...plannedFiles(ev, p)] : [];
+      // a src dir anywhere in the path: Claude Code started in a parent folder writes "shop/src/cart.ts", or an absolute path
+      const under = (f, dirs) => dirs.some((d) => ("/" + f).includes("/" + d + "/"));
+      const product = (f) =>
+        isCode(f, cfg) &&
+        under(f, cfg.src_dirs) &&
+        !under(f, cfg.test_dirs) &&
+        !TEST_FILE_RX.test(f) &&
+        !TEST_SIDE_RX.test(f) &&
+        !RUNNER_CONFIG_RX.test(f) &&
+        !planned.some((x) => f === x || f.endsWith("/" + x));
+      const byFile = {};
+      for (const e of ev) if (["write", "edit"].includes(e.kind) && e.file && product(e.file)) (byFile[e.file] = byFile[e.file] || []).push(e);
+      // one finding per file: its first edit right after a red run if there is one, else its first edit
+      return Object.entries(byFile).map(([file, edits]) => {
+        const hot = edits.find((e) => redRunBefore(ev, e.seq));
+        const e = hot || edits[0];
+        const r = hot && redRunBefore(ev, e.seq);
+        return F("product_code_edited", r ? "high" : "medium", e.seq, T("product_edited", { file, after: r ? T("after_red_run", { seq: r.seq }) : "" }));
+      });
     },
     focused_test(ev, cfg) {
       const out = [];
@@ -1479,9 +1511,8 @@
       const out = [],
         seen = new Set();
       // a runner's config file is where the base URL belongs (baseURL in playwright.config.ts): what the rule asks for
-      const CONFIG = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*)$/i;
       for (const e of ev) {
-        if (!e.new_content || CONFIG.test(e.file || "")) continue;
+        if (!e.new_content || RUNNER_CONFIG_RX.test(e.file || "")) continue;
         for (const line of e.new_content.split("\n")) {
           if (/^\s*(?:#|\/\/|\*)|\$schema|xmlns|href\s*=|@see/.test(line)) continue;
           for (const m of line.matchAll(/https?:\/\/([A-Za-z0-9.-]+|\[[0-9a-f:]+\])(?::\d+)?/gi)) {
