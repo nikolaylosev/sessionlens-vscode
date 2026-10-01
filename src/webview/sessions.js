@@ -203,7 +203,7 @@ export async function importText(text, name) {
 /* "Try a demo session": the made-up session in media/demo-session.js (LensDemo), imported and analyzed like a file the
    person picks, with its own profile and specification. It has a fixed id, so a second click opens the one already
    there instead of adding a copy; deleted, it can be tried again. Its verdicts do not count for calibration
-   (calibStats, profileVerdicts in store.js): they are about a made-up session, not the person's own. */
+   (calibStatsBySource, profileVerdicts in store.js): they are about a made-up session, not the person's own. */
 export async function openDemo() {
   const D = LensDemo;
   if (!state.index[D.ID]) {

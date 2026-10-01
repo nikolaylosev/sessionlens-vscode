@@ -11,6 +11,12 @@
   `weak_assert`), a poor record of one no longer switches off the other.
 - A check you tick on by hand on the Rules tab is never switched off by calibration.
 - Missing specification, uncovered requirements and the model's findings are never switched off by calibration.
+- The Check precision table on the Calibration tab has a row per check and source, and its status is what calibration
+  really does: "not calibrated" (with the reason on hover) for the model's findings, a missing specification,
+  uncovered requirements and imported findings, and "on by hand" for a check you ticked on that calibration would
+  switch off. Before, it could say "disabled" for checks that kept reporting.
+- On the Rules tab, "on by hand" marks such a check, and the ⓘ for a severity that calibration overrides now shows for
+  every calibrated source. The line under a session's findings names the source of each disabled check.
 
 ### Fixed
 - A check that calibration switched off (at least 10 verdicts, precision below 30%) stays off. Its findings used to

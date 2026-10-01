@@ -1,8 +1,8 @@
 // @ts-check
 /* SessionLens panel — the Rules tab. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
-import { $, SEV, T, esc, save, saveKeys, state } from "./common.js";
-import { calibStats, onGenChanged } from "./store.js";
+import { $, SEV, T, esc, save, saveKeys, srcLabel, state } from "./common.js";
+import { calibStatsBySource, onGenChanged } from "./store.js";
 import { readFile } from "./sessions.js";
 import { download } from "./calibration.js";
 
@@ -52,15 +52,25 @@ export function renderRules() {
   const book = LensRules.book(state.ruleOverrides);
   // Group order and ids come from the registry (media/checks.js); the label is always g_<id>.
   const groups = Object.fromEntries(LensChecks.GROUPS_ORDER.map((g) => [g, T("g_" + g)]));
-  // Calibration demotes a regex check's findings to low and apply() then ignores a manual severity for them —
+  // Calibration demotes a check's findings to low and apply() then ignores a manual severity for them —
   // say so next to the select instead of letting the choice look broken (RULES-ARCHITECTURE.md §4.4).
-  const calib = calibStats();
+  // Phase 8: per check and source, for every source calibrate() applies to.
+  const calib = calibStatsBySource();
+  const levels = (check) =>
+    Object.entries(calib[check] || {})
+      .filter(([src]) => Lens.isCalibrated(check, src))
+      .map(([src, st]) => Object.assign({ src }, Lens.calibLevel(st)));
   const demotedHint = (r) => {
     const own = state.ruleOverrides[r.check] || {};
-    const meta = LensChecks.CHECKS[r.check];
-    if (!own.severity || !meta || !meta.sources.includes("regex")) return "";
-    const cl = Lens.calibLevel(calib[r.check]);
-    return cl.level === "demoted" ? `<span class="r-demoted" title="${esc(T("rules_demoted_hint", { p: Math.round(cl.p * 100) }))}">ⓘ</span>` : "";
+    const d = own.severity && levels(r.check).find((x) => x.level === "demoted");
+    return d ? `<span class="r-demoted" title="${esc(T("rules_demoted_hint", { p: Math.round(d.p * 100) }))}">ⓘ</span>` : "";
+  };
+  // ticked on by hand while calibration would switch it off: calibrate() leaves it on (decision of 01.10)
+  const byHand = (r) => {
+    const off = (state.ruleOverrides[r.check] || {}).enabled === true && levels(r.check).find((x) => x.level === "off");
+    return off
+      ? `<span class="tagx r-by-hand" title="${esc(T("rules_by_hand_hint", { src: srcLabel(off.src), p: Math.round(off.p * 100) }))}">${T("rules_by_hand")}</span>`
+      : "";
   };
   const openMap = state.settings.ruleGroupsOpen || {};
   $("#rules-list").innerHTML = Object.entries(groups)
@@ -74,7 +84,7 @@ export function renderRules() {
             (r) => `<div class="rule-row ${r.enabled ? "" : "off"}" data-check="${esc(r.check)}">
         <div class="rule-head"><b>${esc(r.check)}</b>
           <select class="r-sev">${LensChecks.SEVERITIES.map((s3) => `<option value="${esc(s3)}" ${r.severity === s3 ? "selected" : ""}>${esc(SEV[s3])}</option>`).join("")}</select>${demotedHint(r)}
-          <label class="r-on"><input type="checkbox" class="r-enabled" ${r.enabled ? "checked" : ""}> ${T("rules_on")}</label>
+          <label class="r-on"><input type="checkbox" class="r-enabled" ${r.enabled ? "checked" : ""}> ${T("rules_on")}</label>${byHand(r)}
           ${r.edited ? `<span class="tagx">${T("rules_edited")}</span>` : ""}</div>
         <textarea class="r-text" rows="1" placeholder="${T("rules_text_ph")}">${esc(r.rule)}</textarea>
         <textarea class="r-text r-good" rows="1" placeholder="${T("rules_good_ph")}">${esc(r.good)}</textarea></div>`,

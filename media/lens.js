@@ -1917,6 +1917,7 @@
     importAny,
     runChecks,
     calibrate,
+    isCalibrated: (check, source) => calibrated({ check, source }),
     gherkinChecks,
     sortFindings,
     metrics,

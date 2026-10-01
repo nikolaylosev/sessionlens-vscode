@@ -5,6 +5,7 @@
   var esc;
   var fkey;
   var genId;
+  var srcLabel;
   var RULES_TARGET_FILES;
   var rulesTargetFiles;
   var rulesTargetLabel;
@@ -27,6 +28,8 @@
     rulesTargetFiles = () => RULES_TARGET_FILES[state.settings.rulesTarget] || RULES_TARGET_FILES.claude;
     rulesTargetLabel = () => rulesTargetFiles().join(" and ");
     T = (k, v) => I18N.t(k, v);
+    const SRC_KEYS = { formal: "chip_formal", lint: "chip_lint", spec: "chip_spec", ai: "chip_ai", gherkin: "src_gherkin", external: "src_external" };
+    srcLabel = (src) => SRC_KEYS[src || "formal"] ? T(SRC_KEYS[src || "formal"]) : String(src);
     LABEL = new Proxy({}, { get: (_, k) => T(k) });
     SEV = new Proxy({}, { get: (_, k) => T("sev_" + /** @type {string} */
     k) });
@@ -436,13 +439,21 @@
     $("#calib-rules-d").open = state.settings.calibRulesOpen !== false;
     $("#c-rules-title").textContent = T("c_rules", { f: rulesTargetLabel() });
     $("#rules-target").value = state.settings.rulesTarget || "claude";
-    const stats = calibStats();
+    const stats = calibStatsBySource();
     const confirmed = [];
     for (const m of metas()) for (const c of m.confirmed || []) confirmed.push({ s: m, f: c, vd: { v: "ok", note: c.note } });
-    $("#precision").innerHTML = `<tr>${T("prec_hdr").map((h) => `<th>${esc(h)}</th>`).join("")}</tr>` + Object.entries(stats).sort((a, b) => b[1].total - a[1].total).map(([k, st]) => {
+    $("#precision").innerHTML = `<tr>${T("prec_hdr").map((h) => `<th>${esc(h)}</th>`).join("")}</tr>` + // phase 8: one row per check AND source, with the status calibrate() really applies to it
+    Object.entries(stats).flatMap(([k, per]) => Object.entries(per).map(([src, st]) => [k, src, st])).sort((a, b) => b[2].total - a[2].total).map(([k, src, st]) => {
       const { n, p, level } = Lens.calibLevel(st);
-      const status = level === "need" ? T("st_need", { n: 10 - n }) : T("st_" + level);
-      return `<tr><td>${esc(k)}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted">${esc(status)}</td></tr>`;
+      let status = level === "need" ? T("st_need", { n: 10 - n }) : T("st_" + level), why = "";
+      if (!Lens.isCalibrated(k, src)) {
+        status = T("st_not_calibrated");
+        why = T(src === "ai" ? "st_why_ai" : src === "spec" ? "st_why_fact" : "st_why_external");
+      } else if (level === "off" && (state.ruleOverrides[k] || {}).enabled === true) {
+        status = T("st_by_hand");
+        why = T("st_by_hand_hint", { p: Math.round(p * 100) });
+      }
+      return `<tr><td>${esc(k)}</td><td>${esc(srcLabel(src))}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted"${why ? ` title="${esc(why)}"` : ""}>${esc(status)}</td></tr>`;
     }).join("");
     const min = +$("#min-count").value || 1, by = {};
     for (const c of confirmed) (by[c.f.check] = by[c.f.check] || []).push(c);
@@ -854,13 +865,16 @@ ${en.raw}`).join("\n\n\n");
   function renderRules() {
     const book = LensRules.book(state.ruleOverrides);
     const groups = Object.fromEntries(LensChecks.GROUPS_ORDER.map((g) => [g, T("g_" + g)]));
-    const calib = calibStats();
+    const calib = calibStatsBySource();
+    const levels = (check) => Object.entries(calib[check] || {}).filter(([src]) => Lens.isCalibrated(check, src)).map(([src, st]) => Object.assign({ src }, Lens.calibLevel(st)));
     const demotedHint = (r) => {
       const own = state.ruleOverrides[r.check] || {};
-      const meta = LensChecks.CHECKS[r.check];
-      if (!own.severity || !meta || !meta.sources.includes("regex")) return "";
-      const cl = Lens.calibLevel(calib[r.check]);
-      return cl.level === "demoted" ? `<span class="r-demoted" title="${esc(T("rules_demoted_hint", { p: Math.round(cl.p * 100) }))}">ⓘ</span>` : "";
+      const d = own.severity && levels(r.check).find((x) => x.level === "demoted");
+      return d ? `<span class="r-demoted" title="${esc(T("rules_demoted_hint", { p: Math.round(d.p * 100) }))}">ⓘ</span>` : "";
+    };
+    const byHand = (r) => {
+      const off = (state.ruleOverrides[r.check] || {}).enabled === true && levels(r.check).find((x) => x.level === "off");
+      return off ? `<span class="tagx r-by-hand" title="${esc(T("rules_by_hand_hint", { src: srcLabel(off.src), p: Math.round(off.p * 100) }))}">${T("rules_by_hand")}</span>` : "";
     };
     const openMap = state.settings.ruleGroupsOpen || {};
     $("#rules-list").innerHTML = Object.entries(groups).map(([g, label]) => {
@@ -870,7 +884,7 @@ ${en.raw}`).join("\n\n\n");
         (r) => `<div class="rule-row ${r.enabled ? "" : "off"}" data-check="${esc(r.check)}">
         <div class="rule-head"><b>${esc(r.check)}</b>
           <select class="r-sev">${LensChecks.SEVERITIES.map((s3) => `<option value="${esc(s3)}" ${r.severity === s3 ? "selected" : ""}>${esc(SEV[s3])}</option>`).join("")}</select>${demotedHint(r)}
-          <label class="r-on"><input type="checkbox" class="r-enabled" ${r.enabled ? "checked" : ""}> ${T("rules_on")}</label>
+          <label class="r-on"><input type="checkbox" class="r-enabled" ${r.enabled ? "checked" : ""}> ${T("rules_on")}</label>${byHand(r)}
           ${r.edited ? `<span class="tagx">${T("rules_edited")}</span>` : ""}</div>
         <textarea class="r-text" rows="1" placeholder="${T("rules_text_ph")}">${esc(r.rule)}</textarea>
         <textarea class="r-text r-good" rows="1" placeholder="${T("rules_good_ph")}">${esc(r.good)}</textarea></div>`
@@ -1781,7 +1795,7 @@ ${en.raw}`).join("\n\n\n");
     $("#lint-note").textContent = s.lintNote || "";
     $("#mark-reviewed").textContent = s.reviewed ? T("reviewed_on") : T("mark_reviewed");
     $("#mark-reviewed").classList.toggle("on", !!s.reviewed);
-    $("#suppressed").textContent = s.suppressed && s.suppressed.length ? T("suppressed", { list: s.suppressed.map((x) => `${x.check} (${Math.round(x.precision * 100)}% / ${x.n})`).join(", ") }) : "";
+    $("#suppressed").textContent = s.suppressed && s.suppressed.length ? T("suppressed", { list: s.suppressed.map((x) => `${x.check} (${srcLabel(x.source)}, ${Math.round(x.precision * 100)}% / ${x.n})`).join(", ") }) : "";
     const F = state.filter;
     const srcOf = (f) => f.source === "ai" ? "ai" : f.source === "spec" ? "spec" : f.source === "lint" ? "lint" : "formal";
     const visible = s.findings.filter((f) => F.src[srcOf(f)] !== false && F.sev[f.severity] && (!F.undecided || !s.verdicts[fkey(f)]));
@@ -2279,24 +2293,6 @@ ${s.seg_raw}` : s.seg && s.seg.raw;
     startBackground(BG_AFTER_CHANGE_MS);
   }
   var isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
-  function calibStats() {
-    const st = {};
-    const add = (check, v) => {
-      const x = st[check] = st[check] || { total: 0, ok: 0, fp: 0 };
-      x.total++;
-      if (v) x[v.v]++;
-    };
-    for (const m of metas())
-      if (!isDemo(m))
-        for (const [check, c] of Object.entries(m.checkStats || {})) {
-          const x = st[check] = st[check] || { total: 0, ok: 0, fp: 0 };
-          x.total += c.total;
-          x.ok += c.ok;
-          x.fp += c.fp;
-        }
-    for (const f of state.external) add(f.check, f.verdict ? { v: f.verdict } : null);
-    return st;
-  }
   function calibStatsBySource() {
     const st = {};
     const at = (check, src) => {

@@ -1,8 +1,8 @@
 // @ts-check
 /* SessionLens panel — export of verdicts and the Calibration tab. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
-import { $, SEV, T, VLABEL, esc, fkey, genId, rulesTargetLabel, save, state } from "./common.js";
-import { calibStats, curS, fetchSessions, metas, onGenChanged, sessionStore, updateSession } from "./store.js";
+import { $, SEV, T, VLABEL, esc, fkey, genId, rulesTargetLabel, save, srcLabel, state } from "./common.js";
+import { calibStatsBySource, curS, fetchSessions, metas, onGenChanged, sessionStore, updateSession } from "./store.js";
 import { readFile, renderList, show } from "./sessions.js";
 import { renderReview } from "./review.js";
 
@@ -327,7 +327,7 @@ export function renderCalib() {
   $("#calib-rules-d").open = state.settings.calibRulesOpen !== false;
   $("#c-rules-title").textContent = T("c_rules", { f: rulesTargetLabel() });
   $("#rules-target").value = state.settings.rulesTarget || "claude";
-  const stats = calibStats();
+  const stats = calibStatsBySource();
   const confirmed = [];
   // the confirmed findings as the summaries keep them (message cut to 90 characters, snippet precomputed): all this list shows
   for (const m of metas()) for (const c of m.confirmed || []) confirmed.push({ s: m, f: c, vd: { v: "ok", note: c.note } });
@@ -335,12 +335,22 @@ export function renderCalib() {
     `<tr>${T("prec_hdr")
       .map((h) => `<th>${esc(h)}</th>`)
       .join("")}</tr>` +
+    // phase 8: one row per check AND source, with the status calibrate() really applies to it
     Object.entries(stats)
-      .sort((a, b) => b[1].total - a[1].total)
-      .map(([k, st]) => {
+      .flatMap(([k, per]) => Object.entries(per).map(([src, st]) => [k, src, st]))
+      .sort((a, b) => b[2].total - a[2].total)
+      .map(([k, src, st]) => {
         const { n, p, level } = Lens.calibLevel(st);
-        const status = level === "need" ? T("st_need", { n: 10 - n }) : T("st_" + level);
-        return `<tr><td>${esc(k)}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted">${esc(status)}</td></tr>`;
+        let status = level === "need" ? T("st_need", { n: 10 - n }) : T("st_" + level),
+          why = "";
+        if (!Lens.isCalibrated(k, src)) {
+          status = T("st_not_calibrated");
+          why = T(src === "ai" ? "st_why_ai" : src === "spec" ? "st_why_fact" : "st_why_external");
+        } else if (level === "off" && (state.ruleOverrides[k] || {}).enabled === true) {
+          status = T("st_by_hand");
+          why = T("st_by_hand_hint", { p: Math.round(p * 100) });
+        }
+        return `<tr><td>${esc(k)}</td><td>${esc(srcLabel(src))}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted"${why ? ` title="${esc(why)}"` : ""}>${esc(status)}</td></tr>`;
       })
       .join("");
   const min = +$("#min-count").value || 1,

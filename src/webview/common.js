@@ -3,7 +3,24 @@
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
 
 // set in initCommon(), in the order the single app.js ran its statements
-export let $, esc, fkey, genId, RULES_TARGET_FILES, rulesTargetFiles, rulesTargetLabel, T, LABEL, SEV, VLABEL, VCOL, hostTheme, store, state, SMALL_KEYS, save;
+export let $,
+  esc,
+  fkey,
+  genId,
+  srcLabel,
+  RULES_TARGET_FILES,
+  rulesTargetFiles,
+  rulesTargetLabel,
+  T,
+  LABEL,
+  SEV,
+  VLABEL,
+  VCOL,
+  hostTheme,
+  store,
+  state,
+  SMALL_KEYS,
+  save;
 
 export function initCommon() {
   $ = (s) => document.querySelector(s);
@@ -17,6 +34,9 @@ export function initCommon() {
   rulesTargetFiles = () => RULES_TARGET_FILES[state.settings.rulesTarget] || RULES_TARGET_FILES.claude;
   rulesTargetLabel = () => rulesTargetFiles().join(" and ");
   T = (k, v) => I18N.t(k, v);
+  // a finding's source as the findings filter and the Calibration table name it ("regex" for formal or none)
+  const SRC_KEYS = { formal: "chip_formal", lint: "chip_lint", spec: "chip_spec", ai: "chip_ai", gherkin: "src_gherkin", external: "src_external" };
+  srcLabel = (src) => (SRC_KEYS[src || "formal"] ? T(SRC_KEYS[src || "formal"]) : String(src));
   LABEL = new Proxy({}, { get: (_, k) => T(k) });
   SEV = new Proxy({}, { get: (_, k) => T("sev_" + /** @type {string} */ (k)) });
   VLABEL = new Proxy({}, { get: (_, k) => T("verdict_" + /** @type {string} */ (k)) });

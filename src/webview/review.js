@@ -1,7 +1,7 @@
 // @ts-check
 /* SessionLens panel — a session's tab: review, specification, model segmentation. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
-import { $, LABEL, SEV, T, VCOL, VLABEL, esc, fkey, state } from "./common.js";
+import { $, LABEL, SEV, T, VCOL, VLABEL, esc, fkey, srcLabel, state } from "./common.js";
 import { curS, needEngine, profileVerdicts, updateSession } from "./store.js";
 import { analyze } from "./analysis.js";
 import { piDeps, profileSummary, readFile } from "./sessions.js";
@@ -247,7 +247,7 @@ export function renderReview() {
   $("#mark-reviewed").classList.toggle("on", !!s.reviewed);
   $("#suppressed").textContent =
     s.suppressed && s.suppressed.length
-      ? T("suppressed", { list: s.suppressed.map((x) => `${x.check} (${Math.round(x.precision * 100)}% / ${x.n})`).join(", ") })
+      ? T("suppressed", { list: s.suppressed.map((x) => `${x.check} (${srcLabel(x.source)}, ${Math.round(x.precision * 100)}% / ${x.n})`).join(", ") })
       : "";
   const F = state.filter;
   const srcOf = (f) => (f.source === "ai" ? "ai" : f.source === "spec" ? "spec" : f.source === "lint" ? "lint" : "formal");
