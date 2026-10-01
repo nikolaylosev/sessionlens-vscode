@@ -90,6 +90,15 @@
   "edited": false
  },
  {
+  "check": "snapshot_overwritten",
+  "group": "process",
+  "rule": "Don't update snapshots to make a failing test pass. A snapshot diff is a finding: show it, say whether the change is intended, and update only after the user agrees.",
+  "severity": "high",
+  "enabled": true,
+  "good": "show the snapshot diff and ask: “the total moved under the table — intended?”; update only after a yes",
+  "edited": false
+ },
+ {
   "check": "assert_weakened",
   "group": "code",
   "rule": "Do not weaken existing assertions (== → in, concrete value → ANY / is not None, removing checks). A failing assertion calls for triage, not an edit.",

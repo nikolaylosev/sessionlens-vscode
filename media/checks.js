@@ -102,6 +102,13 @@
       good: "report it and wait: “R3 fails — the total ignores the discount. Product bug?”",
       sources: ["regex"],
     },
+    snapshot_overwritten: {
+      group: "process",
+      severity: "high",
+      ruleKey: "r_snapshot",
+      good: "show the snapshot diff and ask: “the total moved under the table — intended?”; update only after a yes",
+      sources: ["regex"],
+    },
     // ---- code ----
     assert_weakened: { group: "code", severity: "high", ruleKey: "r_weakened", good: "keep the assertion and triage the failure instead", sources: ["regex"] },
     weak_assert: {

@@ -54,6 +54,7 @@
     "duplicate_assert",
     "test_deleted",
     "product_code_edited",
+    "snapshot_overwritten",
   ];
   const API = [
     "status_only_assert",
@@ -1370,6 +1371,41 @@
         const r = hot && redRunBefore(ev, e.seq);
         return F("product_code_edited", r ? "high" : "medium", e.seq, T("product_edited", { file, after: r ? T("after_red_run", { seq: r.seq }) : "" }));
       });
+    },
+    /* Snapshots rewritten instead of read: jest/vitest -u, playwright --update-snapshots, pytest --snapshot-update,
+       UPDATE_SNAPSHOTS=1, or a snapshot file written by hand. Writing the first baselines of new tests is normal, so
+       medium; right after a red run it is how a diff the test caught becomes the new truth: high. */
+    snapshot_overwritten(ev) {
+      /* the runner starts the command: after environment variables, env and its options, sudo, npx, bunx, pnpm exec/dlx,
+         yarn dlx/exec or python -m only. A line of a heredoc or a quoted string that mentions "jest -u" is not a run. */
+      const RUNNER =
+        /^\s*(?:(?:\w+=\S*|env(?:\s+-u\s+\S+|\s+-\w+)*|sudo|npx|bunx|(?:pnpm|yarn)\s+(?:exec|dlx)|python3?\s+-m)\s+)*(?:\S*\/)?(?:jest|vitest|playwright|pytest|cypress|(?:npm|yarn|pnpm|bun)\s+(?:run\s+)?test[\w:-]*)(?=\s|$)/;
+      // a flag counts only after the runner (env -u X npm test is env's -u); an environment variable may come before it
+      const FLAG = /(?:^|\s)(?:-u|--updateSnapshot|--update-snapshots?(?:=\S+)?|--snapshot-update)(?=\s|$)|\bupdateSnapshots?=true\b/i;
+      const ENV = /\bUPDATE_SNAPSHOTS?=(?:1|true)\b/i;
+      const updates = (part) => {
+        const m = part.match(RUNNER);
+        return !!m && (ENV.test(m[0]) || FLAG.test(part.slice(m[0].length)));
+      };
+      // Jest/Vitest, jest-image-snapshot, Playwright, and the baselines of ApprovalTests (Java) and Verify (.NET)
+      const SNAP_FILE = /(?:^|\/)(?:__snapshots__|__image_snapshots__)\/|\.snap$|-snapshots\/[^/]+$|\.(?:approved|verified)\.\w+$/;
+      const out = [],
+        files = new Set();
+      const after = (seq) => {
+        const r = redRunBefore(ev, seq);
+        return [r ? "high" : "medium", r ? T("after_red_run", { seq: r.seq }) : ""];
+      };
+      for (const e of ev) {
+        if (e.cmd && e.cmd.split(/&&|\|\||;|\n/).some(updates)) {
+          const [sev, a] = after(e.seq);
+          out.push(F("snapshot_overwritten", sev, e.seq, T("snapshot_cmd", { cmd: e.cmd.trim().slice(0, 80), after: a })));
+        } else if (["write", "edit"].includes(e.kind) && e.file && SNAP_FILE.test(e.file) && !files.has(e.file)) {
+          files.add(e.file);
+          const [sev, a] = after(e.seq);
+          out.push(F("snapshot_overwritten", sev, e.seq, T("snapshot_file", { file: e.file, after: a })));
+        }
+      }
+      return out;
     },
     focused_test(ev, cfg) {
       const out = [];

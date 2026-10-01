@@ -14,6 +14,11 @@
 - `product_code_edited` (Process group): the agent changed product code (a file in the profile's source folders) in a
   testing task. High right after a failing run, medium otherwise. Tests, fixtures, page objects, mocks, test utils, a
   runner's config and a file named in the approved plan are not reported.
+- `snapshot_overwritten` (Process group): snapshots rewritten instead of read. This covers a test run with an update
+  flag (`jest -u`, `vitest -u`, `playwright test --update-snapshots`, `pytest --snapshot-update`,
+  `UPDATE_SNAPSHOTS=1`), or a snapshot or baseline file written by hand (`__snapshots__`, `*.snap`,
+  `*-snapshots/`, ApprovalTests `*.approved.*`, Verify `*.verified.*`). High right after a failing run, medium
+  otherwise (the first baselines of new tests).
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",
