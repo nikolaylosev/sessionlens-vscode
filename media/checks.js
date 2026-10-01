@@ -238,6 +238,14 @@
       good: "keep the failing test and triage it: product bug / test bug / spec defect",
       sources: ["regex"],
     },
+    hardcoded_secret: { group: "code", severity: "high", ruleKey: "r_secret", good: "token = os.environ['API_TOKEN']", sources: ["regex"] },
+    hardcoded_base_url: {
+      group: "code",
+      severity: "medium",
+      ruleKey: "r_base_url",
+      good: "BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8080')",
+      sources: ["regex"],
+    },
     // ---- api ----
     status_only_assert: {
       group: "api",
@@ -251,14 +259,6 @@
       severity: "medium",
       ruleKey: "r_mocked",
       good: "call the real service (or a real test instance); mock only its downstream dependencies",
-      sources: ["regex"],
-    },
-    hardcoded_secret: { group: "api", severity: "high", ruleKey: "r_secret", good: "token = os.environ['API_TOKEN']", sources: ["regex"] },
-    hardcoded_base_url: {
-      group: "api",
-      severity: "medium",
-      ruleKey: "r_base_url",
-      good: "BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8080')",
       sources: ["regex"],
     },
     no_negative_cases: {

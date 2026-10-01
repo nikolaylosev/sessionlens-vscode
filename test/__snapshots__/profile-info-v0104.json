@@ -159,6 +159,16 @@
       "name": "test_deleted",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -188,7 +198,7 @@
     ]
    }
   ],
-  "count": 30,
+  "count": 32,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -360,6 +370,16 @@
       "name": "test_deleted",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -389,7 +409,7 @@
     ]
    }
   ],
-  "count": 28,
+  "count": 30,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -566,6 +586,16 @@
       "name": "test_deleted",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -595,7 +625,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 31,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -1355,6 +1385,16 @@
       "name": "test_deleted",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1368,16 +1408,6 @@
      },
      {
       "name": "mocked_service",
-      "off": false,
-      "engineOnly": false
-     },
-     {
-      "name": "hardcoded_secret",
-      "off": false,
-      "engineOnly": false
-     },
-     {
-      "name": "hardcoded_base_url",
       "off": false,
       "engineOnly": false
      },
@@ -1601,6 +1631,16 @@
       "name": "test_deleted",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "hardcoded_secret",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "hardcoded_base_url",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1650,7 +1690,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 31,
   "engine": {
    "kind": "none",
    "state": "none"

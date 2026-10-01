@@ -67,6 +67,8 @@
      API concepts (locator strategy, gesture coordinates, driver lifecycle) show up whether the test is
      Java + appium-java-client, Python + Appium-Python-Client, WebdriverIO, or the .NET client. */
   const MOBILE = ["mobile_raw_locator", "hardcoded_coordinates", "no_driver_teardown"];
+  // part of API (qa-api); since 0.1.113 also in the web and mobile profiles: a token or a staging host in a UI test
+  const SECRETS = ["hardcoded_secret", "hardcoded_base_url"];
   /* .only / fit / fdescribe: only the focused tests run, the rest are silently skipped (not a skip: that one is
      visible in the report). debug_patterns: kind → pattern; the kind is what LensLint.merge() compares with what the
      profile's engine looks for (page.pause and cy.pause are "pause", cy.debug is "debug"). */
@@ -103,7 +105,7 @@
       test_runner_patterns: ["jest", "vitest", "npm test", "playwright test", "pnpm test", "yarn test"],
       src_dirs: ["src", "app", "lib"],
       test_dirs: ["tests", "test", "__tests__", "e2e"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
       sleep_patterns: [/\bwaitForTimeout\s*\(\s*\d+/, /setTimeout\s*\([^,]+,\s*\d{3,}/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS },
@@ -308,7 +310,7 @@
       test_runner_patterns: ["pytest", "npm test", "jest", "vitest", "mvn test", "mvn verify", "gradle test", "gradlew", "dotnet test"],
       src_dirs: ["src", "app"],
       test_dirs: ["tests", "test", "__tests__", "e2e", "src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...MOBILE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, ...MOBILE],
       sleep_patterns: [
         /\btime\.sleep\s*\(\s*[\d.]+/,
         /\bThread\.sleep\s*\(\s*\d+/,
@@ -339,7 +341,7 @@
       test_runner_patterns: ["cypress run", "cypress open", "npx cypress", "yarn cypress"],
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
       sleep_patterns: [/\bcy\.wait\s*\(\s*\d{3,}/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
@@ -360,7 +362,7 @@
       test_runner_patterns: ["detox test", "npx detox test", "detox build", "e2e:test"],
       src_dirs: ["src", "app"],
       test_dirs: ["e2e", "e2e/tests"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
       sleep_patterns: [/setTimeout\s*\([^,]+,\s*\d{3,}/, /new Promise\s*\(\s*resolve\s*=>\s*setTimeout/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { debugger: DEBUGGER_JS },
@@ -1476,8 +1478,10 @@
         /^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal|(?:[\w-]+\.)*(?:example\.(?:com|org|net)|test|invalid|local|localhost)|(?:www\.)?(?:w3\.org|json-schema\.org|swagger\.io|openapis\.org|github\.com|githubusercontent\.com|npmjs\.com|mozilla\.org|wikipedia\.org|apache\.org|postman\.com|getpostman\.com|schemas\.microsoft\.com))$/i;
       const out = [],
         seen = new Set();
+      // a runner's config file is where the base URL belongs (baseURL in playwright.config.ts): what the rule asks for
+      const CONFIG = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*)$/i;
       for (const e of ev) {
-        if (!e.new_content) continue;
+        if (!e.new_content || CONFIG.test(e.file || "")) continue;
         for (const line of e.new_content.split("\n")) {
           if (/^\s*(?:#|\/\/|\*)|\$schema|xmlns|href\s*=|@see/.test(line)) continue;
           for (const m of line.matchAll(/https?:\/\/([A-Za-z0-9.-]+|\[[0-9a-f:]+\])(?::\d+)?/gi)) {
