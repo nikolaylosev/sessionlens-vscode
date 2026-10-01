@@ -5,7 +5,8 @@ checks, how the snapshots work and how to add a test. It is written for develope
 code and need to know which tests guard the part they touch.
 
 The overview of the whole extension is [`ARCHITECTURE.md`](ARCHITECTURE.md); its section 8 shows where the tests sit
-in the build and release flow.
+in the build and release flow. The check registry, the lint engines, calibration, storage and the trust boundary are
+described in depth in [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md); its §12 is the checklist for adding a check.
 
 Contents
 
@@ -246,7 +247,7 @@ The two snapshot scripts `perf/snapshot-calib.js` and `perf/snapshot-lint.js` ar
 
 | You change | Add or update |
 |---|---|
-| A check or its detector | A `test/<check>.test.js` with a transcript builder (below): cases that must be reported, with severity and message, and cases that must not. `rules-consistency.test.js` tells you what else is missing. Then the snapshots (section 5). |
+| A check or its detector | A `test/<check>.test.js` with a transcript builder (below): cases that must be reported, with severity and message, and cases that must not. `rules-consistency.test.js` tells you what else is missing; the full checklist is [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md) §12. Then the snapshots (section 5). |
 | An engine rule | `supersedes.test.js` if the rule reports under a `SUPERSEDES` name; `rule-mapping.test.js` if a review case changes; `lint-v0101.json` if the engine output changes. |
 | A profile | `spec-extract.test.js` for its file types, `profile-info.test.js`, `issue-template.test.js`, snapshots. |
 | A message type | `validate.test.js` (one good and at least one bad payload) and `trust-boundary.test.js` if the message can make the host write, run or send anything. |
