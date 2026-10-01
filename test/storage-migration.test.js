@@ -125,6 +125,7 @@ test("session:get/put: an id is never a path; summary fields from the page are i
     verdict: "green",
     findingsCount: 0,
     checkStats: { fake: { total: 99, ok: 99, fp: 0 } },
+    sourceStats: { fake: { lint: { total: 99, ok: 99, fp: 0 } } },
     confirmed: [{ check: "fake" }],
   };
   const r = await h.v.send("session:put", { session: s, analyzedGen: "" });
@@ -132,6 +133,7 @@ test("session:get/put: an id is never a path; summary fields from the page are i
   assert.equal(r.meta.verdict, "red");
   assert.equal(r.meta.findingsCount, 1);
   assert.deepEqual(Object.keys(r.meta.checkStats), ["weak_assert"]);
+  assert.deepEqual(Object.keys(r.meta.sourceStats), ["weak_assert"]);
   assert.deepEqual(r.meta.confirmed, []);
   for (const f of fs.readdirSync(h.dir)) assert.match(f, /^h-[0-9a-f]{32}(\.meta)?\.json$/);
   assert.deepEqual(fs.readdirSync(h.context.globalStorageUri.fsPath).sort(), ["secret.json", "sessions"]);
