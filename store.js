@@ -16,6 +16,8 @@ const crypto = require("crypto");
 
 const PLAIN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const META = ".meta.json";
+// 2 (0.1.112): the summary has sourceStats. open() rebuilds a summary of an older schema from its session, once.
+const META_SCHEMA = 2;
 const RETRY_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
 const RETRY_MS = [20, 40, 80, 160, 320];
 
@@ -77,7 +79,7 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
 
   function buildMeta(session, rev, extra) {
     const m = summary(session);
-    return Object.assign({ schema: 1 }, m, { id: session.id, rev, order: extra.order, analyzedGen: extra.analyzedGen || "", size: extra.size });
+    return Object.assign({ schema: META_SCHEMA }, m, { id: session.id, rev, order: extra.order, analyzedGen: extra.analyzedGen || "", size: extra.size });
   }
   function maxOrder() {
     let n = 0;
@@ -137,7 +139,8 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
           mp = path.join(dir, base + META),
           mst = S.statSync(mp);
         const meta = JSON.parse(S.readFileSync(mp, "utf8"));
-        if (typeof meta.rev !== "number" || typeof meta.id !== "string" || meta.size !== sst.size || sst.mtimeMs > mst.mtimeMs) return null;
+        if (meta.schema !== META_SCHEMA || typeof meta.rev !== "number" || typeof meta.id !== "string" || meta.size !== sst.size || sst.mtimeMs > mst.mtimeMs)
+          return null;
         return { meta, mtime: mst.mtimeMs };
       } catch {
         return null;
@@ -171,6 +174,7 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
           // written in the same millisecond or the size matches by chance: the rev decides
           if (!(meta.size === sst.size && typeof meta.rev === "number" && (await readRev(sp).catch(() => NaN)) === meta.rev)) meta = null;
         }
+        if (meta && meta.schema !== META_SCHEMA) meta = null; // an older summary: rebuilt below from the session
       }
       if (!meta) {
         let session;

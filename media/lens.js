@@ -1751,29 +1751,34 @@
     return ("0000000" + h.toString(16)).slice(-8);
   }
   /* → { id, name, task, profile, created, reviewed, specN, verdict, findingsCount, verdictsCount,
-         checkStats: { check: { total, ok, fp } }, confirmed: [{ key, check, seq, message, snippet, note }] }
+         checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
+         confirmed: [{ key, check, seq, message, snippet, note }] }
      checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
-     (calibHidden); confirmed are the findings shown with an "ok" verdict, in finding order. */
+     (calibHidden); sourceStats is the same split by the finding's source ("formal" when it has none: a regex
+     finding of a session analyzed before 0.1.112), so an engine's bad record never counts against a regex check of
+     the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order. */
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
       verdicts = s.verdicts && typeof s.verdicts === "object" ? s.verdicts : {};
     const checkStats = {},
+      sourceStats = {},
       confirmed = [];
+    const count = (f, vd) => {
+      const per = (sourceStats[f.check] = sourceStats[f.check] || {}),
+        src = f.source || "formal";
+      for (const x of [(checkStats[f.check] = checkStats[f.check] || { total: 0, ok: 0, fp: 0 }), (per[src] = per[src] || { total: 0, ok: 0, fp: 0 })]) {
+        x.total++;
+        if (vd && (vd.v === "ok" || vd.v === "fp")) x[vd.v]++;
+      }
+    };
     for (const f of findings) {
       const k = fkey(f),
         vd = verdicts[k];
-      const x = (checkStats[f.check] = checkStats[f.check] || { total: 0, ok: 0, fp: 0 });
-      x.total++;
-      if (vd && (vd.v === "ok" || vd.v === "fp")) x[vd.v]++;
+      count(f, vd);
       if (vd && vd.v === "ok")
         confirmed.push({ key: k, check: f.check, seq: f.seq, message: String(f.message || "").slice(0, 90), snippet: snippet(f), note: String(vd.note || "") });
     }
-    for (const f of Array.isArray(s.calibHidden) ? s.calibHidden : []) {
-      const vd = verdicts[fkey(f)];
-      const x = (checkStats[f.check] = checkStats[f.check] || { total: 0, ok: 0, fp: 0 });
-      x.total++;
-      if (vd && (vd.v === "ok" || vd.v === "fp")) x[vd.v]++;
-    }
+    for (const f of Array.isArray(s.calibHidden) ? s.calibHidden : []) count(f, verdicts[fkey(f)]);
     return {
       id: s.id,
       name: s.name || "",
@@ -1787,6 +1792,7 @@
       findingsCount: findings.length,
       verdictsCount: Object.keys(verdicts).length,
       checkStats,
+      sourceStats,
       confirmed,
     };
   }

@@ -86,6 +86,54 @@ test("the summary is computed from the session, like Lens.sessionSummary", async
   assert.deepEqual(m.confirmed, [{ key: Lens.fkey(f1), check: "weak_assert", seq: 1, message: "m1", snippet: "expect(x)", note: "yes" }]);
 });
 
+test("the summary splits the stats by source; a regex finding of an older session (no source) counts as formal", async () => {
+  const { st } = await open(tmp());
+  const old = { check: "weak_assert", severity: "high", seq: 1, message: "regex, saved before 0.1.112" };
+  const formal = { check: "weak_assert", severity: "high", seq: 2, message: "regex", source: "formal" };
+  const lint = { check: "weak_assert", severity: "high", seq: 3, message: "engine", source: "lint" };
+  const hidden = { check: "weak_assert", severity: "high", seq: 4, message: "engine, check off", source: "lint" };
+  const s = sess("a", {
+    findings: [old, formal, lint],
+    calibHidden: [hidden],
+    verdicts: { [Lens.fkey(old)]: { v: "ok" }, [Lens.fkey(formal)]: { v: "ok" }, [Lens.fkey(lint)]: { v: "fp" }, [Lens.fkey(hidden)]: { v: "fp" } },
+  });
+  const m = (await st.put(s)).meta;
+  assert.equal(m.schema, 2);
+  assert.deepEqual(m.checkStats, { weak_assert: { total: 4, ok: 2, fp: 2 } }, "unchanged: every source together");
+  assert.deepEqual(m.sourceStats, {
+    weak_assert: { formal: { total: 2, ok: 2, fp: 0 }, lint: { total: 2, ok: 0, fp: 2 } },
+  });
+});
+
+test("open(): a summary of schema 1 is rebuilt from its session once, keeping its order and analyzedGen", async () => {
+  const dir = tmp();
+  const { st } = await open(dir);
+  await st.put(sess("a"), { analyzedGen: "0000abcd" });
+  await st.put(sess("b"));
+  // a as 0.1.111 wrote it: schema 1, no sourceStats; written after the session, so it looks current
+  const mp = path.join(dir, "a.meta.json");
+  const old = JSON.parse(fs.readFileSync(mp, "utf8"));
+  const order = old.order;
+  old.schema = 1;
+  delete old.sourceStats;
+  fs.writeFileSync(mp, JSON.stringify(old));
+  const r = await open(dir);
+  const m = r.st.meta("a");
+  assert.equal(m.schema, 2);
+  assert.deepEqual(m.sourceStats, { weak_assert: { formal: { total: 1, ok: 0, fp: 0 } } });
+  assert.deepEqual([m.order, m.analyzedGen, m.rev], [order, "0000abcd", 1]);
+  assert.deepEqual(
+    r.logs.filter((l) => /rebuilt the summary/.test(l)),
+    ["rebuilt the summary of a"],
+    "only the old one",
+  );
+  assert.deepEqual(
+    (await open(dir)).logs.filter((l) => /rebuilt/.test(l)),
+    [],
+    "once",
+  );
+});
+
 test("fileNameFor: an id never leaves the folder", async () => {
   const dir = tmp();
   const { st } = await open(dir);
