@@ -4,7 +4,7 @@
    language. Prints { profile: { ran, note, findings } } as JSON.
    node perf/snapshot-lint.js <root> > test/__snapshots__/lint-v0101.json   (root: a 0.1.101 checkout)
    The test compares the current lint.js with that file: once an engine is loaded, lazy loading must not change what
-   run() reports. */
+   run() reports. For the current checkout, SL_UPDATE_SNAPSHOTS=1 npm test writes the same file (test/lazy-engines.test.js). */
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");

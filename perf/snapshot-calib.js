@@ -1,7 +1,8 @@
 "use strict";
 /* Renders Calibration (precision table and proposed rules with their evidence and "effect" blocks) of the fixture used
    by test/panel-storage.test.js, through the VS Code code path of the given checkout, and prints it as JSON.
-   node perf/snapshot-calib.js <root> > test/__snapshots__/calib-v0100.json   (root: a 0.1.100 checkout) */
+   node perf/snapshot-calib.js <root> > test/__snapshots__/calib-v0100.json   (root: a 0.1.100 checkout)
+   For the current checkout, SL_UPDATE_SNAPSHOTS=1 npm test writes the same file (test/panel-storage.test.js). */
 const path = require("path");
 const { bootHost, openPage } = require("../test/host-panel");
 const { makeFixture } = require("./fixtures");

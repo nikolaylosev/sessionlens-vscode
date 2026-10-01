@@ -42,7 +42,7 @@ Useful variants:
 ```sh
 node --test test/config-weakened.test.js               # one file
 node --test --test-name-pattern="Cypress" "test/**/*.test.js"   # tests whose name matches
-SL_UPDATE_SNAPSHOTS=1 npm test                          # rewrite two of the snapshots (section 5)
+SL_UPDATE_SNAPSHOTS=1 npm test                          # rewrite the snapshots (section 5)
 SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rules review cases report now
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
@@ -180,22 +180,32 @@ user-visible output on purpose. The update goes in a commit of its own, and the 
 what changed and why (see `CLAUDE.md`). Before committing, read the diff of the snapshot and make sure only the
 intended rows changed. A snapshot that changes without a reason is a regression.
 
-| Snapshot | Test | What it records | How to update |
-|---|---|---|---|
-| `render-v0103.json` | `render-snapshot.test.js` | Normalized markup of every sidebar view and of a session tab per profile (dates, times and "ago" counters replaced by markers) | `SL_UPDATE_SNAPSHOTS=1 npm test` |
-| `profile-info-v0104.json` | `profile-info.test.js` | `Lens.profileInfo()` for every profile | `SL_UPDATE_SNAPSHOTS=1 npm test` |
-| `book-en.json` | `book-snapshot.test.js` | The rule book `LensRules.book({})`, without the rows in the test's `ADDED` set | `UPDATE_SNAPSHOT=1 node --test test/book-snapshot.test.js` |
-| `calib-v0100.json` | `panel-storage.test.js` | Calibration: the precision table, the proposed rules and the Rules list, rendered from the perf fixture | `node perf/snapshot-calib.js . > test/__snapshots__/calib-v0100.json` |
-| `lint-v0101.json` | `lazy-engines.test.js` | What `LensLint.run()` reports with the real engines, one small session per language | `node perf/snapshot-lint.js . > test/__snapshots__/lint-v0101.json` |
+All five are updated with one command:
+
+```sh
+SL_UPDATE_SNAPSHOTS=1 npm test
+git diff test/__snapshots__/      # only the intended rows may change
+```
+
+With the variable set, each snapshot test writes its file instead of comparing it, and passes. Run `npm test` once
+more without the variable afterwards.
+
+| Snapshot | Test | What it records |
+|---|---|---|
+| `render-v0103.json` | `render-snapshot.test.js` | Normalized markup of every sidebar view and of a session tab per profile (dates, times and "ago" counters replaced by markers) |
+| `profile-info-v0104.json` | `profile-info.test.js` | `Lens.profileInfo()` for every profile |
+| `book-en.json` | `book-snapshot.test.js` | The rule book `LensRules.book({})`, without the rows in the test's `ADDED` set |
+| `calib-v0100.json` | `panel-storage.test.js` | Calibration: the precision table, the proposed rules and the Rules list, rendered from the perf fixture by `perf/snapshot-calib.js` |
+| `lint-v0101.json` | `lazy-engines.test.js` | What `LensLint.run()` reports with the real engines, one small session per language, from `perf/snapshot-lint.js` |
 
 Things to know:
 
-- **`SL_UPDATE_SNAPSHOTS=1` updates only two of the five.** The rule book uses its own variable, `UPDATE_SNAPSHOT`,
-  and the last two are written by scripts in `perf/`. A change to a check usually touches the first four; the commits
-  of phase 10 (for example `c66bdec`) were made with all three methods.
-- The version in a file name is the version the snapshot was first taken at, not the current one. The headers of the
-  two perf scripts still say "a 0.1.100 checkout" and "a 0.1.101 checkout"; today both are run with `.` (the current
-  checkout) and give the committed files unchanged.
+- A change to a check usually touches the first four. The lint snapshot changes only when an engine or its rule map
+  does. The lint test writes its file only if every engine ran, so a broken engine cannot be recorded as the new truth.
+- Earlier the rule book used its own variable (`UPDATE_SNAPSHOT`) and the last two files were written by the
+  perf scripts by hand. The scripts still print the same JSON (`node perf/snapshot-calib.js <checkout>`), which is
+  useful to compare an older checkout with the current one.
+- The version in a file name is the version the snapshot was first taken at, not the current one.
 - `render-v0103.json` and `profile-info-v0104.json` are also written when the file is missing. Do not delete a
   snapshot to make a test pass.
 - `rule-mapping.test.js` and `demo-session.test.js` keep their expected values in the test file instead of a snapshot.

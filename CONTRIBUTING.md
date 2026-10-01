@@ -50,9 +50,9 @@ Some tests compare against files in `test/__snapshots__/` (the rule book, calibr
 panel, the profile details). A change that alters them on purpose updates them in a commit of its own, and the pull
 request says what changed and why. A snapshot that changes without a reason is a regression.
 
-`SL_UPDATE_SNAPSHOTS=1 npm test` rewrites only the rendered panel and the profile details. The rule book, calibration
-and lint snapshots have their own commands, listed in [`docs/TESTING.md`](docs/TESTING.md) §5, which also describes
-the test harnesses and what each test file checks.
+`SL_UPDATE_SNAPSHOTS=1 npm test` rewrites all of them; read `git diff test/__snapshots__/` before committing.
+[`docs/TESTING.md`](docs/TESTING.md) §5 lists what each snapshot records; the same document describes the test
+harnesses and what each test file checks.
 
 ## Pull requests
 

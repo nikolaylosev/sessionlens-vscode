@@ -13,7 +13,7 @@ const ADDED = new Set(["lint_valid_title", "ai_other"]);
 test("book({}) matches the v0.1.97 snapshot", () => {
   const { LensRules } = load();
   const book = LensRules.book({});
-  if (process.env.UPDATE_SNAPSHOT) {
+  if (process.env.SL_UPDATE_SNAPSHOTS === "1") {
     fs.writeFileSync(
       SNAP,
       JSON.stringify(
