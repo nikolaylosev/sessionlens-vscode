@@ -235,7 +235,7 @@ const CASES = [
   ],
 ];
 
-// 0.1.112 plus #27; step 1 (0.1.113): every finding under its own name. Later steps change it case by case.
+// 0.1.112 plus #27; 0.1.113: every finding under its own name (step 1), test_deleted (step 2). Later steps change it case by case.
 const EXPECTED = {
   "1a xfail (Python)": ["expected_failure/formal"],
   "1a @Disabled (Java)": ["sleep_or_skip_added/formal"],
@@ -252,8 +252,8 @@ const EXPECTED = {
   "2 .and() (Cypress)": [],
   "2 an async test (Cypress)": ["cypress_async_test/lint <cypress/no-async-tests>"],
   "2 force: true (Playwright)": ["fragile_wait/lint <playwright/no-force-option>"],
-  "3.1 a test deleted (Playwright)": [],
-  "3.1 a test file deleted (Playwright)": [],
+  "3.1 a test deleted (Playwright)": ["test_deleted/formal"],
+  "3.1 a test file deleted (Playwright)": ["test_deleted/formal"],
   "3.2 product code edited (Playwright)": [],
   "3.3 snapshots overwritten (Jest)": [],
   "3.4 retries and timeout raised (Playwright config)": ["sleep_or_skip_added/formal"],

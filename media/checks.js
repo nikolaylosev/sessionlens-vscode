@@ -231,6 +231,13 @@
       good: "it('total', () => { cy.contains('Total').should('be.visible'); })",
       sources: ["lint"],
     },
+    test_deleted: {
+      group: "code",
+      severity: "high",
+      ruleKey: "r_test_deleted",
+      good: "keep the failing test and triage it: product bug / test bug / spec defect",
+      sources: ["regex"],
+    },
     // ---- api ----
     status_only_assert: {
       group: "api",

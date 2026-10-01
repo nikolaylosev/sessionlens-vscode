@@ -52,6 +52,7 @@
     "assertion_roulette",
     "conditional_logic",
     "duplicate_assert",
+    "test_deleted",
   ];
   const API = [
     "status_only_assert",
@@ -781,7 +782,12 @@
         // apply_patch call, or one wrapped in a JS snippet, as the VS Code extension's harness does).
         if (p && p.type === "patch_apply_end" && p.changes) {
           for (const [path, ch] of Object.entries(p.changes)) {
-            if (!ch || ch.type === "delete") continue;
+            if (!ch) continue;
+            if (ch.type === "delete") {
+              out.push({ seq: seq++, ts, kind: "delete", file: short(path) }); // test_deleted looks for a deleted test file
+              delete files[path];
+              continue;
+            }
             const before = Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null;
             let after = null;
             if (ch.type === "add" && typeof ch.content === "string") after = ch.content;
@@ -1238,6 +1244,96 @@
               kind: skips.some((r) => RETRY_RX.test(r.source)) ? "retry" : "skip",
             }),
           );
+      }
+      return out;
+    },
+    /* A test that disappears: from a file between two of its versions in the session, or with the whole file (rm,
+       git rm, a deleted file in a Codex patch). Not a deletion: a test renamed with the same body, a test that shows up
+       in another file (moved) or again in the same file later (restored). High right after a red run: that is how an
+       agent turns a suite green. Versions are what the session saw (new_content), so a stored session works too. */
+    test_deleted(ev, cfg) {
+      if (!cfg.test_fn_pattern) return [];
+      const tests = (src) => blocksByTest(src, cfg.test_fn_pattern);
+      const norm = (b) =>
+        b
+          .split("\n")
+          .slice(1)
+          .map((l) => l.trim())
+          .filter((l) => l && !/^[})\];,]*$/.test(l))
+          .join("\n");
+      const versions = ev.filter((e) => ["write", "edit"].includes(e.kind) && e.file && e.new_content && isCode(e.file, cfg));
+      const seen = versions.flatMap((e) => Object.keys(tests(e.new_content)).map((name) => ({ file: e.file, seq: e.seq, name })));
+      // kept: the same test elsewhere at any time (moved) or in the same file after the deletion (restored)
+      const kept = (file, seq, name) => seen.some((t) => t.name === name && (t.file !== file || t.seq > seq));
+      const red = (seq) => {
+        const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
+        const l = runs[runs.length - 1];
+        return l && (l.tests.failed || l.tests.errors) ? l : null;
+      };
+      const out = [];
+      const push = (key, file, seq, names) => {
+        const r = red(seq);
+        const vars = { file, n: names.length, names: names.join(", "), after: r ? T("after_red_run", { seq: r.seq }) : "" };
+        out.push(F("test_deleted", r ? "high" : "medium", seq, T(key, vars)));
+      };
+      // ---- a test removed from a file ----
+      const last = {};
+      for (const e of versions) {
+        const prev = last[e.file];
+        last[e.file] = e;
+        if (!prev || prev.fragment_only || e.fragment_only) continue;
+        const om = tests(prev.new_content),
+          nm = tests(e.new_content);
+        const added = Object.keys(nm)
+          .filter((k) => !(k in om))
+          .map((k) => norm(nm[k]));
+        const gone = Object.keys(om).filter((k) => !(k in nm) && !(norm(om[k]) && added.includes(norm(om[k]))) && !kept(e.file, e.seq, k));
+        if (gone.length) push("test_deleted_msg", e.file, e.seq, gone);
+      }
+      // ---- a test file deleted ----
+      const same = (a, b) => a === b || a.endsWith("/" + b) || b.endsWith("/" + a);
+      const testFile = (f) =>
+        isCode(f, cfg) &&
+        (/(?:^|\/)(?:test_[^/]*\.py|[^/]*_test\.(?:py|go)|[^/]*\.(?:spec|test|cy)\.[cm]?[jt]sx?|[^/]*Tests?\.(?:java|kt|cs))$/.test(f) ||
+          inDirs(f, cfg.test_dirs));
+      for (const e of ev) {
+        let targets = [];
+        if (e.kind === "delete" && e.file) targets = [e.file];
+        else if (e.cmd)
+          for (const part of e.cmd.split(/&&|\|\||;|\n/)) {
+            const m = part.match(/^\s*(?:sudo\s+)?(?:git\s+rm|rm|unlink|del|Remove-Item)\s+(.*)$/);
+            if (m)
+              targets.push(
+                ...m[1]
+                  .split(/\s+/)
+                  .filter((t) => t && !t.startsWith("-"))
+                  .map((t) => t.replace(/^["']|["']$/g, "").replace(/\/+$/, "")),
+              );
+          }
+        for (const t of targets) {
+          const glob = /[*?]/.test(t)
+            ? new RegExp(
+                "(?:^|/)" +
+                  t
+                    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+                    .replace(/\*/g, "[^/]*")
+                    .replace(/\?/g, "[^/]") +
+                  "$",
+              )
+            : null;
+          const known = [...new Set(versions.filter((v) => v.seq < e.seq).map((v) => v.file))].filter((f) =>
+            glob ? glob.test(f) : same(f, t) || f.startsWith(t + "/") || f.includes("/" + t + "/"),
+          );
+          for (const f of known) {
+            const lastV = versions.filter((v) => v.file === f && v.seq < e.seq).pop();
+            const names = Object.keys(tests(lastV.new_content));
+            if (!names.length && !testFile(f)) continue;
+            const gone = names.filter((k) => !kept(f, e.seq, k));
+            if (names.length && !gone.length) continue; // every test of it lives on elsewhere: moved
+            push("test_file_deleted_msg", f, e.seq, gone);
+          }
+          if (!known.length && !glob && testFile(t)) push("test_file_deleted_msg", t, e.seq, []);
+        }
       }
       return out;
     },

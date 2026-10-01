@@ -23,6 +23,9 @@
       skip: "{file}: skip / retry added",
       focused: "{file}: focused test “{line}” — only it runs, the rest of the suite is silently skipped",
       debug_leftover: "{file}: debugging left in the test “{line}”",
+      test_deleted_msg: "{file}: {n} {n|test|tests} deleted: {names}{after}",
+      test_file_deleted_msg: "{file}: test file deleted{after}",
+      after_red_run: " — right after a failing run (seq {seq})",
       assumption: "Assumption instead of a question: “{snippet}”",
       no_plan: "Code written without a plan",
       no_approval: "Plan produced, but no stop and approval — straight to code",
@@ -54,6 +57,8 @@
       r_scope: "Change only files from the approved plan. Need another file — say so first.",
       r_churn: "More than three edits to one file — stop and explain what is unclear instead of trying again.",
       r_sleep: "No sleep with a constant and no skip / retry. Wait only via wait_until() from helpers.",
+      r_test_deleted:
+        "Never delete a test or a test file to make the suite pass. A failing test calls for triage; removing one needs the user's explicit agreement.",
       r_focused:
         "Never leave .only / fit / fdescribe in a test. Only the focused test runs, the rest of the suite is silently skipped, and the run stays green.",
       r_debug_leftover:
