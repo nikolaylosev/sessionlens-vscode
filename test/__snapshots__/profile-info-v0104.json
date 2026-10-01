@@ -74,6 +74,11 @@
       "name": "product_code_edited",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -203,7 +208,7 @@
     ]
    }
   ],
-  "count": 33,
+  "count": 34,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -298,6 +303,11 @@
      },
      {
       "name": "product_code_edited",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
      }
@@ -419,7 +429,7 @@
     ]
    }
   ],
-  "count": 31,
+  "count": 32,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -514,6 +524,11 @@
      },
      {
       "name": "product_code_edited",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
      }
@@ -640,7 +655,7 @@
     ]
    }
   ],
-  "count": 32,
+  "count": 33,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -729,6 +744,11 @@
      },
      {
       "name": "product_code_edited",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
      }
@@ -840,7 +860,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 30,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -932,6 +952,11 @@
       "name": "product_code_edited",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1041,7 +1066,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 30,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1130,6 +1155,11 @@
       "name": "product_code_edited",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1239,7 +1269,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 30,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1348,6 +1378,11 @@
      },
      {
       "name": "product_code_edited",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
      }
@@ -1489,7 +1524,7 @@
     ]
    }
   ],
-  "count": 34,
+  "count": 35,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1599,6 +1634,11 @@
      },
      {
       "name": "product_code_edited",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
      }
@@ -1730,7 +1770,7 @@
     ]
    }
   ],
-  "count": 32,
+  "count": 33,
   "engine": {
    "kind": "none",
    "state": "none"
