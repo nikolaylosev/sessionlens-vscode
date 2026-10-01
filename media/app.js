@@ -1771,7 +1771,7 @@ ${en.raw}`).join("\n\n\n");
     const runs = s.events.filter((e) => e.kind === "run_tests" && e.tests), last = runs[runs.length - 1];
     $("#hdr").style.setProperty("--v", VCOL[v]);
     const unv = !Lens.isValidated(s.profile, profileVerdicts(s.profile));
-    $("#hdr").innerHTML = `<h1>${esc(Lens.displayName(s))}<span class="badge">${esc(VLABEL[v])}</span></h1><div class="m">${esc(Lens.otherName(s))} · <span class="pi-hdr" title="${esc(profileSummary(Lens.profileInfo(s.profile, piDeps(s.profile))))}">${esc(s.profile)}</span> · ${esc(s.events.length)} ${T("events")} · ${T("hdr_result")}: ${last ? esc(T("passed_failed", { p: last.tests.passed, f: last.tests.failed })) : T("no_runs")}</div>${unv ? `<span class="warn">${esc(T("unverified", { p: s.profile, n: Lens.UNVERIFIED_MIN }))}</span>` : ""}`;
+    $("#hdr").innerHTML = `<h1>${esc(Lens.displayName(s))}<span class="badge">${esc(VLABEL[v])}</span></h1><div class="m">${esc(Lens.otherName(s))} · <span class="pi-hdr" title="${esc(profileSummary(Lens.profileInfo(s.profile, piDeps(s.profile))))}">${esc(s.profile)}</span> · ${esc(T("events", { n: s.events.length }))} · ${T("hdr_result")}: ${last ? esc(T("passed_failed", { p: last.tests.passed, f: last.tests.failed })) : T("no_runs")}</div>${unv ? `<span class="warn">${esc(T("unverified", { p: s.profile, n: Lens.UNVERIFIED_MIN }))}</span>` : ""}`;
     $("#metrics").innerHTML = [
       `${T("m_reads")} <b>${esc(m.reads)}</b>`,
       `${T("m_edits")} <b>${esc(m.edits)}</b>`,

@@ -183,7 +183,7 @@
       no_events: "Could not recognise any event. Supported: Claude Code JSONL, claude.ai conversations.json, /export, chat text.",
       many_convs: "The file has {n} conversations. Part of a name to load only that one (empty — all):",
       no_sessions: "No sessions yet.",
-      events: "events",
+      events: "{n} {n|event|events}",
       findings_n: "findings",
       verdicts_n: "verdicts",
       spec_n: "spec {n} req.",
