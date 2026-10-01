@@ -406,12 +406,10 @@
   }
 
   /* language: the profile's (cfg.language) — the engine whose findings these are. A regex finding is dropped only when
-     that engine looks for the same check (and, for sleep_or_skip_added, the same kind). */
+     that engine looks for the same check and the same kind (every regex finding of a SUPERSEDES check has one). */
   const merge = (regexFindings, lintFindings, language) => {
     const c = covers(language);
-    return regexFindings
-      .filter((f) => !SUPERSEDES.has(f.check) || !c.has(f.check + "|" + (f.check === "sleep_or_skip_added" ? f.kind || "skip" : "")))
-      .concat(lintFindings);
+    return regexFindings.filter((f) => !SUPERSEDES.has(f.check) || !c.has(f.check + "|" + f.kind)).concat(lintFindings);
   };
 
   /* Every engine's rule-id → check map, keyed like ENGINES minus the javascript alias; the consistency test reads it. */

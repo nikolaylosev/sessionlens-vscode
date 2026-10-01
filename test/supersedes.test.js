@@ -89,6 +89,19 @@ test("Playwright: the engine finds sleeps and skips itself, so the regex ones ar
   );
 });
 
+test("Playwright: the engine's networkidle and if-in-a-test replace the regex ones; an exact count is kept", async () => {
+  assert.deepEqual(
+    (
+      await merged(
+        "qa-ts",
+        "e2e/cart.spec.ts",
+        "import { test, expect } from '@playwright/test';\ntest('total', async ({ page }) => {\n  await page.goto('/cart', { waitUntil: 'networkidle' });\n  if (await page.getByText('Sale').isVisible()) {\n    await expect(page.getByText('Total')).toBeVisible();\n  }\n  expect(await page.getByRole('row').count()).toBe(3);\n});\n",
+      )
+    ).filter((f) => !f.startsWith("sleep_or_skip_added")),
+    ["conditional_logic/lint", "conditional_logic/lint", "fragile_wait/formal count", "fragile_wait/lint"],
+  );
+});
+
 test("covers(): an engine replaces only what its own rules look for", () => {
   for (const l of ["java", "python", "csharp", "api"]) assert.deepEqual([...LensLint.covers(l)], [], l);
   assert.deepEqual([...LensLint.covers("cypress")], ["sleep_or_skip_added|sleep"], "not cy.pause, not .and()");
