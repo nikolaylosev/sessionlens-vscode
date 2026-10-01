@@ -23,6 +23,9 @@ CI runs all of these on every push and pull request (`.github/workflows/ci.yml`)
 
 ## Where things are
 
+The overview of the whole extension, with diagrams, is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); the rules
+system in depth is [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md).
+
 - `extension.js`, `cli.js`, `providers.js`, `store.js`, `secrets.js`, `validate.js` — the extension host.
 - `src/webview/` — the panel's source (ES modules). **`media/app.js` is generated from it: never edit it by hand.**
   Change `src/webview`, run `npm run build` and commit both.
