@@ -36,6 +36,7 @@ test("app.js has no state.sessions left", () => {
   assert.equal(/state\.sessions/.test(fs.readFileSync(path.join(root, "media", "app.js"), "utf8")), false);
 });
 
+// rules and rulesList as 0.1.100 rendered them; precision as of 0.1.112 (a row per check and source, phase 8)
 test("Calibration, proposed rules and their effect are the same as in 0.1.100 (snapshot)", async () => {
   const want = JSON.parse(fs.readFileSync(path.join(root, "test", "__snapshots__", "calib-v0100.json"), "utf8"));
   const got = await snapshot(root);

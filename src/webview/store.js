@@ -197,29 +197,9 @@ export function onGenChanged() {
 // sessions, so they count neither here nor for a profile's validation below. Its confirmed findings still propose
 // rules on the Calibration tab, which is what the demo shows.
 const isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
-// from the summaries: the same numbers 0.1.100 counted over every session's findings and verdicts
-export function calibStats() {
-  const st = {};
-  const add = (check, v) => {
-    const x = (st[check] = st[check] || { total: 0, ok: 0, fp: 0 });
-    x.total++;
-    if (v) x[v.v]++;
-  };
-  for (const m of metas())
-    if (!isDemo(m))
-      for (const [check, c] of Object.entries(m.checkStats || {})) {
-        const x = (st[check] = st[check] || { total: 0, ok: 0, fp: 0 });
-        x.total += c.total;
-        x.ok += c.ok;
-        x.fp += c.fp;
-      }
-  for (const f of state.external) add(f.check, f.verdict ? { v: f.verdict } : null);
-  return st;
-}
-
-/* Phase 8: the same per check AND source ({ check: { source: { total, ok, fp } } }), from the summaries' sourceStats;
-   what Lens.calibrate() reads. An imported finding counts under its own source ("external" when it has none), which
-   calibrate() never applies to. */
+/* The calibration stats per check AND source ({ check: { source: { total, ok, fp } } }), from the summaries'
+   sourceStats (phase 8): what Lens.calibrate(), the Calibration table and the Rules hints read. An imported finding
+   counts under its own source ("external" when it has none), which calibrate() never applies to. */
 export function calibStatsBySource() {
   const st = {};
   const at = (check, src) => {

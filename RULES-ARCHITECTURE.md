@@ -381,7 +381,12 @@ Walk-through:
   source. Imported findings count under their own source and are not calibrated.
 - **A check ticked on by hand** on the Rules tab (`ruleOverrides[check].enabled === true`, which the
   checkbox writes) is never hidden by calibration. A check merely left at its default is.
-- **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStats()`, `calibStatsBySource()` and `profileVerdicts()`
+- **What the UI shows** (since v0.1.112): the Calibration table has one row per check and source, with the
+  status `calibrate()` really applies (`Lens.isCalibrated(check, source)`; "not calibrated" with the reason
+  as a tooltip for the model, the facts of the spec and imported findings; "on by hand" for an off pair the
+  person ticked on). The Rules tab shows ⓘ for a demoted source and "on by hand" next to the checkbox. The
+  line under a session's findings names the source of each disabled pair.
+- **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStatsBySource()` and `profileVerdicts()`
   (`src/webview/store.js`): its verdicts are about a made-up session. Its confirmed findings still propose rules on
   the Calibration tab, which is what the demo is for.
 
@@ -596,8 +601,9 @@ write yields to the tab).
 function renderRules() {
   const book = LensRules.book(state.ruleOverrides);
   const groups = Object.fromEntries(LensChecks.GROUPS_ORDER.map(g => [g, T("g_" + g)]));   // order and ids from the registry
-  const calib = calibStats();
-  // ⓘ next to the <select> if the severity was set by hand and Lens.calibLevel() for a regex check is "demoted"
+  const calib = calibStatsBySource();
+  // ⓘ next to the <select> if the severity was set by hand and one calibrated source of the check is "demoted";
+  // "on by hand" next to the checkbox if it was ticked on (enabled: true) and one calibrated source is "off" (0.1.112)
   …
 }
 ```
@@ -640,7 +646,7 @@ imported). Each session's summary stores the `analyzedGen` its findings were com
 - The version of the check engine is not part of `analysisGen`: after an extension update old findings stay, as before.
 
 **A known difference from 0.1.100.** Before, the loop recomputed all sessions in a row, and each next one saw calibration
-(`calibStats()`) with the already recomputed findings of the previous ones. Now calibration is taken from the summaries at the moment
+(`calibStats()`, now `calibStatsBySource()`) with the already recomputed findings of the previous ones. Now calibration is taken from the summaries at the moment
 each session is recomputed. The result can differ only if some check crosses a calibration threshold during the pass (30 %
 or 50 %, §5.2).
 
