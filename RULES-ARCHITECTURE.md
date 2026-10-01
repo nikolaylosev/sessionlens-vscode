@@ -29,7 +29,7 @@ CHECKS = {
                          good: "await expect(locator).toBeVisible() — …", sources: ["regex", "lint"] },
   tests_never_run:     { group: "process", severity: "high", ruleKey: "r_never_run", good: "…",
                          sources: ["regex"], sortPriority: -1 },
-  …                    // 54 entries
+  …                    // 61 entries (v0.1.113)
 };
 SEVERITIES   = ["high", "medium", "low"];
 GROUPS_ORDER = ["method", "process", "code", "api", "mobile", "gherkin", "robot", "spec", "ai"];
@@ -119,7 +119,7 @@ function analyze(s) {
   let base = formal;
   if (state.settings.lint !== false) {
     const lr = LensLint.run(s, cfg, state.settings);            // 5. ESLint/tree-sitter/custom-parser engines
-    if (lr.ran) base = LensLint.merge(formal, lr.findings);      // replaced only where the engine actually parsed
+    if (lr.ran) base = LensLint.merge(formal, lr.findings, cfg.language); // only what that engine finds itself (§6.3)
   }
   const cal = Lens.calibrate([...base, ...gherkin, ...sc.findings, ...ai],     // calibration per check and source
                              calibStatsBySource(), state.ruleOverrides);       // (since v0.1.112, §5.2)
@@ -142,7 +142,7 @@ The key properties of this function that matter for review:
 - **`gherkin` is the only track that does not depend on `cfg`** — it gets
   `s.events` directly, without the profile. Even if `s.profile === "qa-python"`,
   a `.feature` file in the session is still checked.
-- **`base = formal` is replaced by `merge(formal, lint.findings)` ONLY
+- **`base = formal` is replaced by `merge(formal, lint.findings, cfg.language)` ONLY
   if `lr.ran === true`** — that is, if the engine actually managed to parse
   at least one file. If the engine is still loading (WASM) or failed, the regex
   findings stay as they are and nothing is replaced. This is the
@@ -322,7 +322,7 @@ const RULES = new Proxy({}, { get: (_, k) => {
 
 ### 5.2 The `checks` object, `runChecks()` and `calibrate()`
 
-`lens.js` contains the `checks` object with **29 functions** of the form
+`lens.js` contains the `checks` object with **35 functions** (v0.1.113) of the form
 `checkName(ev, cfg) -> Finding[]` (the full list — see the table in §9).
 These are the only checks that **do not depend on an external engine** —
 plain JS/regex over the event text.
@@ -493,14 +493,17 @@ function run(session, cfg, settings) {
 ### 6.3 `merge(regexFindings, lintFindings, language)`, `SUPERSEDES` and `SAME_AS_REGEX`
 
 ```js
-const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "duplicate_assert"]);
+const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "focused_test", "debug_leftover"]);
 const SAME_AS_REGEX = {                       // engine rule → the kinds of regex finding it finds just as well
   "playwright/no-wait-for-timeout": ["sleep_or_skip_added|sleep"],
   "playwright/no-skipped-test": ["sleep_or_skip_added|skip"],
+  "playwright/no-focused-test": ["focused_test|only"],
+  "playwright/no-page-pause": ["debug_leftover|pause"],
   "playwright/no-networkidle": ["fragile_wait|networkidle"],
-  "cypress/no-unnecessary-waiting": ["sleep_or_skip_added|sleep"],
+  "cypress/no-pause": ["debug_leftover|pause"],
+  "cypress/no-debug": ["debug_leftover|debug"],
   "robot/sleep-or-skip": ["sleep_or_skip_added|sleep", "sleep_or_skip_added|skip"],
-  "cypress/no-pause": [],                     // reported under one of these names, but looks for something else
+  "playwright/no-force-option": [],           // reported under one of these names, but looks for something else
   …
 };
 const merge = (regexFindings, lintFindings, language) => {
@@ -509,35 +512,37 @@ const merge = (regexFindings, lintFindings, language) => {
 };
 ```
 
-- **4 check names** are emitted by both a regex and an engine and may be replaced. If the lint engine parsed
-  the file (`lr.ran === true`), a regex finding of these checks is dropped **only when the engine of the profile's
-  language looks for the same thing** — so as not to show it twice. The regex findings of these four carry a
-  `kind`: `sleep_or_skip_added` — `sleep`, `skip`, `retry`; `fragile_wait` — `networkidle`, `count`;
-  `conditional_logic` — `branch`; `duplicate_assert` — `assert`.
-- **Until 0.1.113** any engine that parsed the file dropped all four: Java, C# and Python, whose engines have no
-  rule for sleeps or skips, never reported `Thread.sleep`, `@Disabled`, `time.sleep`, `@pytest.mark.skip`, `if`/`for`
-  in a test or a repeated assertion; Cypress and Detox lost `it.skip` (their engines find only the sleep); every
-  engine lost a retry and a duplicated assertion. `test/supersedes.test.js` runs the real engines on each.
-- **`SAME_AS_REGEX` lists every engine rule reported under one of the four names**, with `[]` for the ones that
-  look for something else (`cypress/no-pause`, `cypress/no-and`, `playwright/no-duplicate-hooks`,
-  `detox/waitfor-requires-timeout`…). The test fails on a new rule until that is decided. Nothing replaces a
-  retry, a duplicated assertion or an exact element count.
+- **5 check names** are emitted by both a regex and an engine and may be replaced. If the lint engine parsed the
+  file (`lr.ran === true`), a regex finding of these checks is dropped **only when the engine of the profile's
+  language looks for the same kind of thing**, so as not to show it twice. Every regex finding of these five carries
+  a `kind`: `sleep_or_skip_added` — `sleep`, `skip`, `retry`; `fragile_wait` — `networkidle`, `count`;
+  `conditional_logic` — `branch`; `focused_test` — `only`; `debug_leftover` — `pause`, `debug`, `debugger`,
+  `breakpoint` (one finding per file and kind, so a `debugger;` next to a `page.pause()` stays).
+- **History.** Until 0.1.113 any engine that parsed the file dropped all of them: Java, C# and Python, whose engines
+  have no rule for sleeps or skips, never reported `Thread.sleep`, `@Disabled`, `time.sleep`, `@pytest.mark.skip`;
+  Cypress and Detox lost `it.skip`; every engine lost a retry (#27). For a short while after that only
+  `sleep_or_skip_added` compared the kind, so in qa-ts a `networkidle` and an `if` in a test were reported twice
+  (#29). `test/supersedes.test.js` runs the real engines on each case.
+- **`SAME_AS_REGEX` lists every engine rule reported under one of the five names**, with `[]` for the ones that look
+  for something else (`playwright/no-force-option`, `cypress/no-force`, `detox/waitfor-requires-timeout`…).
+  `test/supersedes.test.js` fails on a new rule until that is decided, and on a kind listed under another check.
+  Nothing replaces a retry, an exact element count or a `debugger` statement.
+- **`duplicate_assert` left `SUPERSEDES` in 0.1.113**: its only engine rule (`playwright/no-duplicate-hooks`) was
+  about hooks, not assertions, and is no longer run (phase 10, "every finding under its own name").
 - **An important asymmetry**: `raw_locator`/`positional_locator`/
   `no_assertion_after_action`/`no_app_reset`/`unannotated_test_method`/
-  `swallowed_exception`/`assert_args_reversed`/`empty_test_case` are
+  `swallowed_exception`/`assert_args_reversed`/`cypress_async_test`/`empty_test_case` are
   **not in `SUPERSEDES`**, because they **have no regex function anyway**
-  (see §5.2) — there is nothing to duplicate, so they do not need to be struck out. But
-  this means that `SUPERSEDES` and "the list of checks without a regex function" are
-  **two different lists not connected by code**. Since v0.1.108
-  `test/rules-consistency.test.js` ties them to the registry's `sources`: every
-  check in `SUPERSEDES` must be emitted by both a regex and an engine, and every
-  check emitted by both must be either in `SUPERSEDES` or in the test's
-  `KEEP_BOTH` with the reason. If tomorrow someone adds a regex fallback for
-  `no_assertion_after_action`, the test fails until that choice is made.
+  (see §5.2) — there is nothing to duplicate. `test/rules-consistency.test.js` ties `SUPERSEDES` to the registry's
+  `sources`: every check in `SUPERSEDES` must be emitted by both a regex and an engine, and every check emitted by
+  both must be either in `SUPERSEDES` or in the test's `KEEP_BOTH` with the reason.
 - **`weak_assert` keeps both** (`KEEP_BOTH`): the regex finds `toBeDefined()`,
   `toBeTruthy()` and `expect(true).toBe(true)`; the engines map other rules to
-  the same name (no `expect` at all, a useless `.not`, a malformed `expect`).
+  the same name (a useless `.not`, a malformed `expect`, a standalone `expect`).
   Superseding it would drop the regex findings the engines do not make.
+- **Engine rules no longer run** (0.1.113): `playwright/max-nested-describe`, `playwright/no-nested-step`,
+  `cypress/no-and` (style) and `playwright/no-duplicate-hooks`. An engine runs only the rules of its `*_RULE_MAP`
+  (`rulesConfig()`), plus the user's `lintExtraRules`, which report as `lint_<rule>`.
 
 ---
 
@@ -710,12 +715,10 @@ Rules and ⚙ Settings reach it when the Sessions tab is shown again and on a `k
 the one-line summary, also the `title` of the profile name in `#hdr`. The list options: `name — profile_desc_<name>`. All output goes through
 `esc()`; a check's rule text is the `title` attribute.
 
-## 9. The full table of checks at v0.1.98 (54 of them)
+## 9. The full table of checks at v0.1.113 (61 of them)
 
-The reference is `media/checks.js`; this table is a readable copy of it.
-
-The "Source" column says where a finding of this check name physically comes from
-(checked by a script, not by hand):
+The reference is `media/checks.js`; this table is a readable copy of it, generated from the registry and
+`LensLint.RULE_MAPS` (the "Source" column), not written by hand.
 
 | Check | Group | Severity (default) | Source |
 |---|---|---|---|
@@ -723,33 +726,40 @@ The "Source" column says where a finding of this check name physically comes fro
 | stop_markers_missing | method | medium | regex (lens.js) |
 | pass_claim_without_run | process | high | regex (lens.js) |
 | fix_after_fail_without_triage | process | high | regex (lens.js) |
-| tests_never_run | process | high | regex (lens.js) — hard-coded in sortFindings |
+| tests_never_run | process | high | regex (lens.js) — sorted first (sortPriority) |
 | scope_creep | process | medium | regex (lens.js) |
 | edit_churn | process | medium | regex (lens.js) |
 | assumption_instead_of_question | process | medium | regex (lens.js) |
 | user_frustration | process | medium | regex (lens.js) |
+| product_code_edited | process | high | regex (lens.js) |
+| snapshot_overwritten | process | high | regex (lens.js) |
+| config_weakened | process | high | regex (lens.js) |
 | assert_weakened | code | high | regex (lens.js) |
-| weak_assert | code | high | regex (lens.js) + engines (ESLint×2), both kept (§6.3) |
-| sleep_or_skip_added | code | high | regex (lens.js) + superseded by engines (ESLint×3, Robot) |
+| weak_assert | code | high | regex (lens.js) + engines (ESLint Playwright, ESLint Cypress), both kept (§6.3) |
+| sleep_or_skip_added | code | high | regex (lens.js) + engines (ESLint Playwright, ESLint Cypress, ESLint Detox, Robot), an engine replaces the kinds it finds itself (§6.3) |
 | hardcoded_date | code | medium | regex (lens.js) |
-| fragile_wait | code | medium | regex (lens.js) + superseded by engines (ESLint×2) |
+| fragile_wait | code | medium | regex (lens.js) + engines (ESLint Playwright, ESLint Cypress, ESLint Detox), an engine replaces the kinds it finds itself (§6.3) |
 | expected_failure | code | medium | regex (lens.js) |
 | magic_number | code | low | regex (lens.js) |
 | assertion_roulette | code | low | regex (lens.js) |
-| conditional_logic | code | low | regex (lens.js) + superseded by engines (ESLint×2) |
-| duplicate_assert | code | low | regex (lens.js) + superseded by an engine (ESLint) |
-| raw_locator | code | low | engines only (ESLint×2) |
-| positional_locator | code | low | engines only (ESLint×2, Detox) |
-| no_assertion_after_action | code | high | engines only (Detox, Java, C#, Python, Robot) |
-| no_app_reset | code | medium | engine only (Detox) |
+| conditional_logic | code | low | regex (lens.js) + engines (ESLint Playwright), an engine replaces the kinds it finds itself (§6.3) |
+| duplicate_assert | code | low | regex (lens.js) |
+| raw_locator | code | low | engines only (ESLint Playwright, ESLint Cypress) |
+| positional_locator | code | low | engines only (ESLint Playwright, ESLint Detox) |
+| no_assertion_after_action | code | high | engines only (ESLint Playwright, ESLint Detox, Java, C#, Python, Robot) |
+| no_app_reset | code | medium | engines only (ESLint Detox) |
 | unannotated_test_method | code | high | engines only (Java, C#) |
 | swallowed_exception | code | high | engines only (Java, C#, Python) |
 | assert_args_reversed | code | medium | engines only (Java, C#, Python) |
-| lint_valid_title | code | low | engine only (ESLint, `playwright/valid-title`) — added to the registry in v0.1.98 |
+| lint_valid_title | code | low | engines only (ESLint Playwright) |
+| focused_test | code | high | regex (lens.js) + engines (ESLint Playwright), an engine replaces the kinds it finds itself (§6.3) |
+| debug_leftover | code | medium | regex (lens.js) + engines (ESLint Playwright, ESLint Cypress), an engine replaces the kinds it finds itself (§6.3) |
+| cypress_async_test | code | medium | engines only (ESLint Cypress) |
+| test_deleted | code | high | regex (lens.js) |
+| hardcoded_secret | code | high | regex (lens.js) |
+| hardcoded_base_url | code | medium | regex (lens.js) |
 | status_only_assert | api | medium | regex (lens.js) |
 | mocked_service | api | medium | regex (lens.js) |
-| hardcoded_secret | api | high | regex (lens.js) |
-| hardcoded_base_url | api | medium | regex (lens.js) |
 | no_negative_cases | api | medium | regex (lens.js) |
 | test_data_no_cleanup | api | low | regex (lens.js) |
 | response_time_assert | api | low | regex (lens.js) |
@@ -759,8 +769,8 @@ The "Source" column says where a finding of this check name physically comes fro
 | outline_no_examples | gherkin | high | Lens.gherkinChecks() (profile-agnostic) |
 | scenario_no_then | gherkin | high | Lens.gherkinChecks() (profile-agnostic) |
 | bloated_background | gherkin | medium | Lens.gherkinChecks() (profile-agnostic) |
-| duplicate_step_text | gherkin | low | Lens.gherkinChecks() + superseded by an engine (Robot) |
-| empty_test_case | robot | high | engine only (Robot) |
+| duplicate_step_text | gherkin | low | Lens.gherkinChecks() on `.feature` files (profile-agnostic) + an engine (Robot) on `.robot` files |
+| empty_test_case | robot | high | engines only (Robot) |
 | no_spec | spec | high | spec.js (LensSpec.checks) |
 | spec_uncovered | spec | high | spec.js (LensSpec.checks) |
 | test_without_requirement | spec | medium | spec.js (LensSpec.checks) |
@@ -772,18 +782,15 @@ The "Source" column says where a finding of this check name physically comes fro
 | ai_questions | ai | medium | ai.js (model) |
 | ai_fix_justification | ai | medium | ai.js (model) |
 | ai_spec_defect | ai | medium | ai.js (model) |
-| ai_other | ai | medium | ai.js — a model answer outside the categories; added to the registry in v0.1.98 |
+| ai_other | ai | medium | ai.js (model) — a model answer outside the categories |
 
-"Engines only" = 9 checks (8 + `lint_valid_title`) **have no regex fallback at all** — if
-the engine could not load or parse (WASM not ready yet, blocked by CSP,
-a broken file), these findings simply will not be there in this run, and nothing
-will tell the user that the check "should have" fired. The only
-signal is `s.lintNote`/`s.lintWhy` (text such as "could not parse N
-files"), not tied to a specific check name.
+"Engines only" = 10 checks **have no regex fallback at all**: if the engine could not load or parse (WASM not ready
+yet, blocked by CSP, a broken file), these findings are not there in this run, and nothing says that the check
+"should have" fired. The only signal is `s.lintNote`/`s.lintWhy` (text such as "could not parse N files"), not tied
+to a specific check name.
 
-**Calibration (§5.2) works only for the 29 checks with a regex function** (in
-the table: "regex (lens.js)"). None of the "ai", "spec" and "engines only" checks
-are covered by calibration at all.
+**Calibration** (§5.2) covers, since v0.1.112, the regex checks, the engines and Gherkin per check and source, and
+the two heuristic spec checks; not `no_spec`, `spec_uncovered` or the model's `ai_*`.
 
 ---
 
@@ -897,8 +904,11 @@ Status at v0.1.98. Closed items are kept for the record.
 5. Implement the detector.
 6. `npm test`. The consistency test points out everything forgotten in steps 3–4;
    `test/finding-pipeline.test.js` is a model for an end-to-end check of one check.
-   If the new check duplicates a regex finding through an engine, check `SUPERSEDES`
-   (§6.3) — the tests do not catch this invariant yet.
+   If the new check is found both by a regex and by an engine, decide `SUPERSEDES` and the kinds in
+   `SAME_AS_REGEX` (§6.3): `test/rules-consistency.test.js` and `test/supersedes.test.js` fail until that is done.
+7. Add the profile's name list only where the check can fire (`focused_test` is in the JavaScript profiles, not in
+   qa-java): "What this profile checks" lists `cfg.checks`. Add the cases that must NOT count to the check's test, and
+   if it changes what a case of `test/rule-mapping.test.js` reports, update that table.
 
 ## 13. Where to look in the code (a map of files)
 
@@ -1248,3 +1258,37 @@ The integration tests reach the extension through `activate()`'s return value, w
 `SESSIONLENS_TEST=1` (`testApi()` in `extension.js`): the `globalState`, `runMigrations()` (the same chain `host.ready`
 runs, extracted into one function) and `send(type, payload)`, which goes through `wireMessages()` like a webview message.
 
+## 21. Checks of what the agent did to the suite (since v0.1.113)
+
+Phase 10 added four regex checks that look at the agent's actions rather than at one file's text. They share three
+helpers in `lens.js`: `redRunBefore(ev, seq)` (the last test run before `seq`, if it was red; it makes a finding
+high and adds "right after a failing run (seq N)" to the message), `TEST_FILE_RX` (a test file by its name) and
+`TEST_SIDE_RX` (fixtures, helpers, page objects, mocks, support, `conftest.py`).
+
+| Check | Group | What it compares | Not a finding |
+|---|---|---|---|
+| `test_deleted` | code | the tests (`blocksByTest`) of two consecutive versions of a file the session saw; `rm`/`git rm`/`unlink`/`del`/`Remove-Item` of a test file or folder; a `delete` event | a test renamed with the same body, moved to another file, or restored later; `rm` of files that are not tests; a file first seen as an edit fragment |
+| `product_code_edited` | process | a write or an edit of a file in the profile's `src_dirs` (anywhere in the path: Claude Code started in a parent folder writes `shop/src/…`) | test-side code inside `src`, a runner config, a file named in the approved plan |
+| `snapshot_overwritten` | process | a test run with an update flag after the runner (`jest -u`, `--update-snapshots`, `--snapshot-update`, `UPDATE_SNAPSHOTS=1`); a snapshot or baseline file written by hand | `-u` of another command (`env -u`, `git push -u`), a runner named in a heredoc or a string |
+| `config_weakened` | process | a runner config with its previous text: more retries, a longer timeout (each in source order), a new line excluding tests | a shorter timeout, an unrelated change; a config seen for the first time counts only for its retries |
+
+What the import keeps for them:
+
+- **`delete` events.** A deleted file in a Codex patch (`patch_apply_end`, `type: "delete"`) is an event
+  `{ kind: "delete", file }`; until 0.1.113 it was dropped. Claude Code has no delete tool: there a deletion is a
+  shell command, read by `test_deleted` itself.
+- **`prev_content`.** For a runner config (`isRunnerConfig()`: `*.config.*`, `*.conf.*`, `.detoxrc*`, `.mocharc*`,
+  `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`) the import keeps the file's previous text on the write or
+  edit event, from its own replay or from `toolUseResult.originalFile`. So the first edit of a config in a session
+  is compared too, as in the demo.
+- **`config_content`.** `stripNonSource()` drops the text of files that are not code. For the four Python configs it
+  moves `new_content` to `config_content` instead: `config_weakened` reads it, the code checks do not
+  (`xfail_strict = true` must not be an expected failure).
+- **Stored sessions.** `test_deleted` and `product_code_edited` read what every stored session already has
+  (`new_content`, the file names), so they work on a session saved before 0.1.113. `config_weakened` needs
+  `prev_content` for a config the session only edited, and a Codex deletion needs the `delete` event: both come with
+  a new import.
+
+Retries in a runner config are `config_weakened`, not `sleep_or_skip_added` (`sleep_or_skip_added` skips runner
+configs); retries on one test (`describe.configure({ retries })`, `@flaky`, `[Retry]`) stay `sleep_or_skip_added`.
+`hardcoded_base_url` skips runner configs too: `baseURL` in `playwright.config.ts` is what its rule asks for.

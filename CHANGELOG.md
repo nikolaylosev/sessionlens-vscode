@@ -8,7 +8,7 @@
 - `debug_leftover` (medium): `page.pause()`, `cy.pause()`, `cy.debug()`, `debugger`, `breakpoint()` or
   `pdb.set_trace()` left in a test. Reported in the TypeScript, Cypress, Detox, Python, API and mobile profiles.
 - `cypress_async_test` (medium): an `async` test or hook in Cypress, where the commands may not run.
-- `test_deleted`: a test removed from a file, or a test file deleted (`rm`, `git rm`, or a deleted file in a Codex
+- `test_deleted` (Code group): a test removed from a file, or a test file deleted (`rm`, `git rm`, or a deleted file in a Codex
   patch). High right after a failing run, medium otherwise. A test renamed with the same body, moved to another file
   or restored later is not reported. Reported in every profile with code checks.
 - `product_code_edited` (Process group): the agent changed product code (a file in the profile's source folders) in a
@@ -25,6 +25,9 @@
   Reads Playwright, Jest, Vitest, Cypress, WebdriverIO, Detox and Mocha configs, and `pytest.ini`, `tox.ini`,
   `setup.cfg`, `pyproject.toml`. High right after a failing run, medium otherwise. A config seen for the first time is
   reported only for its retries.
+- The four checks above look at what the agent did across the session. A session you saved earlier gets
+  `test_deleted`, `product_code_edited` and `snapshot_overwritten` when it is analyzed again. `config_weakened` for a
+  config the session only edited, and a deleted file in a Codex session, need the transcript to be imported again.
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",
@@ -40,6 +43,7 @@
 - Retries in a runner's config (`retries: 2` in `playwright.config.ts`) are reported as `config_weakened`, not as
   "sleep or skip". Retries on a single test (`test.describe.configure({ retries })`, `@flaky`, `[Retry]`) stay "sleep
   or skip". In the demo session the retries finding is now `config_weakened`, and high.
+- A file deleted in a Codex session shows as a `delete` step in the session's timeline. Until now it was left out.
 - Three ESLint style rules (`playwright/max-nested-describe`, `playwright/no-nested-step`, `cypress/no-and`) and
   `playwright/no-duplicate-hooks` are no longer reported.
 - The rule texts of "fragile wait" and "no assertion after action" now cover everything those checks report, and the
@@ -49,7 +53,7 @@
 
 ### Fixed
 - With static analysis on (the default), the Java, C# and Python profiles reported no fixed sleeps and no skipped tests
-  at all (`Thread.sleep`, `time.sleep`, `@Disabled`, `[Ignore]`, `@pytest.mark.skip`, `xfail`…), and no `if`/`for`
+  at all (`Thread.sleep`, `time.sleep`, `@Disabled`, `[Ignore]`, `@pytest.mark.skip`…), and no `if`/`for`
   inside a test or repeated assertion either: once the code was parsed, these pattern findings were dropped although
   those languages' analysis does not look for them. The same dropped `it.skip` in Cypress and Detox, and a test retry
   (`retries: 2`) in every profile with static analysis. They are reported again; a finding is now left out only where

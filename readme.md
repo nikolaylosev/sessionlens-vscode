@@ -201,6 +201,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `edit_churn` | Medium | The same file was edited over and over |
 | `assumption_instead_of_question` | Medium | The agent assumed ("I assume", "presumably") instead of asking |
 | `user_frustration` | Medium | The user corrected the agent or repeated a request |
+| `product_code_edited` | High | The agent changed product code (a file in the profile's source folders) in a testing task. High right after a failing run, medium otherwise. Tests, fixtures, page objects, mocks, a runner's config and a file named in the approved plan do not count |
+| `snapshot_overwritten` | High | Snapshots were rewritten instead of read: a run with `-u`, `--update-snapshots`, `--snapshot-update` or `UPDATE_SNAPSHOTS=1`, or a snapshot or baseline file (`__snapshots__`, `*.snap`, `*-snapshots/`, `*.approved.*`, `*.verified.*`) written by hand. High right after a failing run, medium otherwise |
+| `config_weakened` | High | The test runner's config was loosened compared with its previous version: more retries, a longer timeout, or tests excluded (`testIgnore`, `testPathIgnorePatterns`, `--deselect` …). High right after a failing run, medium otherwise. A config written for the first time counts only for its retries |
 
 **Code**
 
@@ -208,25 +211,31 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 |---|---|---|
 | `assert_weakened` | High | An existing assertion was made weaker, or assertions were removed |
 | `weak_assert` | High | An assertion only checks "didn't crash" instead of a value |
-| `sleep_or_skip_added` | High | A fixed sleep, skip, expected-fail or retry was added to a test |
+| `sleep_or_skip_added` | High | A fixed sleep, a skipped test (`skip`, `@Disabled`, `[Ignore]`) or a retry on a test (`@flaky`, `[Retry]`, `describe.configure({ retries })`) was added. Retries in the runner's config are `config_weakened` |
 | `hardcoded_date` | Medium | A date is asserted and will break when content changes |
-| `fragile_wait` | Medium | `networkidle` waits or exact element counts in assertions |
-| `expected_failure` | Medium | Tests marked as expected failures keep the suite green while a bug is open |
+| `fragile_wait` | Medium | The test depends on timing or page internals: `networkidle` waits, exact element counts, `force: true`, element handles, `eval`, waits without a timeout |
+| `expected_failure` | Medium | Tests marked as expected failures (`xfail`, `test.fail()`) keep the suite green while a bug is open |
 | `magic_number` | Low | Unexplained numbers in assertions |
 | `assertion_roulette` | Low | Several assertions with no messages, so a failure does not say which one |
 | `conditional_logic` | Low | An `if` or loop inside a test |
 | `duplicate_assert` | Low | The same assertion repeated |
 | `raw_locator` | Low | A raw CSS selector instead of a role, label or text locator |
 | `positional_locator` | Low | Selection by position, such as `.first()` or `.nth()` |
+| `no_assertion_after_action` | High | A test has no assertion at all (Playwright, via ESLint `expect-expect`; the other languages in their sections below) |
+| `lint_valid_title` | Low | A Playwright test or `describe` title is empty, not a string, or starts or ends with a space (ESLint `valid-title`) |
+| `focused_test` | High | `.only`, `fit` or `fdescribe` was left in a test, so only it runs and the rest of the suite is silently skipped (TypeScript, Cypress, Detox, API and mobile profiles) |
+| `debug_leftover` | Medium | Debugging was left in a test: `page.pause()`, `cy.pause()`, `cy.debug()`, `debugger`, `breakpoint()`, `pdb.set_trace()` |
+| `cypress_async_test` | Medium | An `async` test or hook in Cypress, where the commands may not run (`qa-cypress`, via ESLint) |
+| `test_deleted` | High | A test was removed from a file, or a test file was deleted (`rm`, `git rm`, a Codex patch). High right after a failing run, medium otherwise. A test renamed with the same body, moved to another file or restored later does not count |
+| `hardcoded_secret` | High | A token, key or credential is written in the code. The report shows only its first four characters (TypeScript, Cypress, Detox, API and mobile profiles) |
+| `hardcoded_base_url` | Medium | A real host is written in a test instead of coming from configuration. A runner's config file, where the base URL belongs, does not count (same profiles) |
 
 **API** (only for the `qa-api` profile)
 
 | Check | Default | Raised when |
 |---|---|---|
-| `hardcoded_secret` | High | A token, key or credential is written in the code. The report shows only its first four characters |
 | `status_only_assert` | Medium | A test checks the status code and nothing else, so an empty body or an error page passes |
 | `mocked_service` | Medium | The HTTP calls are mocked (`responses`, `nock`, WireMock, MockHttp …), so the test may be checking the mock and not the service |
-| `hardcoded_base_url` | Medium | A real host is written in the test instead of coming from configuration |
 | `no_negative_cases` | Medium | Two or more API tests were written and none checks an error response |
 | `test_data_no_cleanup` | Low | A test creates data with `POST` and nothing removes it |
 | `response_time_assert` | Low | A functional test asserts a response-time limit |
@@ -345,7 +354,7 @@ It also reads the result of `pytest`, `jest`, `vitest`, `mvn test`, `dotnet test
 **What is checked**
 
 1. **Everything `qa-generic` and the language profiles check.** Process and methodology (claiming tests pass without running them, fixing without triage, scope creep …) and the code checks (weakened assertions, added sleeps and skips, weak assertions such as `status < 500` …).
-2. **The API group** in the table above. These are the mistakes agents make most often when the thing under test is an API: asserting only the status, mocking the service they should be calling, leaving tokens and hosts in the code, testing only the happy path, and leaving test data behind.
+2. **The API group** in the table above, plus `hardcoded_secret` and `hardcoded_base_url` from the Code group. These are the mistakes agents make most often when the thing under test is an API: asserting only the status, mocking the service they should be calling, leaving tokens and hosts in the code, testing only the happy path, and leaving test data behind.
 3. **Specification coverage.** Paste requirements with IDs (`R1. POST /users creates a user`) and name the ID in each test, as with any other profile. A requirement with no test becomes a finding.
 
 **Typical session**
