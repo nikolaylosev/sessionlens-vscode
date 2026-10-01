@@ -1,5 +1,4 @@
 test/**
-RULES-ARCHITECTURE.md
 PHASE-*.md
 .git/**
 .gitignore
