@@ -1640,14 +1640,19 @@
     const level = n >= 10 && p < 0.3 ? "off" : n >= 10 && p < 0.5 ? "demoted" : n < 10 ? "need" : "ok";
     return { n, p, level };
   }
+  /* An "off" check still runs: its findings come back in res.hidden, kept with the session (calibHidden) and counted
+     by sessionSummary(), but never shown. Not running it lost their verdicts from the stats, so the check came back
+     on the next analysis and went off again on the one after (phase 8, test/calibration-loop.test.js). */
   function runChecks(ev, cfg, calib) {
     const out = [],
+      hidden = [],
       suppressed = [];
     for (const name of cfg.checks) {
       if (!checks[name]) continue;
       const cl = calibLevel(calib && calib[name]);
       if (cl.level === "off") {
         suppressed.push({ check: name, precision: cl.p, n: cl.n });
+        hidden.push(...checks[name](ev, cfg));
         continue;
       }
       let fs = checks[name](ev, cfg);
@@ -1656,6 +1661,7 @@
     }
     const res = sortFindings(dedupe(out));
     res.suppressed = suppressed;
+    res.hidden = dedupe(hidden);
     return res;
   }
   function dedupe(out) {
@@ -1744,7 +1750,8 @@
   }
   /* → { id, name, task, profile, created, reviewed, specN, verdict, findingsCount, verdictsCount,
          checkStats: { check: { total, ok, fp } }, confirmed: [{ key, check, seq, message, snippet, note }] }
-     checkStats is calibStats() of this one session; confirmed are the findings with an "ok" verdict, in finding order. */
+     checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
+     (calibHidden); confirmed are the findings shown with an "ok" verdict, in finding order. */
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
       verdicts = s.verdicts && typeof s.verdicts === "object" ? s.verdicts : {};
@@ -1758,6 +1765,12 @@
       if (vd && (vd.v === "ok" || vd.v === "fp")) x[vd.v]++;
       if (vd && vd.v === "ok")
         confirmed.push({ key: k, check: f.check, seq: f.seq, message: String(f.message || "").slice(0, 90), snippet: snippet(f), note: String(vd.note || "") });
+    }
+    for (const f of Array.isArray(s.calibHidden) ? s.calibHidden : []) {
+      const vd = verdicts[fkey(f)];
+      const x = (checkStats[f.check] = checkStats[f.check] || { total: 0, ok: 0, fp: 0 });
+      x.total++;
+      if (vd && (vd.v === "ok" || vd.v === "fp")) x[vd.v]++;
     }
     return {
       id: s.id,

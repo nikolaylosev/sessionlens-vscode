@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.112
+
+### Fixed
+- A check that calibration switched off (at least 10 verdicts, precision below 30%) stays off. Its findings used to
+  come back after the next change on the Rules tab and go away again after the one after, because once they were
+  hidden their verdicts no longer counted. Your verdicts were never lost; they now count while the check is off too.
+
 ## 0.1.111
 
 ### Fixed
