@@ -86,8 +86,9 @@ A finding is a flat object. The general shape (the union of all sources):
   severity: "high",                // "high" | "medium" | "low" — the only three values, not an enum anywhere
   seq: 12,                         // index of the transcript event the finding refers to
   message: "e2e/login.js: fixed delay (sleep) in a test",
-  source: undefined,                // "lint" | "spec" | "ai" | "gherkin" (since v0.1.109) | undefined = a regex check
-                                   // ("formal" in the UI and in exported verdicts, where "gherkin" was "formal" too before)
+  source: "formal",                 // "formal" (a regex check, since v0.1.112) | "lint" | "spec" | "ai" | "gherkin" (since v0.1.109)
+                                   // A session saved before 0.1.112 has regex findings with no source until it is
+                                   // analyzed again: read a missing source as "formal", as the panel and exports do.
   demoted: false,                  // true if calibration lowered the severity (see §5.3) — SURVIVES apply()
   rule: "detox/no-hardcoded-wait", // only for source==="lint": the engine's original rule id
   line: 7,                          // only for source==="lint": the line number
@@ -837,7 +838,9 @@ Status at v0.1.98. Closed items are kept for the record.
    a message in the UI (§4.3).
 9. ~~Gherkin findings cannot be told apart from regex findings by `.source`~~ — **closed in v0.1.109**:
    `Lens.gherkinChecks()` sets `source: "gherkin"`. The panel still shows them as "formal"; the calibration plan
-   (per-source stats) builds on this.
+   (per-source stats) builds on this. Since v0.1.112 `runChecks()` sets `source: "formal"` on regex findings
+   (and on the ones an "off" check hides), the name the filter and the exported reports already used for them, so
+   every finding a detector makes now has a source.
 10. ~~`ai_*` share the text `r_ai`~~ — **decided as deliberate**, recorded
     in the registry (§5.1).
 11. ~~`saveRules()` synchronously re-runs `analyze()` for all sessions~~ —

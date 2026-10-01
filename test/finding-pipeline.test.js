@@ -33,7 +33,18 @@ test("regex: sleep in a Playwright test → sleep_or_skip_added", () => {
   const cfg = Lens.profile("qa-ts");
   const events = [ev(1, "e2e/login.spec.ts", "test('login', async ({ page }) => {\n  await page.waitForTimeout(3000);\n});\n")];
   const res = Lens.runChecks(events, cfg, {});
-  expectFinding(pipeline([...res]), "sleep_or_skip_added", "high", "code");
+  const f = expectFinding(pipeline([...res]), "sleep_or_skip_added", "high", "code");
+  assert.equal(f.source, "formal", "a regex finding says so: per-source calibration (phase 8) tells it from an engine's");
+});
+
+test("regex: a check calibration switched off hides its findings, and they say formal too", () => {
+  const cfg = Lens.profile("qa-ts");
+  const events = [ev(1, "e2e/login.spec.ts", "test('login', async ({ page }) => {\n  await page.waitForTimeout(3000);\n});\n")];
+  const res = Lens.runChecks(events, cfg, { sleep_or_skip_added: { ok: 0, fp: 10 } });
+  assert.deepEqual(
+    res.hidden.map((f) => [f.check, f.source]),
+    [["sleep_or_skip_added", "formal"]],
+  );
 });
 
 test("lint (Robot engine): empty test case → empty_test_case", () => {
@@ -48,7 +59,7 @@ test("lint (Robot engine): empty test case → empty_test_case", () => {
 test("gherkin: scenario without Then → scenario_no_then", () => {
   const events = [ev(1, "features/login.feature", "Feature: Login\n  Scenario: valid user\n    Given a registered user\n    When she logs in\n")];
   const f = expectFinding(pipeline(Lens.gherkinChecks(events)), "scenario_no_then", "high", "gherkin");
-  assert.equal(f.source, "gherkin", "told apart from regex findings, which have no source (§11.9)");
+  assert.equal(f.source, "gherkin", "told apart from regex findings (source formal, §11.9)");
 });
 
 test("spec: no specification → no_spec, sorted above ordinary high findings", () => {
