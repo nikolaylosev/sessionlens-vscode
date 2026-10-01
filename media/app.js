@@ -128,8 +128,7 @@
   }
   function analyzeNow(s) {
     const cfg = Lens.profile(s.profile);
-    const calib = calibStats();
-    const formal = Lens.runChecks(s.events, cfg, calib);
+    const formal = Lens.runChecks(s.events, cfg);
     const gherkin = Lens.gherkinChecks(s.events);
     const spec = LensSpec.parse(s.spec || "");
     const sc = LensSpec.checks(spec, s.events, cfg.language);
@@ -145,11 +144,12 @@
       if (lr.pending) s.lintPending = true;
       if (lr.ran) base = LensLint.merge(formal, lr.findings);
     }
-    s.findings = Lens.sortFindings(LensRules.apply([...base, ...gherkin, ...sc.findings, ...ai], state.ruleOverrides));
+    const cal = Lens.calibrate([...base, ...gherkin, ...sc.findings, ...ai], calibStatsBySource(), state.ruleOverrides);
+    s.findings = Lens.sortFindings(LensRules.apply(cal.findings, state.ruleOverrides));
     s.coverage = sc.coverage;
     s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
-    s.suppressed = formal.suppressed || [];
-    s.calibHidden = formal.hidden || [];
+    s.suppressed = cal.suppressed;
+    s.calibHidden = cal.hidden;
     s.metrics = Lens.metrics(s.events);
     s.task = s.task || Lens.taskId(s.events);
     state.gens[s.id] = s.lintPending ? "" : genNow();
@@ -2295,6 +2295,28 @@ ${s.seg_raw}` : s.seg && s.seg.raw;
           x.fp += c.fp;
         }
     for (const f of state.external) add(f.check, f.verdict ? { v: f.verdict } : null);
+    return st;
+  }
+  function calibStatsBySource() {
+    const st = {};
+    const at = (check, src) => {
+      const per = st[check] = st[check] || {};
+      return per[src] = per[src] || { total: 0, ok: 0, fp: 0 };
+    };
+    for (const m of metas())
+      if (!isDemo(m))
+        for (const [check, per] of Object.entries(m.sourceStats || {}))
+          for (const [src, c] of Object.entries(per)) {
+            const x = at(check, src);
+            x.total += c.total;
+            x.ok += c.ok;
+            x.fp += c.fp;
+          }
+    for (const f of state.external) {
+      const x = at(f.check, f.source || "external");
+      x.total++;
+      if (f.verdict) x[f.verdict]++;
+    }
     return st;
   }
   function profileVerdicts(profile) {

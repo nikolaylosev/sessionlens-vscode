@@ -40,7 +40,7 @@ test("regex: sleep in a Playwright test → sleep_or_skip_added", () => {
 test("regex: a check calibration switched off hides its findings, and they say formal too", () => {
   const cfg = Lens.profile("qa-ts");
   const events = [ev(1, "e2e/login.spec.ts", "test('login', async ({ page }) => {\n  await page.waitForTimeout(3000);\n});\n")];
-  const res = Lens.runChecks(events, cfg, { sleep_or_skip_added: { ok: 0, fp: 10 } });
+  const res = Lens.calibrate(Lens.runChecks(events, cfg), { sleep_or_skip_added: { formal: { ok: 0, fp: 10 } } });
   assert.deepEqual(
     res.hidden.map((f) => [f.check, f.source]),
     [["sleep_or_skip_added", "formal"]],
@@ -106,17 +106,18 @@ test("apply(): manual severity applies, but not to a demoted finding", () => {
   assert.equal(out.find((f) => f.check === "weak_assert").severity, "low");
 });
 
-test("calibLevel(): thresholds shared by runChecks and the Rules panel", () => {
+test("calibLevel(): thresholds shared by calibrate() and the Rules panel", () => {
   assert.equal(Lens.calibLevel(undefined).level, "need");
   assert.equal(Lens.calibLevel({ ok: 2, fp: 8 }).level, "off");
   assert.equal(Lens.calibLevel({ ok: 4, fp: 6 }).level, "demoted");
   assert.equal(Lens.calibLevel({ ok: 5, fp: 5 }).level, "ok");
   const cfg = Lens.profile("qa-ts");
   const events = [ev(1, "e2e/a.spec.ts", "test('a', async ({ page }) => { await page.waitForTimeout(3000) })")];
-  const demoted = Lens.runChecks(events, cfg, { sleep_or_skip_added: { ok: 4, fp: 6 } });
+  const found = Lens.runChecks(events, cfg);
+  const demoted = Lens.calibrate(found, { sleep_or_skip_added: { formal: { ok: 4, fp: 6 } } }).findings;
   assert.ok(demoted.some((f) => f.check === "sleep_or_skip_added" && f.demoted && f.severity === "low"));
-  const off = Lens.runChecks(events, cfg, { sleep_or_skip_added: { ok: 1, fp: 9 } });
-  assert.ok(!off.some((f) => f.check === "sleep_or_skip_added"));
+  const off = Lens.calibrate(found, { sleep_or_skip_added: { formal: { ok: 1, fp: 9 } } });
+  assert.ok(!off.findings.some((f) => f.check === "sleep_or_skip_added"));
   assert.ok(off.suppressed.some((s) => s.check === "sleep_or_skip_added"));
 });
 

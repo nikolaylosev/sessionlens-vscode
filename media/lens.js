@@ -1630,41 +1630,55 @@
     // its own source: these findings used to look like regex ones (no source at all), RULES-ARCHITECTURE §11.9
     return out.map((f) => Object.assign(f, { source: "gherkin" }));
   }
-  /* calib: { check: {ok, fp} } from reviewer verdicts. ≥10 verdicts and precision <30% → check suppressed; <50% → demoted to low. */
-  /* Calibration verdict for one regex check from its reviewer stats {ok, fp}: with ≥10 verdicts, precision < 30%
-     suppresses the check, < 50% demotes its findings to low. The one place this threshold lives — runChecks() and
-     the Rules panel's "demoted" hint both read it. */
+  /* Calibration verdict for one check and source from its reviewer stats {ok, fp}: with ≥10 verdicts, precision < 30%
+     switches it off, < 50% demotes its findings to low. The one place this threshold lives: calibrate(), the Rules
+     panel's "demoted" hint and the Calibration table all read it. */
   function calibLevel(st) {
     const n = st ? st.ok + st.fp : 0;
     const p = n ? st.ok / n : null;
     const level = n >= 10 && p < 0.3 ? "off" : n >= 10 && p < 0.5 ? "demoted" : n < 10 ? "need" : "ok";
     return { n, p, level };
   }
-  /* An "off" check still runs: its findings come back in res.hidden, kept with the session (calibHidden) and counted
-     by sessionSummary(), but never shown. Not running it lost their verdicts from the stats, so the check came back
-     on the next analysis and went off again on the one after (phase 8, test/calibration-loop.test.js). */
-  function runChecks(ev, cfg, calib) {
-    const out = [],
+  // The regex checks of the profile. They are not calibrated here: calibrate() does that for every source at once.
+  function runChecks(ev, cfg) {
+    const out = [];
+    for (const name of cfg.checks) if (checks[name]) out.push(...checks[name](ev, cfg));
+    // source "formal": what the panel's filter and the exported reports already called a finding with no source
+    return sortFindings(dedupe(out).map((f) => Object.assign(f, { source: "formal" })));
+  }
+  /* What calibration may hide or demote (phase 8, decided 01.10): the deterministic sources (regex "formal", the lint
+     engines, Gherkin) and the two heuristic spec checks. Never no_spec and spec_uncovered (facts) or the model's ai_*
+     (their precision depends on the model and the prompt; the Calibration tab only shows it). */
+  const CALIBRATED_SPEC = new Set(["test_without_requirement", "out_of_scope_tested"]);
+  function calibrated(f) {
+    const src = f.source || "formal";
+    return src === "formal" || src === "lint" || src === "gherkin" || (src === "spec" && CALIBRATED_SPEC.has(f.check));
+  }
+  /* findings: every source, after LensLint.merge() and before LensRules.apply().
+     calib: { check: { source: { ok, fp } } } (calibStatsBySource): stats per check AND source, so an engine's poor
+     record never switches off the regex check of the same name, or the other way round.
+     overrides: the Rules tab's; a check ticked on there by hand (enabled: true) is never hidden.
+     → { findings: shown (a demoted one is low), hidden: an "off" check's (kept with the session as calibHidden and
+         counted by sessionSummary(), never shown: not running it lost their verdicts, test/calibration-loop.test.js),
+         suppressed: [{ check, source, precision, n }], one per check and source that hid something here } */
+  function calibrate(findings, calib, overrides) {
+    const shown = [],
       hidden = [],
-      suppressed = [];
-    for (const name of cfg.checks) {
-      if (!checks[name]) continue;
-      const cl = calibLevel(calib && calib[name]);
-      if (cl.level === "off") {
-        suppressed.push({ check: name, precision: cl.p, n: cl.n });
-        hidden.push(...checks[name](ev, cfg));
+      off = new Map();
+    for (const f of findings) {
+      if (!calibrated(f)) {
+        shown.push(f);
         continue;
       }
-      let fs = checks[name](ev, cfg);
-      if (cl.level === "demoted") fs = fs.map((f) => ({ ...f, severity: "low", demoted: true }));
-      out.push(...fs);
+      const src = f.source || "formal";
+      const cl = calibLevel(calib && calib[f.check] && calib[f.check][src]);
+      if (cl.level === "off" && ((overrides || {})[f.check] || {}).enabled !== true) {
+        hidden.push(f);
+        off.set(f.check + "|" + src, { check: f.check, source: src, precision: cl.p, n: cl.n });
+      } else if (cl.level === "demoted") shown.push({ ...f, severity: "low", demoted: true });
+      else shown.push(f);
     }
-    // source "formal": what the panel's filter and the exported reports already called a finding with no source
-    const formal = (f) => Object.assign(f, { source: "formal" });
-    const res = sortFindings(dedupe(out).map(formal));
-    res.suppressed = suppressed;
-    res.hidden = dedupe(hidden).map(formal);
-    return res;
+    return { findings: shown, hidden, suppressed: [...off.values()] };
   }
   function dedupe(out) {
     // the same file is scanned again after every edit, so an unchanged issue would be reported once per edit
@@ -1902,6 +1916,7 @@
     redactSecrets,
     importAny,
     runChecks,
+    calibrate,
     gherkinChecks,
     sortFindings,
     metrics,

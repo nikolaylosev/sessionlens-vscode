@@ -51,13 +51,13 @@ function session() {
   return s;
 }
 
-test("a check switched off by calibration stays off when the sessions are analyzed again", async () => {
-  const s = session();
-  assert.ok(Object.keys(s.verdicts).length >= 10, `need at least 10 verdicts on ${CHECK}, got ${Object.keys(s.verdicts).length}`);
+/* Three Rules edits, each of a check other than the one under test; each re-analyzes every session in the background.
+   → what the stored session had of `check` after each: { after, findings, suppressed: [sources] } */
+async function threeRulesEdits(s, check, { lint }) {
   const host = bootHost({
     globalState: {
       sessions: { [s.id]: s },
-      settings: { profile: "qa-ts", lint: false, rulesTarget: "claude", modelPool: [], defaultModelId: null },
+      settings: { profile: s.profile, lint, rulesTarget: "claude", modelPool: [], defaultModelId: null },
       ruleOverrides: {},
     },
   });
@@ -66,49 +66,65 @@ test("a check switched off by calibration stays off when the sessions are analyz
   const stored = () => JSON.parse(fs.readFileSync(path.join(dir, s.id + ".json"), "utf8"));
   const sb = await openPage(host);
   await sb.ready();
-  const click = (sel) => sb.document.querySelector(sel).dispatchEvent(new sb.window.MouseEvent("click", { bubbles: true }));
-  click('.tab[data-view="rules"]');
+  sb.document.querySelector('.tab[data-view="rules"]').dispatchEvent(new sb.window.MouseEvent("click", { bubbles: true }));
   await sb.idle();
-
-  // each Rules edit re-analyzes every session in the background; the check under test is never the one edited
   const overrides = {};
-  const edits = ["magic_number", "conditional_logic", "duplicate_assert"];
   const seen = [];
-  for (const other of edits) {
+  for (const other of ["magic_number", "conditional_logic", "duplicate_assert"]) {
     const box = sb.document.querySelector(`.rule-row[data-check="${other}"] .r-enabled`);
     box.checked = false;
     box.dispatchEvent(new sb.window.Event("change", { bubbles: true }));
     overrides[other] = { enabled: false };
-    const gen = Lens.analysisGen({ ruleOverrides: overrides, lint: false, epoch: 0 });
+    const gen = Lens.analysisGen({ ruleOverrides: overrides, lint, epoch: 0 });
     await until(() => meta().analyzedGen === gen);
     const now = stored();
     seen.push({
       after: other,
-      findings: now.findings.filter((f) => f.check === CHECK).length,
-      suppressed: (now.suppressed || []).some((x) => x.check === CHECK),
+      findings: now.findings.filter((f) => f.check === check).length,
+      suppressed: (now.suppressed || []).filter((x) => x.check === check).map((x) => x.source),
     });
   }
   // the verdicts themselves are never lost: they stay in the session whether or not the findings are there
   assert.equal(Object.keys(stored().verdicts).length, Object.keys(s.verdicts).length);
-  assert.deepEqual(
-    seen,
-    edits.map((after) => ({ after, findings: 0, suppressed: true })),
-    "off after every analysis, not off and on in turn",
-  );
   assert.deepEqual(sb.errors, []);
   sb.close();
+  return seen;
+}
+const offEveryTime = (source) => ["magic_number", "conditional_logic", "duplicate_assert"].map((after) => ({ after, findings: 0, suppressed: [source] }));
+
+test("a check switched off by calibration stays off when the sessions are analyzed again", async () => {
+  const s = session();
+  assert.ok(Object.keys(s.verdicts).length >= 10, `need at least 10 verdicts on ${CHECK}, got ${Object.keys(s.verdicts).length}`);
+  assert.deepEqual(await threeRulesEdits(s, CHECK, { lint: false }), offEveryTime("formal"), "off after every analysis, not off and on in turn");
 });
 
-test("an off check: runChecks hides its findings instead of not running it; sessionSummary counts them", () => {
+// phase 8: an engine's check is calibrated too, through the per-source stats of the summaries
+test("an engine's check (Robot) switched off by calibration stays off too", async () => {
+  global.LensLintRobot = require(M("lint-robot.js"));
+  const LensLint = require(M("lint.js"));
+  // the engine reports at most three of a kind per file: four files of three empty test cases
+  const events = [0, 1, 2, 3].map((i) => ({
+    seq: i + 1,
+    file: `tests/t${i}.robot`,
+    new_content: "*** Test Cases ***\nCase A\n\nCase B\n\nCase C\n\nLast\n    Should Be Equal    1    1\n",
+  }));
+  const s = { id: "calibloop2", name: "robot", task: "LOOP-2", profile: "qa-robot", created: "2026-06-01T00:00:00.000Z", events, verdicts: {} };
+  s.findings = LensLint.run(s, Lens.profile("qa-robot"), {}).findings;
+  for (const f of s.findings) if (f.check === "empty_test_case") s.verdicts[Lens.fkey(f)] = { v: "fp", note: "", at: "2026-06-01T00:00:00.000Z" };
+  assert.equal(Object.keys(s.verdicts).length, 12);
+  assert.deepEqual(await threeRulesEdits(s, "empty_test_case", { lint: true }), offEveryTime("lint"));
+});
+
+test("an off check: calibrate hides its findings instead of dropping them; sessionSummary counts them", () => {
   const s = session();
-  const calib = { [CHECK]: { ok: 0, fp: 12 } };
-  const res = Lens.runChecks(s.events, Lens.profile("qa-ts"), calib);
-  assert.equal(res.filter((f) => f.check === CHECK).length, 0, "not shown");
+  const calib = { [CHECK]: { formal: { ok: 0, fp: 12 } } };
+  const res = Lens.calibrate(Lens.runChecks(s.events, Lens.profile("qa-ts")), calib);
+  assert.equal(res.findings.filter((f) => f.check === CHECK).length, 0, "not shown");
   assert.equal(res.hidden.filter((f) => f.check === CHECK).length, 12, "kept aside");
   assert.deepEqual(
     res.suppressed.map((x) => x.check),
     [CHECK],
   );
-  const st = Lens.sessionSummary(Object.assign({}, s, { findings: [...res], calibHidden: res.hidden })).checkStats[CHECK];
+  const st = Lens.sessionSummary(Object.assign({}, s, { findings: res.findings, calibHidden: res.hidden })).checkStats[CHECK];
   assert.deepEqual(st, { total: 12, ok: 0, fp: 12 }, "the verdicts still count");
 });

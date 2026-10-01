@@ -217,6 +217,32 @@ export function calibStats() {
   return st;
 }
 
+/* Phase 8: the same per check AND source ({ check: { source: { total, ok, fp } } }), from the summaries' sourceStats;
+   what Lens.calibrate() reads. An imported finding counts under its own source ("external" when it has none), which
+   calibrate() never applies to. */
+export function calibStatsBySource() {
+  const st = {};
+  const at = (check, src) => {
+    const per = (st[check] = st[check] || {});
+    return (per[src] = per[src] || { total: 0, ok: 0, fp: 0 });
+  };
+  for (const m of metas())
+    if (!isDemo(m))
+      for (const [check, per] of Object.entries(m.sourceStats || {}))
+        for (const [src, c] of Object.entries(per)) {
+          const x = at(check, src);
+          x.total += c.total;
+          x.ok += c.ok;
+          x.fp += c.fp;
+        }
+  for (const f of state.external) {
+    const x = at(f.check, f.source || "external");
+    x.total++;
+    if (f.verdict) x[f.verdict]++;
+  }
+  return st;
+}
+
 export function profileVerdicts(profile) {
   let n = 0;
   for (const m of metas()) if (m.profile === profile && !isDemo(m)) n += m.verdictsCount || 0;

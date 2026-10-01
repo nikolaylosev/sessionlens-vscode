@@ -111,8 +111,7 @@ calling `LensRules.apply()`:
 ```js
 function analyze(s) {
   const cfg = Lens.profile(s.profile);
-  const calib = calibStats();
-  const formal  = Lens.runChecks(s.events, cfg, calib);       // 1. regex checks, depend on the profile
+  const formal  = Lens.runChecks(s.events, cfg);               // 1. regex checks, depend on the profile
   const gherkin = Lens.gherkinChecks(s.events);                 // 2. .feature files, do NOT depend on the profile
   const spec    = LensSpec.parse(s.spec || "");
   const sc      = LensSpec.checks(spec, s.events, cfg.language);// 3. specification ↔ tests
@@ -122,14 +121,18 @@ function analyze(s) {
     const lr = LensLint.run(s, cfg, state.settings);            // 5. ESLint/tree-sitter/custom-parser engines
     if (lr.ran) base = LensLint.merge(formal, lr.findings);      // replaced only where the engine actually parsed
   }
-  s.findings = Lens.sortFindings(
-    LensRules.apply([...base, ...gherkin, ...sc.findings, ...ai], state.ruleOverrides)
-  );
+  const cal = Lens.calibrate([...base, ...gherkin, ...sc.findings, ...ai],     // calibration per check and source
+                             calibStatsBySource(), state.ruleOverrides);       // (since v0.1.112, §5.2)
+  s.findings = Lens.sortFindings(LensRules.apply(cal.findings, state.ruleOverrides));
+  s.suppressed = cal.suppressed; s.calibHidden = cal.hidden;
 }
 ```
 
 The key properties of this function that matter for review:
 
+- **`Lens.calibrate()` runs once, after the merge and before `apply()`** (since
+  v0.1.112): a regex finding an engine supersedes is gone before calibration sees it,
+  so an engine check that calibration switched off never brings the regex one back.
 - **`LensRules.apply()` is called EXACTLY ONCE**, at the very end, on the already
   merged array. It does not and must not know where a finding came from —
   overrides are applied the same way to all five tracks.
@@ -317,7 +320,7 @@ const RULES = new Proxy({}, { get: (_, k) => {
 - For a name outside the registry the Proxy returns an empty string and writes
   `console.warn` (except the synthetic `lint_<ruleId>`).
 
-### 5.2 The `checks` object and `runChecks()` — 29 regex checks and calibration
+### 5.2 The `checks` object, `runChecks()` and `calibrate()`
 
 `lens.js` contains the `checks` object with **29 functions** of the form
 `checkName(ev, cfg) -> Finding[]` (the full list — see the table in §9).
@@ -325,22 +328,21 @@ These are the only checks that **do not depend on an external engine** —
 plain JS/regex over the event text.
 
 ```js
-function calibLevel(st) {                       // one threshold for runChecks(), the Rules panel and the Calibration table
+function calibLevel(st) {                       // one threshold for calibrate(), the Rules panel and the Calibration table
   const n = st ? st.ok + st.fp : 0; const p = n ? st.ok / n : null;
   const level = n >= 10 && p < 0.3 ? "off" : n >= 10 && p < 0.5 ? "demoted" : n < 10 ? "need" : "ok";
   return { n, p, level };
 }
-function runChecks(ev, cfg, calib) {
-  const out = [], hidden = [], suppressed = [];
-  for (const name of cfg.checks) {              // ← cfg.checks is part of the profile, NOT a common list
-    if (!checks[name]) continue;                 // ← the name is in cfg.checks but has no function — silently skipped
-    const cl = calibLevel(calib && calib[name]);
-    if (cl.level === "off") { suppressed.push({ check: name, precision: cl.p, n: cl.n }); hidden.push(...checks[name](ev, cfg)); continue; }
-    let fs = checks[name](ev, cfg);
-    if (cl.level === "demoted") fs = fs.map(f => ({ ...f, severity: "low", demoted: true }));
-    out.push(...fs);
-  }
-  return { ...sortFindings(dedupe(out)), suppressed, hidden: dedupe(hidden) };
+function runChecks(ev, cfg) {                   // finds only; calibration is calibrate()'s (since v0.1.112)
+  const out = [];
+  for (const name of cfg.checks)                // ← cfg.checks is part of the profile, NOT a common list
+    if (checks[name]) out.push(...checks[name](ev, cfg)); // ← a name without a function is silently skipped
+  return sortFindings(dedupe(out).map(f => Object.assign(f, { source: "formal" })));
+}
+function calibrate(findings, calib, overrides) { // calib: { check: { source: { ok, fp } } }
+  // only calibrated(f): source formal, lint or gherkin, or spec for test_without_requirement / out_of_scope_tested
+  // level "off" (unless overrides[check].enabled === true) → hidden; "demoted" → { ...f, severity: "low", demoted: true }
+  return { findings: shown, hidden, suppressed: [{ check, source, precision, n }] };
 }
 ```
 
@@ -351,7 +353,7 @@ Walk-through:
   `lens.js`, for example `qa-cypress: { checks: [...METHOD, ...PROCESS,
   ...CODE] }`). The profile decides **which check names to try to
   compute with regexes at all**, but that does not mean all of them
-  have a function — the line `if (!checks[name]) continue;` silently skips
+  have a function — the test `if (checks[name])` silently skips
   names without an implementation. **This is a deliberate, documented pattern**:
   many profiles include in `cfg.checks` checks such as `raw_locator`,
   `positional_locator`, `no_assertion_after_action` that have **no**
@@ -361,33 +363,25 @@ Walk-through:
   (§6). To a reviewer this looks like dead code, but it is a deliberate
   design — see the comment in `lens.js` at `qa-detox`: *"there is no regex
   fallback for those, same as raw_locator/positional_locator elsewhere"*.
-- **Calibration** (`calib` — computed in `app.js`'s `calibStats()` from the
-  reviewer's verdicts over past sessions): if a check has
-  accumulated ≥10 verdicts and its precision (`ok / (ok+fp)`) is **< 30%**, the check is
-  **suppressed**: its findings are not shown, and the fact of suppression is returned (`suppressed`) and shown under
-  the session's findings. The check **still runs**: its findings come back in `hidden`, `analyzeNow()` keeps them in
-  `s.calibHidden`, and `sessionSummary()` counts them in `checkStats` with their verdicts. Until 0.1.112 an "off"
-  check did not run, its verdicts dropped out of the stats with its findings, and on the next analysis (any Rules
-  edit re-analyzes every session) the check was back on, then off again on the one after
-  (`test/calibration-loop.test.js`). If the precision is **< 50%** (but ≥30%), findings are generated but
-  **forcibly lowered to `low`** and marked `demoted: true` —
-  that is the source of the flag that later blocks the override in
-  `apply()` (§4.4).
-- **Calibration applies ONLY to the `runChecks()` track** (regex checks).
-  Findings from `LensLint.run()` (ESLint/tree-sitter/robot engines), from
-  `gherkinChecks()`, from `LensSpec.checks()` and from the AI are **never
-  lowered or suppressed by calibration**, because these functions
-  do not receive `calib` at all. If a team has accumulated bad statistics
-  for `no_assertion_after_action` over months of use
-  (say, this check is a false positive 80% of the time on their code
-  base), calibration **cannot** suppress it, because this check
-  is physically born only inside the lint engines (Java/C#/Python/Detox/
-  Robot), not in the `checks` object. **This is an asymmetry that should be
-  discussed with the team explicitly before publishing**: working calibration
-  covers only 29 of 54 checks (all the regex checks); the other 25 are
-  never calibrated automatically, only by hand in the Rules panel
-  (enable/disable/severity).
-- **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStats()` and `profileVerdicts()`
+- **Calibration** (since v0.1.112 `Lens.calibrate()`, after the merge, §3). `calib` is
+  `calibStatsBySource()` (`src/webview/store.js`): the summaries' `sourceStats` (§15.1) added up per check
+  AND source, so `weak_assert` from ESLint and `weak_assert` from a regex have separate records and a poor
+  engine never switches off the regex check, or the other way round. With ≥10 verdicts for that check and
+  source and precision (`ok / (ok+fp)`) **< 30%** its findings are **hidden**: not shown, kept with the
+  session as `s.calibHidden` and counted by `sessionSummary()` with their verdicts (not running the check
+  lost them from the stats and the check came back on the next analysis, `test/calibration-loop.test.js`).
+  `s.suppressed` lists `{ check, source, precision, n }` for each pair that hid something in this session.
+  **< 50%** (but ≥30%): findings are **forcibly lowered to `low`** and marked `demoted: true` — the flag
+  that later blocks a manual severity in `apply()` (§4.4).
+- **What is calibrated** (decided 01.10.2026): regex (`"formal"`; a finding with no source, from a
+  session saved before 0.1.112, counts as one), the lint engines (`"lint"`), Gherkin, and the two heuristic
+  spec checks `test_without_requirement` and `out_of_scope_tested`. **Never** `no_spec` and
+  `spec_uncovered` (facts, not guesses) or the model's `ai_*` (their precision depends on the model and
+  the prompt, not on the check; the Calibration tab only shows it). The thresholds are the same for every
+  source. Imported findings count under their own source and are not calibrated.
+- **A check ticked on by hand** on the Rules tab (`ruleOverrides[check].enabled === true`, which the
+  checkbox writes) is never hidden by calibration. A check merely left at its default is.
+- **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStats()`, `calibStatsBySource()` and `profileVerdicts()`
   (`src/webview/store.js`): its verdicts are about a made-up session. Its confirmed findings still propose rules on
   the Calibration tab, which is what the demo is for.
 
@@ -775,7 +769,7 @@ Take `unannotated_test_method` for the `qa-java` profile.
 
 1. The user imports a transcript with `qa-java`. `analyze(s)` calls
    `Lens.profile("qa-java")` → `cfg.language === "java"`.
-2. `Lens.runChecks(s.events, cfg, calib)` iterates over `cfg.checks`
+2. `Lens.runChecks(s.events, cfg)` iterates over `cfg.checks`
    (`[...METHOD, ...PROCESS, ...CODE]`), sees the name `unannotated_test_method`
    in the `CODE` list, but `checks["unannotated_test_method"]` does not exist
    → `continue`, nothing is added. `formal` does not contain this finding.
@@ -831,7 +825,9 @@ Status at v0.1.98. Closed items are kept for the record.
 5. ~~`SUPERSEDES` and "the list of checks without a regex function" are two
    independent lists~~ — **closed in v0.1.108**: `test/rules-consistency.test.js`
    checks `SUPERSEDES` against the registry's `sources` (§6.3).
-6. **Open.** Calibration covers only the regex checks (§5.2, §9).
+6. ~~Calibration covers only the regex checks~~ — **closed in v0.1.112** (phase 8): `Lens.calibrate()` after the
+   merge, per check and source, for regex, engines, Gherkin and two spec checks; not for the facts of the spec or the
+   model (§5.2).
 7. ~~`f.demoted` silently blocks a manual override~~ — **closed**: the ⓘ icon
    in the Rules panel (§4.4).
 8. ~~`fromJson()` silently loses rows~~ — **closed**: `ignored` and
