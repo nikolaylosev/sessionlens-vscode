@@ -8,6 +8,9 @@
 - `debug_leftover` (medium): `page.pause()`, `cy.pause()`, `cy.debug()`, `debugger`, `breakpoint()` or
   `pdb.set_trace()` left in a test. Reported in the TypeScript, Cypress, Detox, Python, API and mobile profiles.
 - `cypress_async_test` (medium): an `async` test or hook in Cypress, where the commands may not run.
+- `test_deleted`: a test removed from a file, or a test file deleted (`rm`, `git rm`, or a deleted file in a Codex
+  patch). High right after a failing run, medium otherwise. A test renamed with the same body, moved to another file
+  or restored later is not reported. Reported in every profile with code checks.
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",
