@@ -26,8 +26,9 @@
   `setup.cfg`, `pyproject.toml`. High right after a failing run, medium otherwise. A config seen for the first time is
   reported only for its retries.
 - The four checks above look at what the agent did across the session. A session you saved earlier gets
-  `test_deleted`, `product_code_edited` and `snapshot_overwritten` when it is analyzed again. `config_weakened` for a
-  config the session only edited, and a deleted file in a Codex session, need the transcript to be imported again.
+  `test_deleted`, `product_code_edited` and `snapshot_overwritten` when it is analyzed again. A test deleted or a
+  config loosened in the first edit of a file that existed before the session, and a deleted file in a Codex session,
+  need the transcript to be imported again.
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",

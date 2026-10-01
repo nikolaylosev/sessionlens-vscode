@@ -1278,16 +1278,18 @@ What the import keeps for them:
   `{ kind: "delete", file }`; until 0.1.113 it was dropped. Claude Code has no delete tool: there a deletion is a
   shell command, read by `test_deleted` itself.
 - **`prev_content`.** For a runner config (`isRunnerConfig()`: `*.config.*`, `*.conf.*`, `.detoxrc*`, `.mocharc*`,
-  `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`) the import keeps the file's previous text on the write or
-  edit event, from its own replay or from `toolUseResult.originalFile`. So the first edit of a config in a session
-  is compared too, as in the demo.
+  `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`) and a test file (`isTestFile()`: `TEST_FILE_RX` or one of
+  the profile's `test_dirs` anywhere in the path) the import keeps the file's previous text on the write or edit
+  event, from its own replay or from `toolUseResult.originalFile`. So the first edit of a file that existed before
+  the session is compared too: a config in the demo, a failing test someone else wrote and the agent cut out. The
+  event may still be `fragment_only` (the Edit started as a fragment); `prev_content` wins over that flag.
 - **`config_content`.** `stripNonSource()` drops the text of files that are not code. For the four Python configs it
   moves `new_content` to `config_content` instead: `config_weakened` reads it, the code checks do not
   (`xfail_strict = true` must not be an expected failure).
 - **Stored sessions.** `test_deleted` and `product_code_edited` read what every stored session already has
-  (`new_content`, the file names), so they work on a session saved before 0.1.113. `config_weakened` needs
-  `prev_content` for a config the session only edited, and a Codex deletion needs the `delete` event: both come with
-  a new import.
+  (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first
+  edit of a file, which needs `prev_content`, like `config_weakened` for a config the session only edited; a Codex
+  deletion needs the `delete` event. These come with a new import.
 
 Retries in a runner config are `config_weakened`, not `sleep_or_skip_added` (`sleep_or_skip_added` skips runner
 configs); retries on one test (`describe.configure({ retries })`, `@flaky`, `[Retry]`) stay `sleep_or_skip_added`.

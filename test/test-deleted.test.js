@@ -114,6 +114,49 @@ test("not a deletion: renamed, moved, restored, or rm of files that are not test
   none("qa-ts", [["edit", "e2e/cart.spec.ts", PW(DISCOUNT), ""]], "the first sight of a file is a fragment: nothing to compare with");
 });
 
+/* Claude Code: the first Edit of a test file that existed before the session. The import knows the file as it was only
+   from toolUseResult.originalFile; the most common real case of an agent deleting a failing test someone else wrote. */
+function firstEdit(oldString, newString, original) {
+  const rec = (o) => JSON.stringify(o);
+  return [
+    rec({ type: "user", message: { role: "user", content: "Make the suite green" } }),
+    rec({
+      type: "assistant",
+      message: { role: "assistant", content: [{ type: "tool_use", id: "r", name: "Bash", input: { command: "npx playwright test" } }] },
+    }),
+    rec({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "r", content: "1 passed, 1 failed" }] } }),
+    rec({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "e", name: "Edit", input: { file_path: "/w/e2e/cart.spec.ts", old_string: oldString, new_string: newString } }],
+      },
+    }),
+    rec({
+      type: "user",
+      cwd: "/w",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "e", content: "ok" }] },
+      ...(original == null ? {} : { toolUseResult: { filePath: "/w/e2e/cart.spec.ts", originalFile: original, oldString, newString } }),
+    }),
+  ].join("\n");
+}
+const firstEditFindings = (text) => {
+  const cfg = Lens.profile("qa-ts");
+  return Lens.runChecks(Lens.importAny(text, cfg), cfg)
+    .filter((f) => f.check === "test_deleted")
+    .map((f) => `${f.severity}: ${f.message}`);
+};
+
+test("Claude Code: a test deleted in the first Edit of a file that existed before the session", () => {
+  const discount = PW(DISCOUNT).split("\n").slice(1).join("\n");
+  assert.deepEqual(firstEditFindings(firstEdit(discount, "", PW(TOTAL, DISCOUNT))), [
+    "high: /w/e2e/cart.spec.ts: 1 test deleted: discount — right after a failing run (seq 1)",
+  ]);
+  const renamed = discount.replace("'discount'", "'applies a discount'");
+  assert.deepEqual(firstEditFindings(firstEdit(discount, renamed, PW(TOTAL, DISCOUNT))), [], "renamed in the first edit");
+  assert.deepEqual(firstEditFindings(firstEdit(discount, "", null)), [], "no toolUseResult: nothing to compare with");
+});
+
 test("Codex: a test file deleted in a patch", () => {
   const rec = (type, payload) => JSON.stringify({ type, timestamp: "", payload });
   const patch = (changes) => rec("event_msg", { type: "patch_apply_end", changes });

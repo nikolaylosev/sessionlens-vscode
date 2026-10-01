@@ -607,9 +607,12 @@
   // pytest reads these; they are not code, so their text is kept apart (config_content), away from the code checks
   const PY_RUNNER_CONFIG_RX = /(?:^|\/)(?:pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml)$/i;
   const isRunnerConfig = (f) => !!f && (RUNNER_CONFIG_RX.test(f) || PY_RUNNER_CONFIG_RX.test(f));
-  // config_weakened compares a runner config with what it was before this write or edit
-  const keepBefore = (r, f, before) => {
-    if (before != null && isRunnerConfig(f)) r.prev_content = before.slice(0, 200000);
+  // a test file: by its name, or in one of the profile's test folders (anywhere in the path)
+  const isTestFile = (f, cfg) => isCode(f, cfg) && (TEST_FILE_RX.test(f) || (cfg.test_dirs || []).some((d) => ("/" + f).includes("/" + d + "/")));
+  /* what a runner config or a test file was before this write or edit: config_weakened and test_deleted compare with
+     it. Often the only earlier version there is: a first Edit of a file that existed before the session. */
+  const keepBefore = (r, f, before, cfg) => {
+    if (before != null && (isRunnerConfig(f) || isTestFile(f, cfg))) r.prev_content = before.slice(0, 200000);
   };
 
   function fromClaudeJsonl(text, cfg) {
@@ -648,7 +651,7 @@
           const r = { seq: seq++, ts, kind, tool: b.name, file: short(f), cmd };
           if (kind === "write") {
             const o = base(f);
-            keepBefore(r, f, o);
+            keepBefore(r, f, o, cfg);
             files[f] = inp.content || "";
             if (o != null && isCode(f, cfg)) {
               const d = compareAsserts(o, files[f], cfg);
@@ -656,7 +659,7 @@
             }
           } else if (kind === "edit") {
             const o = base(f);
-            keepBefore(r, f, o);
+            keepBefore(r, f, o, cfg);
             if (o == null)
               files[f] = inp.new_string || ""; // first sight of this file: only the fragment is known
             else {
@@ -693,7 +696,7 @@
             const full = r.file ? (cwd && !r.file.startsWith("/") ? cwd + "/" + r.file : r.file) : "";
             if (after != null) {
               files[full] = after;
-              keepBefore(r, r.file, before);
+              keepBefore(r, r.file, before, cfg);
               if (before != null && isCode(r.file, cfg)) {
                 const d = compareAsserts(before, after, cfg);
                 if (d) r.assert_delta = d;
@@ -811,7 +814,7 @@
             if (after == null) continue;
             const f = short(path),
               r = { seq: seq++, ts, kind: ch.type === "add" ? "write" : "edit", file: f, new_content: after.slice(0, 200000) };
-            keepBefore(r, f, before);
+            keepBefore(r, f, before, cfg);
             if (before == null) r.fragment_only = true;
             else if (isCode(f, cfg)) {
               const d = compareAsserts(before, after, cfg);
@@ -1306,8 +1309,10 @@
       for (const e of versions) {
         const prev = last[e.file];
         last[e.file] = e;
-        if (!prev || prev.fragment_only || e.fragment_only) continue;
-        const om = tests(prev.new_content),
+        // the import's prev_content (a first Edit made whole from toolUseResult), else the session's previous version
+        const before = e.prev_content ?? (prev && !prev.fragment_only && !e.fragment_only ? prev.new_content : null);
+        if (before == null) continue;
+        const om = tests(before),
           nm = tests(e.new_content);
         const added = Object.keys(nm)
           .filter((k) => !(k in om))
