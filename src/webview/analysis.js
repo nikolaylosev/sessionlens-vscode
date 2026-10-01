@@ -2,7 +2,7 @@
 /* SessionLens panel — analysis of a session. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
 import { state } from "./common.js";
-import { calibStats, genNow } from "./store.js";
+import { calibStatsBySource, genNow } from "./store.js";
 
 export function initAnalysis() {}
 
@@ -21,8 +21,7 @@ export function analyze(s, event) {
 
 export function analyzeNow(s) {
   const cfg = Lens.profile(s.profile);
-  const calib = calibStats();
-  const formal = Lens.runChecks(s.events, cfg, calib);
+  const formal = Lens.runChecks(s.events, cfg);
   const gherkin = Lens.gherkinChecks(s.events); // profile-agnostic: runs on any .feature file regardless of s.profile
   const spec = LensSpec.parse(s.spec || "");
   const sc = LensSpec.checks(spec, s.events, cfg.language);
@@ -38,11 +37,14 @@ export function analyzeNow(s) {
     if (lr.pending) s.lintPending = true; // the engine is still loading here: not a final result (see below)
     if (lr.ran) base = LensLint.merge(formal, lr.findings); // supersede only when the linter actually parsed
   }
-  s.findings = Lens.sortFindings(LensRules.apply([...base, ...gherkin, ...sc.findings, ...ai], state.ruleOverrides));
+  // phase 8: calibration per check and source, after the merge (a superseded regex finding is gone before it) and
+  // before the Rules tab's overrides
+  const cal = Lens.calibrate([...base, ...gherkin, ...sc.findings, ...ai], calibStatsBySource(), state.ruleOverrides);
+  s.findings = Lens.sortFindings(LensRules.apply(cal.findings, state.ruleOverrides));
   s.coverage = sc.coverage;
   s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
-  s.suppressed = formal.suppressed || [];
-  s.calibHidden = formal.hidden || []; // what an "off" check found: counted for calibration, never shown
+  s.suppressed = cal.suppressed;
+  s.calibHidden = cal.hidden; // what an "off" check found: counted for calibration, never shown
   s.metrics = Lens.metrics(s.events);
   s.task = s.task || Lens.taskId(s.events);
   // which rules these findings were computed with; "" (not analyzed) while the lint engine was still loading, so

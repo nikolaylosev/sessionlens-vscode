@@ -89,16 +89,17 @@ function transcript(profile, r, bytes) {
 function analyzeNode(ctx, s, overrides, calib) {
   const { Lens, LensRules, LensSpec } = ctx;
   const cfg = Lens.profile(s.profile);
-  const formal = Lens.runChecks(s.events, cfg, calib);
+  const formal = Lens.runChecks(s.events, cfg);
   const gherkin = Lens.gherkinChecks(s.events);
   const spec = LensSpec.parse(s.spec || "");
   const sc = LensSpec.checks(spec, s.events, cfg.language);
   s.lintNote = "";
-  s.findings = Lens.sortFindings(LensRules.apply([...formal, ...gherkin, ...sc.findings], overrides));
+  const cal = Lens.calibrate([...formal, ...gherkin, ...sc.findings], calib, overrides);
+  s.findings = Lens.sortFindings(LensRules.apply(cal.findings, overrides));
   s.coverage = sc.coverage;
   s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
-  s.suppressed = formal.suppressed || [];
-  s.calibHidden = formal.hidden || [];
+  s.suppressed = cal.suppressed;
+  s.calibHidden = cal.hidden;
   s.metrics = Lens.metrics(s.events);
   s.task = s.task || Lens.taskId(s.events);
 }

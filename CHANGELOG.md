@@ -2,6 +2,16 @@
 
 ## 0.1.112
 
+### Changed
+- Calibration now covers the static analysis checks (ESLint, tree-sitter, Robot Framework), the Gherkin checks and
+  two of the specification checks ("test without requirement", "out of scope tested"), not only the pattern checks.
+  As before, a check with at least 10 verdicts and precision below 30% is switched off and below 50% is lowered to
+  low. If you already have such verdicts, some of these findings go quiet after the update.
+- Precision is counted per check and source: when ESLint and a pattern check report under the same name (for example
+  `weak_assert`), a poor record of one no longer switches off the other.
+- A check you tick on by hand on the Rules tab is never switched off by calibration.
+- Missing specification, uncovered requirements and the model's findings are never switched off by calibration.
+
 ### Fixed
 - A check that calibration switched off (at least 10 verdicts, precision below 30%) stays off. Its findings used to
   come back after the next change on the Rules tab and go away again after the one after, because once they were
