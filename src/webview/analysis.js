@@ -42,6 +42,7 @@ export function analyzeNow(s) {
   s.coverage = sc.coverage;
   s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
   s.suppressed = formal.suppressed || [];
+  s.calibHidden = formal.hidden || []; // what an "off" check found: counted for calibration, never shown
   s.metrics = Lens.metrics(s.events);
   s.task = s.task || Lens.taskId(s.events);
   // which rules these findings were computed with; "" (not analyzed) while the lint engine was still loading, so

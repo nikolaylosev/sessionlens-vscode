@@ -149,6 +149,7 @@
     s.coverage = sc.coverage;
     s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
     s.suppressed = formal.suppressed || [];
+    s.calibHidden = formal.hidden || [];
     s.metrics = Lens.metrics(s.events);
     s.task = s.task || Lens.taskId(s.events);
     state.gens[s.id] = s.lintPending ? "" : genNow();

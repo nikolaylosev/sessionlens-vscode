@@ -330,16 +330,16 @@ function calibLevel(st) {                       // one threshold for runChecks()
   return { n, p, level };
 }
 function runChecks(ev, cfg, calib) {
-  const out = [], suppressed = [];
+  const out = [], hidden = [], suppressed = [];
   for (const name of cfg.checks) {              // ← cfg.checks is part of the profile, NOT a common list
     if (!checks[name]) continue;                 // ← the name is in cfg.checks but has no function — silently skipped
     const cl = calibLevel(calib && calib[name]);
-    if (cl.level === "off") { suppressed.push({ check: name, precision: cl.p, n: cl.n }); continue; }
+    if (cl.level === "off") { suppressed.push({ check: name, precision: cl.p, n: cl.n }); hidden.push(...checks[name](ev, cfg)); continue; }
     let fs = checks[name](ev, cfg);
     if (cl.level === "demoted") fs = fs.map(f => ({ ...f, severity: "low", demoted: true }));
     out.push(...fs);
   }
-  return { ...sortFindings(dedupe(out)), suppressed };
+  return { ...sortFindings(dedupe(out)), suppressed, hidden: dedupe(hidden) };
 }
 ```
 
@@ -363,10 +363,12 @@ Walk-through:
 - **Calibration** (`calib` — computed in `app.js`'s `calibStats()` from the
   reviewer's verdicts over past sessions): if a check has
   accumulated ≥10 verdicts and its precision (`ok / (ok+fp)`) is **< 30%**, the check is
-  **fully suppressed** (`suppressed`: no findings are generated
-  at all, but the fact of suppression is returned and shown somewhere
-  in the UI — worth verifying that the suppression is visible to the user explicitly, not
-  silently). If the precision is **< 50%** (but ≥30%), findings are generated but
+  **suppressed**: its findings are not shown, and the fact of suppression is returned (`suppressed`) and shown under
+  the session's findings. The check **still runs**: its findings come back in `hidden`, `analyzeNow()` keeps them in
+  `s.calibHidden`, and `sessionSummary()` counts them in `checkStats` with their verdicts. Until 0.1.112 an "off"
+  check did not run, its verdicts dropped out of the stats with its findings, and on the next analysis (any Rules
+  edit re-analyzes every session) the check was back on, then off again on the one after
+  (`test/calibration-loop.test.js`). If the precision is **< 50%** (but ≥30%), findings are generated but
   **forcibly lowered to `low`** and marked `demoted: true` —
   that is the source of the flag that later blocks the override in
   `apply()` (§4.4).
