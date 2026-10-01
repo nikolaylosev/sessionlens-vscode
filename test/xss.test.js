@@ -150,9 +150,9 @@ test("mutation: dropping one esc() (#precision check name) is caught", async () 
 test("mutation: dropping one esc() (#hdr profile) is caught", async () => {
   const patch = (src) => {
     // phase 7 (7A.4): the profile in the header sits in a <span> with the profile summary as its title
-    const from = '">${esc(s.profile)}</span> · ${esc(s.events.length)}';
+    const from = '">${esc(s.profile)}</span> · ${esc(T("events"';
     assert.ok(src.includes(from));
-    return src.replace(from, '">${s.profile}</span> · ${esc(s.events.length)}');
+    return src.replace(from, '">${s.profile}</span> · ${esc(T("events"');
   };
   const r = await renderAll(PAYLOADS[1], patch);
   assert.ok(r.onAttrs.length > 0 || JSON.stringify(r.counts) !== JSON.stringify(baseline.counts));

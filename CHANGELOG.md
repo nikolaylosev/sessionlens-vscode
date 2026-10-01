@@ -60,6 +60,7 @@
   (`retries: 2`) in every profile with static analysis. They are reported again; a finding is now left out only where
   static analysis reports the same thing itself.
 - C#: an NUnit attribute in a list, such as `[Test, Ignore("…")]`, counts as a skipped test, like `[Ignore("…")]`.
+- A session with a single event says "1 event" in its header, not "1 events".
 
 ## 0.1.112
 

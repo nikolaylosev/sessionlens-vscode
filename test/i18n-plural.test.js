@@ -14,6 +14,8 @@ test("{n|one|other} picks the word for the count", () => {
   assert.match(I18N.t("export_block", { n: 1 }), /^1 high finding has no verdict\./);
   assert.match(I18N.t("export_block", { n: 0 }), /^0 high findings have no verdict\./);
   assert.equal(I18N.t("spec_count", { n: "1", oos: "" }), "(1 requirement)");
+  assert.equal(I18N.t("events", { n: 1 }), "1 event"); // a session's header, 0.1.113
+  assert.equal(I18N.t("events", { n: 10 }), "10 events");
 });
 
 // the number before the word is never 1: a threshold (5 verdicts), or not a number at all ({f} is a file name)
@@ -21,7 +23,7 @@ const ALLOWED = ["unverified", "pi_unvalidated", "p_compress_sub"];
 
 test("no string in the dictionary puts a plural word right after a {placeholder}", () => {
   // "{n} findings" or "{s} sessions" reads wrong for 1: use "{n} {n|finding|findings}". "(s)" forms are allowed.
-  const words = /\{\w+\} (findings|sessions|requirements|rules|requests|blocks|files|verdicts)\b/;
+  const words = /\{\w+\} (findings|sessions|requirements|rules|requests|blocks|files|verdicts|events)\b/;
   const bad = fs
     .readFileSync(M("i18n.js"), "utf8")
     .split("\n")
