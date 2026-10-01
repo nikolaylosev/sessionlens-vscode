@@ -24,13 +24,14 @@ async function until(fn, ms = 10000) {
 const click = (p, sel) => p.document.querySelector(sel).dispatchEvent(new p.window.MouseEvent("click", { bubbles: true }));
 const demoPuts = (p) => p.sent.filter((m) => m.type === "session:put" && m.payload.session.id === D.ID);
 
-// check → how many findings; the regex finding for sleep_or_skip_added ("retries") is superseded by ESLint's, which
-// only sees the wait in the test file (RULES-ARCHITECTURE §6.3)
+// check → how many findings; sleep_or_skip_added twice: the fixed wait in the test file (ESLint, which replaces the
+// regex finding for it) and the retries in playwright.config.ts (regex: no engine looks for retries; until 0.1.113 the
+// merge dropped it, RULES-ARCHITECTURE §6.3)
 const EXPECTED = {
   peeked_at_src_before_plan: 1,
   fix_after_fail_without_triage: 1,
   assert_weakened: 1,
-  sleep_or_skip_added: 1,
+  sleep_or_skip_added: 2,
   pass_claim_without_run: 1,
   spec_uncovered: 1,
   raw_locator: 2,

@@ -145,7 +145,7 @@
       s.lintWhy = lr.why || [];
       s.lintLog = lr.log || [];
       if (lr.pending) s.lintPending = true;
-      if (lr.ran) base = LensLint.merge(formal, lr.findings);
+      if (lr.ran) base = LensLint.merge(formal, lr.findings, cfg.language);
     }
     const cal = Lens.calibrate([...base, ...gherkin, ...sc.findings, ...ai], calibStatsBySource(), state.ruleOverrides);
     s.findings = Lens.sortFindings(LensRules.apply(cal.findings, state.ruleOverrides));

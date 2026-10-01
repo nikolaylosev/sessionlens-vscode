@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.113
+
+### Fixed
+- With static analysis on (the default), the Java, C# and Python profiles reported no fixed sleeps and no skipped tests
+  at all (`Thread.sleep`, `time.sleep`, `@Disabled`, `[Ignore]`, `@pytest.mark.skip`, `xfail`…), and no `if`/`for`
+  inside a test or repeated assertion either: once the code was parsed, these pattern findings were dropped although
+  those languages' analysis does not look for them. The same dropped `it.skip` in Cypress and Detox, and a test retry
+  (`retries: 2`) in every profile with static analysis. They are reported again; a finding is now left out only where
+  static analysis reports the same thing itself.
+- C#: an NUnit attribute in a list, such as `[Test, Ignore("…")]`, counts as a skipped test, like `[Ignore("…")]`.
+
 ## 0.1.112
 
 ### Changed

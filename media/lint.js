@@ -123,8 +123,49 @@
     python: { core: () => (typeof LensLintPython !== "undefined" ? LensLintPython : null), map: PYTHON_RULE_MAP },
     robot: { core: () => (typeof LensLintRobot !== "undefined" ? LensLintRobot : null), map: ROBOT_RULE_MAP },
   };
-  // regex checks the linter does better — dropped when it ran, so nothing is reported twice
+  // regex checks an engine can do better — dropped when it ran, so nothing is reported twice. Only where the engine of
+  // the profile's language looks for the same thing itself (SAME_AS_REGEX): Java, C# and Python have no rule for sleeps
+  // or skips, so their regex findings must stay (until 0.1.113 any engine that parsed the file dropped them all).
   const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "duplicate_assert"]);
+  /* engine rule → the kinds of regex finding ("check|kind", Lens sets kind on these four checks) it finds just as well.
+     An engine rule reported under one of these names but looking for something else (cypress/no-pause, cypress/no-and,
+     detox/waitfor-requires-timeout, playwright/no-duplicate-hooks…) replaces nothing: [] — listed, so that a new rule
+     has to be decided (test/supersedes.test.js). Nothing replaces a duplicated assertion or an exact element count. */
+  const SAME_AS_REGEX = {
+    "playwright/no-wait-for-timeout": ["sleep_or_skip_added|sleep"],
+    "playwright/no-skipped-test": ["sleep_or_skip_added|skip"],
+    "playwright/no-focused-test": ["sleep_or_skip_added|skip"],
+    "playwright/no-networkidle": ["fragile_wait|networkidle"],
+    "playwright/no-conditional-in-test": ["conditional_logic|branch"],
+    "cypress/no-unnecessary-waiting": ["sleep_or_skip_added|sleep"],
+    "detox/no-hardcoded-wait": ["sleep_or_skip_added|sleep"],
+    "robot/sleep-or-skip": ["sleep_or_skip_added|sleep", "sleep_or_skip_added|skip"],
+    // reported under these names, but looking for something else: they replace no regex finding
+    "playwright/no-conditional-expect": [],
+    "playwright/max-nested-describe": [],
+    "playwright/no-nested-step": [],
+    "playwright/no-duplicate-hooks": [],
+    "playwright/no-element-handle": [],
+    "playwright/no-force-option": [],
+    "playwright/no-eval": [],
+    "playwright/no-page-pause": [],
+    "playwright/no-wait-for-selector": [],
+    "playwright/no-unsafe-references": [],
+    "cypress/no-pause": [],
+    "cypress/no-force": [],
+    "cypress/no-assigning-return-values": [],
+    "cypress/unsafe-to-chain-command": [],
+    "cypress/no-and": [],
+    "cypress/no-debug": [],
+    "detox/waitfor-requires-timeout": [],
+  };
+  // → Set of "check|kind" the engine of `language` finds itself: what merge() may drop
+  function covers(language) {
+    const engine = ENGINES[language];
+    const out = new Set();
+    if (engine) for (const ruleId of Object.keys(engine.map)) for (const k of SAME_AS_REGEX[ruleId] || []) out.add(k);
+    return out;
+  }
 
   // ---------- lazy loading (phase 5) ----------
   // Which files a language's engine needs, in load order. robot is not here: lint-robot.js is small, synchronous and
@@ -364,7 +405,14 @@
     };
   }
 
-  const merge = (regexFindings, lintFindings) => regexFindings.filter((f) => !SUPERSEDES.has(f.check)).concat(lintFindings);
+  /* language: the profile's (cfg.language) — the engine whose findings these are. A regex finding is dropped only when
+     that engine looks for the same check (and, for sleep_or_skip_added, the same kind). */
+  const merge = (regexFindings, lintFindings, language) => {
+    const c = covers(language);
+    return regexFindings
+      .filter((f) => !SUPERSEDES.has(f.check) || !c.has(f.check + "|" + (f.check === "sleep_or_skip_added" ? f.kind || "skip" : "")))
+      .concat(lintFindings);
+  };
 
   /* Every engine's rule-id → check map, keyed like ENGINES minus the javascript alias; the consistency test reads it. */
   const RULE_MAPS = {
@@ -376,5 +424,19 @@
     python: PYTHON_RULE_MAP,
     robot: ROBOT_RULE_MAP,
   };
-  return { run, merge, available, ensure, engineState, ENGINE_FILES, RULE_MAP, CYPRESS_RULE_MAP, DETOX_RULE_MAP, RULE_MAPS, SUPERSEDES };
+  return {
+    run,
+    merge,
+    covers,
+    available,
+    ensure,
+    engineState,
+    ENGINE_FILES,
+    RULE_MAP,
+    CYPRESS_RULE_MAP,
+    DETOX_RULE_MAP,
+    RULE_MAPS,
+    SUPERSEDES,
+    SAME_AS_REGEX,
+  };
 });

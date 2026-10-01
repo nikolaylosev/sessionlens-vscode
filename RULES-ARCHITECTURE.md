@@ -490,20 +490,38 @@ function run(session, cfg, settings) {
   plus "+27 more" in the text of the last one. This is not a persistent limit, just
   protection against one spammed report.
 
-### 6.3 `merge(regexFindings, lintFindings)` and `SUPERSEDES`
+### 6.3 `merge(regexFindings, lintFindings, language)`, `SUPERSEDES` and `SAME_AS_REGEX`
 
 ```js
 const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "duplicate_assert"]);
-const merge = (regexFindings, lintFindings) =>
-  regexFindings.filter(f => !SUPERSEDES.has(f.check)).concat(lintFindings);
+const SAME_AS_REGEX = {                       // engine rule → the kinds of regex finding it finds just as well
+  "playwright/no-wait-for-timeout": ["sleep_or_skip_added|sleep"],
+  "playwright/no-skipped-test": ["sleep_or_skip_added|skip"],
+  "playwright/no-networkidle": ["fragile_wait|networkidle"],
+  "cypress/no-unnecessary-waiting": ["sleep_or_skip_added|sleep"],
+  "robot/sleep-or-skip": ["sleep_or_skip_added|sleep", "sleep_or_skip_added|skip"],
+  "cypress/no-pause": [],                     // reported under one of these names, but looks for something else
+  …
+};
+const merge = (regexFindings, lintFindings, language) => {
+  const c = covers(language);                 // "check|kind" the engine of this language finds itself
+  return regexFindings.filter(f => !SUPERSEDES.has(f.check) || !c.has(f.check + "|" + f.kind)).concat(lintFindings);
+};
 ```
 
-- Only **4 check names** are in this set, out of the 54 existing ones. The logic:
-  if the lint engine managed to parse the file (`lr.ran === true`), then for these 4
-  specific checks **the regex findings are dropped entirely**, and
-  only those the engine returned remain — so as not to show the same thing
-  twice (the regex found `sleep_or_skip_added` by a string, the engine found the
-  same thing more precisely through the AST).
+- **4 check names** are emitted by both a regex and an engine and may be replaced. If the lint engine parsed
+  the file (`lr.ran === true`), a regex finding of these checks is dropped **only when the engine of the profile's
+  language looks for the same thing** — so as not to show it twice. The regex findings of these four carry a
+  `kind`: `sleep_or_skip_added` — `sleep`, `skip`, `retry`; `fragile_wait` — `networkidle`, `count`;
+  `conditional_logic` — `branch`; `duplicate_assert` — `assert`.
+- **Until 0.1.113** any engine that parsed the file dropped all four: Java, C# and Python, whose engines have no
+  rule for sleeps or skips, never reported `Thread.sleep`, `@Disabled`, `time.sleep`, `@pytest.mark.skip`, `if`/`for`
+  in a test or a repeated assertion; Cypress and Detox lost `it.skip` (their engines find only the sleep); every
+  engine lost a retry and a duplicated assertion. `test/supersedes.test.js` runs the real engines on each.
+- **`SAME_AS_REGEX` lists every engine rule reported under one of the four names**, with `[]` for the ones that
+  look for something else (`cypress/no-pause`, `cypress/no-and`, `playwright/no-duplicate-hooks`,
+  `detox/waitfor-requires-timeout`…). The test fails on a new rule until that is decided. Nothing replaces a
+  retry, a duplicated assertion or an exact element count.
 - **An important asymmetry**: `raw_locator`/`positional_locator`/
   `no_assertion_after_action`/`no_app_reset`/`unannotated_test_method`/
   `swallowed_exception`/`assert_args_reversed`/`empty_test_case` are
