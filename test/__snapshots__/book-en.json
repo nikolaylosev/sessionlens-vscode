@@ -99,6 +99,15 @@
   "edited": false
  },
  {
+  "check": "config_weakened",
+  "group": "process",
+  "rule": "Don't loosen the test runner's config to get green: no more retries, no longer timeouts, no excluded tests. A flaky or slow test is a finding to report.",
+  "severity": "high",
+  "enabled": true,
+  "good": "keep retries: 0 and the timeouts; report “checkout.spec.ts times out at 30 s — slow backend or a real hang?”",
+  "edited": false
+ },
+ {
   "check": "assert_weakened",
   "group": "code",
   "rule": "Do not weaken existing assertions (== → in, concrete value → ANY / is not None, removing checks). A failing assertion calls for triage, not an edit.",

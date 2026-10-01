@@ -107,7 +107,7 @@
       test_runner_patterns: ["jest", "vitest", "npm test", "playwright test", "pnpm test", "yarn test"],
       src_dirs: ["src", "app", "lib"],
       test_dirs: ["tests", "test", "__tests__", "e2e"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
       sleep_patterns: [/\bwaitForTimeout\s*\(\s*\d+/, /setTimeout\s*\([^,]+,\s*\d{3,}/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS },
@@ -134,7 +134,7 @@
       test_runner_patterns: ["pytest"],
       src_dirs: ["src", "app", "services", "lib"],
       test_dirs: ["tests", "test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover", "config_weakened"],
       sleep_patterns: [/\btime\.sleep\s*\(\s*[\d.]+/, /\basyncio\.sleep\s*\(\s*[\d.]+/],
       debug_patterns: { breakpoint: BREAKPOINT_PY },
       skip_patterns: [/mark\.skip/, /\breruns\b/, /@flaky/, /\bretry\s*=/],
@@ -219,7 +219,7 @@
       ],
       src_dirs: ["src", "app", "services", "lib", "controllers", "routes", "handlers"],
       test_dirs: ["tests", "test", "__tests__", "e2e", "api-tests", "src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...API],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", "config_weakened", ...API],
       sleep_patterns: [
         /\btime\.sleep\s*\(\s*[\d.]+/,
         /\basyncio\.sleep\s*\(\s*[\d.]+/,
@@ -312,7 +312,7 @@
       test_runner_patterns: ["pytest", "npm test", "jest", "vitest", "mvn test", "mvn verify", "gradle test", "gradlew", "dotnet test"],
       src_dirs: ["src", "app"],
       test_dirs: ["tests", "test", "__tests__", "e2e", "src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, ...MOBILE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened", ...MOBILE],
       sleep_patterns: [
         /\btime\.sleep\s*\(\s*[\d.]+/,
         /\bThread\.sleep\s*\(\s*\d+/,
@@ -343,7 +343,7 @@
       test_runner_patterns: ["cypress run", "cypress open", "npx cypress", "yarn cypress"],
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
       sleep_patterns: [/\bcy\.wait\s*\(\s*\d{3,}/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
@@ -364,7 +364,7 @@
       test_runner_patterns: ["detox test", "npx detox test", "detox build", "e2e:test"],
       src_dirs: ["src", "app"],
       test_dirs: ["e2e", "e2e/tests"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
       sleep_patterns: [/setTimeout\s*\([^,]+,\s*\d{3,}/, /new Promise\s*\(\s*resolve\s*=>\s*setTimeout/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { debugger: DEBUGGER_JS },
@@ -602,6 +602,15 @@
     return ["tool", f, ""];
   }
   const isCode = (f, cfg) => !!f && (!cfg.code_ext.length || cfg.code_ext.some((x) => f.endsWith(x)));
+  // a test runner's config: playwright.config.ts, cypress.config.ts, wdio.conf.ts, .detoxrc.js, .mocharc.js…
+  const RUNNER_CONFIG_RX = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*|\.mocharc[^/]*)$/i;
+  // pytest reads these; they are not code, so their text is kept apart (config_content), away from the code checks
+  const PY_RUNNER_CONFIG_RX = /(?:^|\/)(?:pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml)$/i;
+  const isRunnerConfig = (f) => !!f && (RUNNER_CONFIG_RX.test(f) || PY_RUNNER_CONFIG_RX.test(f));
+  // config_weakened compares a runner config with what it was before this write or edit
+  const keepBefore = (r, f, before) => {
+    if (before != null && isRunnerConfig(f)) r.prev_content = before.slice(0, 200000);
+  };
 
   function fromClaudeJsonl(text, cfg) {
     const files = {},
@@ -639,6 +648,7 @@
           const r = { seq: seq++, ts, kind, tool: b.name, file: short(f), cmd };
           if (kind === "write") {
             const o = base(f);
+            keepBefore(r, f, o);
             files[f] = inp.content || "";
             if (o != null && isCode(f, cfg)) {
               const d = compareAsserts(o, files[f], cfg);
@@ -646,6 +656,7 @@
             }
           } else if (kind === "edit") {
             const o = base(f);
+            keepBefore(r, f, o);
             if (o == null)
               files[f] = inp.new_string || ""; // first sight of this file: only the fragment is known
             else {
@@ -682,6 +693,7 @@
             const full = r.file ? (cwd && !r.file.startsWith("/") ? cwd + "/" + r.file : r.file) : "";
             if (after != null) {
               files[full] = after;
+              keepBefore(r, r.file, before);
               if (before != null && isCode(r.file, cfg)) {
                 const d = compareAsserts(before, after, cfg);
                 if (d) r.assert_delta = d;
@@ -799,6 +811,7 @@
             if (after == null) continue;
             const f = short(path),
               r = { seq: seq++, ts, kind: ch.type === "add" ? "write" : "edit", file: f, new_content: after.slice(0, 200000) };
+            keepBefore(r, f, before);
             if (before == null) r.fragment_only = true;
             else if (isCode(f, cfg)) {
               const d = compareAsserts(before, after, cfg);
@@ -1032,6 +1045,8 @@
       if (/\.feature$/i.test(e.file)) continue;
       const ext = (cfg.code_ext || []).some((x) => e.file.endsWith(x));
       if (!ext && (NOT_SOURCE.test(e.file) || (cfg.code_ext || []).length)) {
+        if (PY_RUNNER_CONFIG_RX.test(e.file)) e.config_content = e.new_content;
+        else delete e.prev_content;
         delete e.new_content;
         delete e.code_versions;
       }
@@ -1078,8 +1093,6 @@
   // test-side code that is not a test: fixtures, helpers, page objects, mocks, support files (and conftest.py)
   const TEST_SIDE_RX =
     /(?:^|\/)(?:__tests__|__mocks__|tests?|e2e|specs?|fixtures?|support|mocks?|testing|test-?utils|page-?objects?|pages)\/|(?:^|\/)conftest\.py$/i;
-  // a test runner's config file: playwright.config.ts, cypress.config.ts, wdio.conf.ts, .detoxrc.js…
-  const RUNNER_CONFIG_RX = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*)$/i;
   function phases(ev) {
     const first = (k) => {
       const e = ev.find((x) => k.includes(x.kind));
@@ -1250,7 +1263,7 @@
     sleep_or_skip_added(ev, cfg) {
       const out = [];
       for (const e of ev) {
-        if (!e.new_content) continue;
+        if (!e.new_content || isRunnerConfig(e.file)) continue; // retries in a runner config: config_weakened
         // kind (every SUPERSEDES check has one): what LensLint.merge() compares with what the profile's engine looks for
         if (cfg.sleep_patterns.some((r) => r.test(e.new_content)))
           out.push(Object.assign(F("sleep_or_skip_added", "high", e.seq, T("sleep", { file: e.file || inMsg() })), { kind: "sleep" }));
@@ -1404,6 +1417,58 @@
           const [sev, a] = after(e.seq);
           out.push(F("snapshot_overwritten", sev, e.seq, T("snapshot_file", { file: e.file, after: a })));
         }
+      }
+      return out;
+    },
+    /* A runner config loosened so that red turns green: more retries, a longer timeout, tests excluded. Compared with
+       what the file was before (prev_content from the import, or the session's previous version of it); a config seen
+       for the first time is reported only for retries, as before 0.1.113. High right after a red run. */
+    config_weakened(ev) {
+      const num = (x) => x.split("*").reduce((a, t) => a * Number(t.replace(/_/g, "").trim()), 1);
+      const TIMEOUT =
+        /\b(timeout|testTimeout|hookTimeout|actionTimeout|navigationTimeout|defaultCommandTimeout|pageLoadTimeout|requestTimeout|responseTimeout|execTimeout|taskTimeout)\s*[:=]\s*([\d_]+(?:\s*\*\s*[\d_]+)*)|--timeout[=\s]+(\d+)/g;
+      const RETRIES = /\bretries\s*[:=]\s*(?:\{[^}]*?\brunMode\s*:\s*)?(\d+)|--reruns[=\s]+(\d+)|\breruns\s*=\s*(\d+)/g;
+      const EXCLUDE =
+        /\b(?:testIgnore|testPathIgnorePatterns|excludeSpecPattern|grepInvert|exclude)\s*[:=]|--ignore(?:-glob)?[=\s]|--deselect[=\s]|\s-k\s+["']?not\b/;
+      const read = (src) => {
+        const timeouts = {};
+        for (const m of src.matchAll(TIMEOUT)) (timeouts[m[1] || "timeout"] = timeouts[m[1] || "timeout"] || []).push(num(m[2] || m[3]));
+        const retries = [...src.matchAll(RETRIES)].map((m) => +(m[1] || m[2] || m[3]));
+        const excludes = new Set(
+          src
+            .split("\n")
+            .filter((l) => EXCLUDE.test(l) && !/^\s*(?:\/\/|#|\*)/.test(l))
+            .map((l) => l.trim()),
+        );
+        return { timeouts, retries: retries.length ? Math.max(...retries) : 0, excludes };
+      };
+      const out = [],
+        last = {};
+      for (const e of ev) {
+        const src = e.new_content || e.config_content;
+        if (!["write", "edit"].includes(e.kind) || !src || !isRunnerConfig(e.file)) continue;
+        const prevSrc = e.prev_content ?? last[e.file] ?? null;
+        last[e.file] = src;
+        const now = read(src),
+          what = [];
+        if (prevSrc == null || e.fragment_only) {
+          if (now.retries > 0) what.push(T("cw_set", { key: "retries", to: now.retries }));
+        } else {
+          const was = read(prevSrc);
+          if (now.retries > was.retries) what.push(T("cw_change", { key: "retries", from: was.retries, to: now.retries }));
+          for (const [key, vals] of Object.entries(now.timeouts)) {
+            const old = was.timeouts[key] || [];
+            vals.forEach((v, i) => {
+              if (i >= old.length) what.push(T("cw_added", { key, to: v }));
+              else if (v > old[i]) what.push(T("cw_change", { key, from: old[i], to: v }));
+            });
+          }
+          for (const l of now.excludes) if (!was.excludes.has(l)) what.push(T("cw_excluded", { line: l.slice(0, 80) }));
+        }
+        if (!what.length) continue;
+        const r = redRunBefore(ev, e.seq);
+        const msg = T("config_weakened_msg", { file: e.file, what: what.join("; "), after: r ? T("after_red_run", { seq: r.seq }) : "" });
+        out.push(F("config_weakened", r ? "high" : "medium", e.seq, msg));
       }
       return out;
     },

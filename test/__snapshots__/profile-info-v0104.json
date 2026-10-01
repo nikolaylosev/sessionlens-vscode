@@ -79,6 +79,11 @@
       "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -208,7 +213,7 @@
     ]
    }
   ],
-  "count": 34,
+  "count": 35,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -308,6 +313,11 @@
      },
      {
       "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
       "off": false,
       "engineOnly": false
      }
@@ -429,7 +439,7 @@
     ]
    }
   ],
-  "count": 32,
+  "count": 33,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -529,6 +539,11 @@
      },
      {
       "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
       "off": false,
       "engineOnly": false
      }
@@ -655,7 +670,7 @@
     ]
    }
   ],
-  "count": 33,
+  "count": 34,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -749,6 +764,11 @@
      },
      {
       "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
       "off": false,
       "engineOnly": false
      }
@@ -860,7 +880,7 @@
     ]
    }
   ],
-  "count": 30,
+  "count": 31,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1385,6 +1405,11 @@
       "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1524,7 +1549,7 @@
     ]
    }
   ],
-  "count": 35,
+  "count": 36,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1639,6 +1664,11 @@
      },
      {
       "name": "snapshot_overwritten",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
       "off": false,
       "engineOnly": false
      }
@@ -1770,7 +1800,7 @@
     ]
    }
   ],
-  "count": 33,
+  "count": 34,
   "engine": {
    "kind": "none",
    "state": "none"

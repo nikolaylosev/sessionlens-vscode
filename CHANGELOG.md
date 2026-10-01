@@ -19,6 +19,12 @@
   `UPDATE_SNAPSHOTS=1`), or a snapshot or baseline file written by hand (`__snapshots__`, `*.snap`,
   `*-snapshots/`, ApprovalTests `*.approved.*`, Verify `*.verified.*`). High right after a failing run, medium
   otherwise (the first baselines of new tests).
+- `config_weakened` (Process group): a test runner's config loosened compared with its previous version: more
+  retries (also Cypress `runMode`, pytest `--reruns`), a longer timeout, tests excluded (`testIgnore`,
+  `testPathIgnorePatterns`, `excludeSpecPattern`, `grepInvert`, `exclude`, `--ignore`, `--deselect`, `-k "not …"`).
+  Reads Playwright, Jest, Vitest, Cypress, WebdriverIO, Detox and Mocha configs, and `pytest.ini`, `tox.ini`,
+  `setup.cfg`, `pyproject.toml`. High right after a failing run, medium otherwise. A config seen for the first time is
+  reported only for its retries.
 
 ### Changed
 - Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",
@@ -31,6 +37,9 @@
   API group to the Code group on the Rules tab.
 - `hardcoded_base_url` no longer reports a runner's config file (`playwright.config.ts`, `cypress.config.ts`,
   `wdio.conf.ts`, `.detoxrc`…): that is where its own rule says the base URL belongs.
+- Retries in a runner's config (`retries: 2` in `playwright.config.ts`) are reported as `config_weakened`, not as
+  "sleep or skip". Retries on a single test (`test.describe.configure({ retries })`, `@flaky`, `[Retry]`) stay "sleep
+  or skip". In the demo session the retries finding is now `config_weakened`, and high.
 - Three ESLint style rules (`playwright/max-nested-describe`, `playwright/no-nested-step`, `cypress/no-and`) and
   `playwright/no-duplicate-hooks` are no longer reported.
 - The rule texts of "fragile wait" and "no assertion after action" now cover everything those checks report, and the

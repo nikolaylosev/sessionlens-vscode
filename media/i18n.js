@@ -29,6 +29,11 @@
       product_edited: "{file}: product code changed in a testing task{after}",
       snapshot_cmd: "Snapshots updated: {cmd}{after}",
       snapshot_file: "{file}: snapshot written by hand{after}",
+      config_weakened_msg: "{file}: test config loosened — {what}{after}",
+      cw_change: "{key} {from} → {to}",
+      cw_added: "{key} {to} added",
+      cw_set: "{key} {to}",
+      cw_excluded: "tests excluded “{line}”",
       assumption: "Assumption instead of a question: “{snippet}”",
       no_plan: "Code written without a plan",
       no_approval: "Plan produced, but no stop and approval — straight to code",
@@ -60,6 +65,8 @@
       r_scope: "Change only files from the approved plan. Need another file — say so first.",
       r_churn: "More than three edits to one file — stop and explain what is unclear instead of trying again.",
       r_sleep: "No sleep with a constant and no skip / retry. Wait only via wait_until() from helpers.",
+      r_config:
+        "Don't loosen the test runner's config to get green: no more retries, no longer timeouts, no excluded tests. A flaky or slow test is a finding to report.",
       r_snapshot:
         "Don't update snapshots to make a failing test pass. A snapshot diff is a finding: show it, say whether the change is intended, and update only after the user agrees.",
       r_product_edited:

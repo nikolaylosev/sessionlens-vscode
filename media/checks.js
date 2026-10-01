@@ -109,6 +109,13 @@
       good: "show the snapshot diff and ask: “the total moved under the table — intended?”; update only after a yes",
       sources: ["regex"],
     },
+    config_weakened: {
+      group: "process",
+      severity: "high",
+      ruleKey: "r_config",
+      good: "keep retries: 0 and the timeouts; report “checkout.spec.ts times out at 30 s — slow backend or a real hang?”",
+      sources: ["regex"],
+    },
     // ---- code ----
     assert_weakened: { group: "code", severity: "high", ruleKey: "r_weakened", good: "keep the assertion and triage the failure instead", sources: ["regex"] },
     weak_assert: {
