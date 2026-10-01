@@ -2,6 +2,26 @@
 
 ## 0.1.113
 
+### Added
+- `focused_test` (high): `.only`, `fit` or `fdescribe` left in a test, so only the focused tests run and the rest of the
+  suite is silently skipped. Reported in the TypeScript, Cypress, Detox, API and mobile profiles.
+- `debug_leftover` (medium): `page.pause()`, `cy.pause()`, `cy.debug()`, `debugger`, `breakpoint()` or
+  `pdb.set_trace()` left in a test. Reported in the TypeScript, Cypress, Detox, Python, API and mobile profiles.
+- `cypress_async_test` (medium): an `async` test or hook in Cypress, where the commands may not run.
+
+### Changed
+- Every finding is reported under the check it is about. A skip (`@Disabled`, `t.Skip`) is now only "sleep or skip",
+  and an expected failure (`xfail`, `test.fail()`) is now only "expected failure"; until now `xfail` and `@Disabled`
+  each gave both findings. A Playwright test with no `expect` is "no assertion after action", as in the other
+  languages, not "weak assert". `.only`, `page.pause()`, `cy.pause()`, `cy.debug()` and async Cypress tests moved to
+  the new checks above.
+- Three ESLint style rules (`playwright/max-nested-describe`, `playwright/no-nested-step`, `cypress/no-and`) and
+  `playwright/no-duplicate-hooks` are no longer reported.
+- The rule texts of "fragile wait" and "no assertion after action" now cover everything those checks report, and the
+  skip rule no longer mentions `xfail`.
+- A verdict is tied to the finding's check and text. Verdicts you gave to findings that moved to another check or
+  whose text changed (a skip now says "skip / retry added") no longer count after the update.
+
 ### Fixed
 - With static analysis on (the default), the Java, C# and Python profiles reported no fixed sleeps and no skipped tests
   at all (`Thread.sleep`, `time.sleep`, `@Disabled`, `[Ignore]`, `@pytest.mark.skip`, `xfail`…), and no `if`/`for`

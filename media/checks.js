@@ -122,7 +122,7 @@
       group: "code",
       severity: "medium",
       ruleKey: "r_wait",
-      good: "await expect(page.getByRole('heading', { name: 'Recent' })).toBeVisible()",
+      good: "await page.getByRole('button', { name: 'Pay' }).click(); await expect(page.getByRole('heading', { name: 'Paid' })).toBeVisible()",
       sources: ["regex", "lint"],
     },
     expected_failure: {
@@ -152,7 +152,7 @@
       severity: "low",
       ruleKey: "r_dup",
       good: "assert once per fact; a second input deserves a second test",
-      sources: ["regex", "lint"],
+      sources: ["regex"],
     },
     raw_locator: {
       group: "code",
@@ -172,7 +172,7 @@
       group: "code",
       severity: "high",
       ruleKey: "r_no_assertion_after_action",
-      good: "await expect(element(by.id('home-screen'))).toBeVisible();",
+      good: "await page.getByRole('button', { name: 'Pay' }).click(); await expect(page.getByText('Paid')).toBeVisible();",
       sources: ["lint"],
     },
     no_app_reset: {
@@ -208,6 +208,27 @@
       severity: "low",
       ruleKey: "r_lint_valid_title",
       good: 'test("rejects a wrong password with an error banner", async ({ page }) => { ... })',
+      sources: ["lint"],
+    },
+    focused_test: {
+      group: "code",
+      severity: "high",
+      ruleKey: "r_focused",
+      good: "test('total', async ({ page }) => { … }) — no .only, so the whole suite runs",
+      sources: ["regex", "lint"],
+    },
+    debug_leftover: {
+      group: "code",
+      severity: "medium",
+      ruleKey: "r_debug_leftover",
+      good: "await expect(page.getByText('Total')).toBeVisible(); — no page.pause() or debugger left behind",
+      sources: ["regex", "lint"],
+    },
+    cypress_async_test: {
+      group: "code",
+      severity: "medium",
+      ruleKey: "r_cypress_async",
+      good: "it('total', () => { cy.contains('Total').should('be.visible'); })",
       sources: ["lint"],
     },
     // ---- api ----
