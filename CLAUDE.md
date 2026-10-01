@@ -1,7 +1,7 @@
 # SessionLens for VSCode — instructions for coding agents
 
 ## Before you change anything
-- Read the file you are about to edit in full. Read RULES-ARCHITECTURE.md for the part you touch.
+- Read the file you are about to edit in full. Read docs/RULES-ARCHITECTURE.md for the part you touch (docs/ARCHITECTURE.md is the overview).
 - media/app.js is generated from src/webview/ — never edit it by hand. Change src/webview, run `npm run build`,
   commit both.
 - Do not touch vendored files: media/vendor-eslint*.js, media/tree-sitter.js, *.wasm.

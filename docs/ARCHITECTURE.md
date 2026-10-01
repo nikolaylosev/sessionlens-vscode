@@ -6,7 +6,7 @@ code and for reviewers who need to know where to look.
 
 It is the overview. Two other documents go deeper:
 
-- [`RULES-ARCHITECTURE.md`](../RULES-ARCHITECTURE.md) covers the check registry, the lint engines, calibration,
+- [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md) covers the check registry, the lint engines, calibration,
   the Rules tab, storage, the trust boundary and the VS Code integration line by line. This document links to its
   sections as **RA §N**.
 - [`readme.md`](../readme.md) is the user guide: every tab, every setting and the full table of checks.

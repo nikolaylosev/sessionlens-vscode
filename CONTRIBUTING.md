@@ -24,7 +24,7 @@ CI runs all of these on every push and pull request (`.github/workflows/ci.yml`)
 ## Where things are
 
 The overview of the whole extension, with diagrams, is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); the rules
-system in depth is [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md).
+system in depth is [`docs/RULES-ARCHITECTURE.md`](docs/RULES-ARCHITECTURE.md).
 
 - `extension.js`, `cli.js`, `providers.js`, `store.js`, `secrets.js`, `validate.js` — the extension host.
 - `src/webview/` — the panel's source (ES modules). **`media/app.js` is generated from it: never edit it by hand.**
@@ -32,11 +32,11 @@ system in depth is [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md).
 - `media/*.js` — the analysis (`lens.js`, `checks.js`, `rules.js`, `lint*.js`, `spec.js`, `ai.js`, …) shared by the
   panel and the host; `media/vendor-eslint*.js`, `tree-sitter.js` and `*.wasm` are vendored bundles (see
   `THIRD-PARTY-NOTICES.md`) and are not linted or reformatted.
-- `RULES-ARCHITECTURE.md` — how checks, rules, storage, the trust boundary and the VS Code integration work.
+- `docs/RULES-ARCHITECTURE.md` — how checks, rules, storage, the trust boundary and the VS Code integration work.
 
 ## Adding a check
 
-The full checklist is in `RULES-ARCHITECTURE.md` §12. In short:
+The full checklist is in `docs/RULES-ARCHITECTURE.md` §12. In short:
 
 1. Reuse an existing check name if the concept is the same.
 2. Add the entry to `media/checks.js` (group, severity, `ruleKey`, `good`, `sources`).
