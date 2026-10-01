@@ -618,6 +618,9 @@ flowchart LR
   stay out.
 - No runtime dependencies: the bundles are vendored, the host uses only Node and VS Code APIs.
 
+The test suite in detail (harnesses, what each file checks, how to update each snapshot, how to add a test) is in
+[`TESTING.md`](TESTING.md).
+
 ---
 
 ## 9. How to extend
