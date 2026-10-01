@@ -20,7 +20,9 @@
       scope: "Edited {file}, which is not in the plan",
       churn: "{file}: {n} edits in one session — poking instead of understanding",
       sleep: "{file}: fixed delay (sleep) in a test",
-      skip: "{file}: skip / xfail / retry added",
+      skip: "{file}: skip / retry added",
+      focused: "{file}: focused test “{line}” — only it runs, the rest of the suite is silently skipped",
+      debug_leftover: "{file}: debugging left in the test “{line}”",
       assumption: "Assumption instead of a question: “{snippet}”",
       no_plan: "Code written without a plan",
       no_approval: "Plan produced, but no stop and approval — straight to code",
@@ -51,12 +53,19 @@
       r_triage: "After a test fails, do not edit it. First three hypotheses: product bug / test bug / spec defect — then wait for a decision.",
       r_scope: "Change only files from the approved plan. Need another file — say so first.",
       r_churn: "More than three edits to one file — stop and explain what is unclear instead of trying again.",
-      r_sleep: "No sleep with a constant and no skip / xfail / retry. Wait only via wait_until() from helpers.",
+      r_sleep: "No sleep with a constant and no skip / retry. Wait only via wait_until() from helpers.",
+      r_focused:
+        "Never leave .only / fit / fdescribe in a test. Only the focused test runs, the rest of the suite is silently skipped, and the run stays green.",
+      r_debug_leftover:
+        "Remove debugging calls before you finish: page.pause(), cy.pause(), cy.debug(), debugger, breakpoint(). They stop the run locally and hang or do nothing in CI.",
+      r_cypress_async:
+        "Don't use async/await in Cypress tests and hooks. Cypress queues its commands, so an async test can finish before they run. Chain the commands instead.",
       r_assume: "Don't write “I assume” / “let's say”. If the spec doesn't define behaviour, ask and stop.",
       r_plan: "After the plan — stop and wait for approval. Code only after an explicit “ok”.",
       r_never_run: "Don't present tests as done until they have been run. No environment to run them — say so and mark the code as a draft.",
       r_date: "Don't assert concrete dates or changing content. Assert a pattern or move the value to config.",
-      r_wait: "Don't use waitUntil: 'networkidle' or exact element counts. Wait for a specific element or condition.",
+      r_wait:
+        "Don't make a test depend on timing or page internals: no waitUntil: 'networkidle', exact element counts, force: true, element handles, eval or waits without a timeout. Wait for and act on a specific element, as a user would.",
       r_magic: "Numbers in assertions come only from the spec, with a comment or a named constant.",
       r_roulette: "More than two assertions in a test — give each a message saying what it checks.",
       r_cond: "No if/for inside a test. One test — one path; variants via parametrisation.",
@@ -521,7 +530,7 @@
       hardcoded_coordinates_msg: "{file}: tap/swipe at a literal screen coordinate — {line}",
       no_driver_teardown_msg: "{file}: creates a driver session with no matching quit()/teardown found",
       r_no_assertion_after_action:
-        "A test that taps, types or swipes must also check what happened. An action with no expect(...) anywhere in the same test verifies nothing — it only proves the app didn't crash.",
+        "Every test must check what happened. A test that clicks, taps, types or sends a request with no assertion anywhere in it verifies nothing — it only proves nothing crashed.",
       r_no_app_reset:
         "Reset app state between tests: beforeEach(() => device.reloadReactNative()) or device.launchApp({ newInstance: true }). Without it, one test's leftover state can make the next one flaky or order-dependent.",
       g_gherkin: "Gherkin (.feature)",

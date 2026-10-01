@@ -11,7 +11,7 @@ const { loadEngines } = require("../perf/snapshot-lint");
 const { Lens } = load();
 const LensLint = require(M("lint.js"));
 
-// → the sleep_or_skip_added / conditional_logic / duplicate_assert findings after the merge, as "check/source kind"
+// → the findings of the SUPERSEDES checks after the merge, as "check/source kind"
 async function merged(profile, file, content) {
   await loadEngines();
   const cfg = Lens.profile(profile);
@@ -104,15 +104,44 @@ test("Playwright: the engine's networkidle and if-in-a-test replace the regex on
 
 test("covers(): an engine replaces only what its own rules look for", () => {
   for (const l of ["java", "python", "csharp", "api"]) assert.deepEqual([...LensLint.covers(l)], [], l);
-  assert.deepEqual([...LensLint.covers("cypress")], ["sleep_or_skip_added|sleep"], "not cy.pause, not .and()");
+  assert.deepEqual([...LensLint.covers("cypress")].sort(), ["debug_leftover|debug", "debug_leftover|pause", "sleep_or_skip_added|sleep"]);
   assert.deepEqual([...LensLint.covers("detox")], ["sleep_or_skip_added|sleep"]);
   assert.deepEqual([...LensLint.covers("robot")].sort(), ["sleep_or_skip_added|skip", "sleep_or_skip_added|sleep"]);
   assert.deepEqual([...LensLint.covers("typescript")].sort(), [
     "conditional_logic|branch",
+    "debug_leftover|pause",
+    "focused_test|only",
     "fragile_wait|networkidle",
     "sleep_or_skip_added|skip",
     "sleep_or_skip_added|sleep",
   ]);
+});
+
+test("focused tests and debugging: the engine replaces what it finds itself, the regex keeps the rest", async () => {
+  assert.deepEqual(
+    await merged(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      "import { test, expect } from '@playwright/test';\ntest.only('total', async ({ page }) => {\n  await page.pause();\n  debugger;\n  await expect(page.getByText('Total')).toBeVisible();\n});\n",
+    ),
+    ["debug_leftover/formal debugger", "debug_leftover/lint", "focused_test/lint"],
+  );
+  assert.deepEqual(
+    await merged(
+      "qa-cypress",
+      "cypress/e2e/cart.cy.ts",
+      "describe('cart', () => {\n  it.only('total', () => {\n    cy.pause();\n    cy.contains('Total').debug().should('be.visible');\n  });\n});\n",
+    ),
+    ["debug_leftover/lint", "debug_leftover/lint", "focused_test/formal only"],
+  );
+  assert.deepEqual(
+    await merged(
+      "qa-detox",
+      "e2e/cart.test.js",
+      "describe('cart', () => {\n  fit('total', async () => {\n    debugger;\n    await expect(element(by.id('total'))).toBeVisible();\n  });\n});\n",
+    ),
+    ["debug_leftover/formal debugger", "focused_test/formal only"],
+  );
 });
 
 test("every engine rule reported under a SUPERSEDES name is decided: what it replaces, if anything", () => {

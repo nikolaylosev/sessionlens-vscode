@@ -89,6 +89,11 @@ const CASES = [
     ],
   ],
   [
+    "2 debugger (Playwright)",
+    "qa-ts",
+    [["write", "e2e/cart.spec.ts", PW("test('total', async ({ page }) => {\n  debugger;\n  await expect(page.getByText('Total')).toBeVisible();\n});")]],
+  ],
+  [
     "2 cy.pause and cy.debug (Cypress)",
     "qa-cypress",
     [
@@ -230,21 +235,22 @@ const CASES = [
   ],
 ];
 
-// as of 0.1.112 (plus #27): the phase changes this list, case by case
+// 0.1.112 plus #27; step 1 (0.1.113): every finding under its own name. Later steps change it case by case.
 const EXPECTED = {
-  "1a xfail (Python)": ["expected_failure/formal", "sleep_or_skip_added/formal"],
-  "1a @Disabled (Java)": ["expected_failure/formal", "sleep_or_skip_added/formal"],
+  "1a xfail (Python)": ["expected_failure/formal"],
+  "1a @Disabled (Java)": ["sleep_or_skip_added/formal"],
   "1a test.fail (Playwright)": ["expected_failure/formal"],
-  "1b a test with no expect (Playwright)": ["weak_assert/lint <playwright/expect-expect>"],
-  "2 test.only (Playwright)": ["sleep_or_skip_added/lint <playwright/no-focused-test>"],
-  "2 it.only (Cypress)": ["sleep_or_skip_added/formal"],
-  "2 page.pause (Playwright)": ["fragile_wait/lint <playwright/no-page-pause>"],
-  "2 cy.pause and cy.debug (Cypress)": ["fragile_wait/lint <cypress/no-debug>", "sleep_or_skip_added/lint <cypress/no-pause>"],
-  "2 breakpoint (Python)": [],
-  "2 duplicate hooks (Playwright)": ["duplicate_assert/lint <playwright/no-duplicate-hooks>"],
-  "2 nested test.step (Playwright)": ["conditional_logic/lint <playwright/no-nested-step>"],
-  "2 .and() (Cypress)": ["conditional_logic/lint <cypress/no-and>"],
-  "2 an async test (Cypress)": ["weak_assert/lint <cypress/no-async-tests>"],
+  "1b a test with no expect (Playwright)": ["no_assertion_after_action/lint <playwright/expect-expect>"],
+  "2 test.only (Playwright)": ["focused_test/lint <playwright/no-focused-test>"],
+  "2 it.only (Cypress)": ["focused_test/formal"],
+  "2 page.pause (Playwright)": ["debug_leftover/lint <playwright/no-page-pause>"],
+  "2 debugger (Playwright)": ["debug_leftover/formal"],
+  "2 cy.pause and cy.debug (Cypress)": ["debug_leftover/lint <cypress/no-debug>", "debug_leftover/lint <cypress/no-pause>"],
+  "2 breakpoint (Python)": ["debug_leftover/formal"],
+  "2 duplicate hooks (Playwright)": [],
+  "2 nested test.step (Playwright)": [],
+  "2 .and() (Cypress)": [],
+  "2 an async test (Cypress)": ["cypress_async_test/lint <cypress/no-async-tests>"],
   "2 force: true (Playwright)": ["fragile_wait/lint <playwright/no-force-option>"],
   "3.1 a test deleted (Playwright)": [],
   "3.1 a test file deleted (Playwright)": [],

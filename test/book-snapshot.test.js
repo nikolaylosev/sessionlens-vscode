@@ -14,7 +14,14 @@ test("book({}) matches the v0.1.97 snapshot", () => {
   const { LensRules } = load();
   const book = LensRules.book({});
   if (process.env.UPDATE_SNAPSHOT) {
-    fs.writeFileSync(SNAP, JSON.stringify(book, null, 1) + "\n");
+    fs.writeFileSync(
+      SNAP,
+      JSON.stringify(
+        book.filter((r) => !ADDED.has(r.check)),
+        null,
+        1,
+      ) + "\n",
+    ); // what the test compares
     return;
   }
   const snap = JSON.parse(fs.readFileSync(SNAP, "utf8"));

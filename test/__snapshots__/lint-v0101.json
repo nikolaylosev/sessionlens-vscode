@@ -39,7 +39,7 @@
     "message": "e2e/cart.spec.ts:6 — Unexpected use of nth() [playwright/no-nth-methods]"
    },
    {
-    "check": "weak_assert",
+    "check": "no_assertion_after_action",
     "severity": "high",
     "rule": "playwright/expect-expect",
     "line": 9,

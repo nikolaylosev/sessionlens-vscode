@@ -136,9 +136,24 @@
       "engineOnly": true
      },
      {
+      "name": "no_assertion_after_action",
+      "off": false,
+      "engineOnly": true
+     },
+     {
       "name": "lint_valid_title",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "focused_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -168,7 +183,7 @@
     ]
    }
   ],
-  "count": 26,
+  "count": 29,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -320,6 +335,21 @@
       "name": "raw_locator",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "focused_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "cypress_async_test",
+      "off": false,
+      "engineOnly": true
      }
     ]
    },
@@ -349,7 +379,7 @@
     ]
    }
   ],
-  "count": 24,
+  "count": 27,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -511,6 +541,16 @@
       "name": "no_app_reset",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "focused_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -540,7 +580,7 @@
     ]
    }
   ],
-  "count": 26,
+  "count": 28,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -696,6 +736,11 @@
       "name": "assert_args_reversed",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -725,7 +770,7 @@
     ]
    }
   ],
-  "count": 26,
+  "count": 27,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1265,6 +1310,16 @@
       "name": "duplicate_assert",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "focused_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1334,7 +1389,7 @@
     ]
    }
   ],
-  "count": 30,
+  "count": 32,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1496,6 +1551,16 @@
       "name": "duplicate_assert",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "focused_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "debug_leftover",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1545,7 +1610,7 @@
     ]
    }
   ],
-  "count": 26,
+  "count": 28,
   "engine": {
    "kind": "none",
    "state": "none"

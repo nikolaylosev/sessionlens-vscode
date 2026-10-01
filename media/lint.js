@@ -23,9 +23,9 @@
   const RULE_MAP = {
     "playwright/no-wait-for-timeout": ["sleep_or_skip_added", "high"],
     "playwright/no-skipped-test": ["sleep_or_skip_added", "high"],
-    "playwright/no-focused-test": ["sleep_or_skip_added", "high"],
+    "playwright/no-focused-test": ["focused_test", "high"],
     "playwright/no-networkidle": ["fragile_wait", "medium"],
-    "playwright/expect-expect": ["weak_assert", "high"],
+    "playwright/expect-expect": ["no_assertion_after_action", "high"],
     "playwright/no-useless-not": ["weak_assert", "low"],
     "playwright/valid-expect": ["weak_assert", "medium"],
     "playwright/no-standalone-expect": ["weak_assert", "medium"],
@@ -34,11 +34,8 @@
     "playwright/no-element-handle": ["fragile_wait", "low"],
     "playwright/no-force-option": ["fragile_wait", "low"],
     "playwright/no-eval": ["fragile_wait", "low"],
-    "playwright/no-page-pause": ["fragile_wait", "medium"],
+    "playwright/no-page-pause": ["debug_leftover", "medium"],
     "playwright/no-wait-for-selector": ["fragile_wait", "low"],
-    "playwright/max-nested-describe": ["conditional_logic", "low"],
-    "playwright/no-duplicate-hooks": ["duplicate_assert", "low"],
-    "playwright/no-nested-step": ["conditional_logic", "low"],
     "playwright/no-unsafe-references": ["fragile_wait", "medium"],
     "playwright/valid-title": ["lint_valid_title", "low"],
     // brittle by our own standard: a CSS selector is a guess about markup, a positional pick depends on order
@@ -51,18 +48,17 @@
   // was never built with).
   const CYPRESS_RULE_MAP = {
     "cypress/no-unnecessary-waiting": ["sleep_or_skip_added", "high"],
-    "cypress/no-pause": ["sleep_or_skip_added", "high"],
+    "cypress/no-pause": ["debug_leftover", "medium"],
     "cypress/no-force": ["fragile_wait", "medium"],
-    "cypress/no-async-tests": ["weak_assert", "medium"],
-    "cypress/no-async-before": ["weak_assert", "medium"],
+    "cypress/no-async-tests": ["cypress_async_test", "medium"],
+    "cypress/no-async-before": ["cypress_async_test", "medium"],
     "cypress/assertion-before-screenshot": ["weak_assert", "low"],
     "cypress/no-assigning-return-values": ["fragile_wait", "low"],
     "cypress/unsafe-to-chain-command": ["fragile_wait", "medium"],
     "cypress/no-chained-get": ["raw_locator", "low"],
     "cypress/no-xpath": ["raw_locator", "low"],
     "cypress/require-data-selectors": ["raw_locator", "low"],
-    "cypress/no-and": ["conditional_logic", "low"],
-    "cypress/no-debug": ["fragile_wait", "low"],
+    "cypress/no-debug": ["debug_leftover", "medium"],
   };
   // Same idea, for Detox specs: our own rule ids (vendor-eslint-detox.js — hand-authored, no upstream
   // plugin has real rules for Detox) → (our check, severity).
@@ -126,37 +122,33 @@
   // regex checks an engine can do better — dropped when it ran, so nothing is reported twice. Only where the engine of
   // the profile's language looks for the same thing itself (SAME_AS_REGEX): Java, C# and Python have no rule for sleeps
   // or skips, so their regex findings must stay (until 0.1.113 any engine that parsed the file dropped them all).
-  const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "duplicate_assert"]);
+  const SUPERSEDES = new Set(["sleep_or_skip_added", "fragile_wait", "conditional_logic", "focused_test", "debug_leftover"]);
   /* engine rule → the kinds of regex finding ("check|kind", Lens sets kind on these four checks) it finds just as well.
-     An engine rule reported under one of these names but looking for something else (cypress/no-pause, cypress/no-and,
-     detox/waitfor-requires-timeout, playwright/no-duplicate-hooks…) replaces nothing: [] — listed, so that a new rule
-     has to be decided (test/supersedes.test.js). Nothing replaces a duplicated assertion or an exact element count. */
+     An engine rule reported under one of these names but looking for something else (playwright/no-force-option,
+     detox/waitfor-requires-timeout…) replaces nothing: [] — listed, so that a new rule has to be decided
+     (test/supersedes.test.js). Nothing replaces an exact element count or a debugger statement. */
   const SAME_AS_REGEX = {
     "playwright/no-wait-for-timeout": ["sleep_or_skip_added|sleep"],
     "playwright/no-skipped-test": ["sleep_or_skip_added|skip"],
-    "playwright/no-focused-test": ["sleep_or_skip_added|skip"],
+    "playwright/no-focused-test": ["focused_test|only"],
+    "playwright/no-page-pause": ["debug_leftover|pause"],
     "playwright/no-networkidle": ["fragile_wait|networkidle"],
     "playwright/no-conditional-in-test": ["conditional_logic|branch"],
     "cypress/no-unnecessary-waiting": ["sleep_or_skip_added|sleep"],
+    "cypress/no-pause": ["debug_leftover|pause"],
+    "cypress/no-debug": ["debug_leftover|debug"],
     "detox/no-hardcoded-wait": ["sleep_or_skip_added|sleep"],
     "robot/sleep-or-skip": ["sleep_or_skip_added|sleep", "sleep_or_skip_added|skip"],
     // reported under these names, but looking for something else: they replace no regex finding
     "playwright/no-conditional-expect": [],
-    "playwright/max-nested-describe": [],
-    "playwright/no-nested-step": [],
-    "playwright/no-duplicate-hooks": [],
     "playwright/no-element-handle": [],
     "playwright/no-force-option": [],
     "playwright/no-eval": [],
-    "playwright/no-page-pause": [],
     "playwright/no-wait-for-selector": [],
     "playwright/no-unsafe-references": [],
-    "cypress/no-pause": [],
     "cypress/no-force": [],
     "cypress/no-assigning-return-values": [],
     "cypress/unsafe-to-chain-command": [],
-    "cypress/no-and": [],
-    "cypress/no-debug": [],
     "detox/waitfor-requires-timeout": [],
   };
   // → Set of "check|kind" the engine of `language` finds itself: what merge() may drop

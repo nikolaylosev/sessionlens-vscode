@@ -66,6 +66,12 @@
      API concepts (locator strategy, gesture coordinates, driver lifecycle) show up whether the test is
      Java + appium-java-client, Python + Appium-Python-Client, WebdriverIO, or the .NET client. */
   const MOBILE = ["mobile_raw_locator", "hardcoded_coordinates", "no_driver_teardown"];
+  /* .only / fit / fdescribe: only the focused tests run, the rest are silently skipped (not a skip: that one is
+     visible in the report). debug_patterns: kind → pattern; the kind is what LensLint.merge() compares with what the
+     profile's engine looks for (page.pause and cy.pause are "pause", cy.debug is "debug"). */
+  const FOCUS_JS = [/\b(?:it|test|describe|context)(?:\.describe)?\.only\s*\(/, /\b(?:fit|fdescribe)\s*\(/];
+  const DEBUGGER_JS = /^\s*debugger\s*;?\s*$/m;
+  const BREAKPOINT_PY = /^\s*(?:breakpoint\s*\(\s*\)|(?:i?pdb)\.set_trace\s*\(\s*\))/m;
   /* qa-api is language-agnostic: API tests are written in whatever the team uses, so the profile carries the
      patterns of every common stack (pytest + requests/httpx, REST Assured, Jest/Vitest/Playwright + Supertest/axios,
      xUnit/NUnit + HttpClient/RestSharp, Go, Postman scripts, Karate). */
@@ -96,9 +102,11 @@
       test_runner_patterns: ["jest", "vitest", "npm test", "playwright test", "pnpm test", "yarn test"],
       src_dirs: ["src", "app", "lib"],
       test_dirs: ["tests", "test", "__tests__", "e2e"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
       sleep_patterns: [/\bwaitForTimeout\s*\(\s*\d+/, /setTimeout\s*\([^,]+,\s*\d{3,}/],
-      skip_patterns: [/\b(?:it|test|describe)\.skip\b/, /\btest\.fixme\b/, /\bretries\s*:\s*[1-9]/, /\.only\b/],
+      focus_patterns: FOCUS_JS,
+      debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS },
+      skip_patterns: [/\b(?:it|test|describe)\.skip\b/, /\btest\.fixme\b/, /\bretries\s*:\s*[1-9]/],
       weak_assert_patterns: [
         /expect\s*\([^)]*\)\s*\.toBeDefined\s*\(\)/g,
         /expect\s*\([^)]*\)\s*\.toBeTruthy\s*\(\)/g,
@@ -121,9 +129,10 @@
       test_runner_patterns: ["pytest"],
       src_dirs: ["src", "app", "services", "lib"],
       test_dirs: ["tests", "test"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover"],
       sleep_patterns: [/\btime\.sleep\s*\(\s*[\d.]+/, /\basyncio\.sleep\s*\(\s*[\d.]+/],
-      skip_patterns: [/mark\.skip/, /\bxfail\b/, /\breruns\b/, /@flaky/, /\bretry\s*=/],
+      debug_patterns: { breakpoint: BREAKPOINT_PY },
+      skip_patterns: [/mark\.skip/, /\breruns\b/, /@flaky/, /\bretry\s*=/],
       weak_assert_patterns: [
         /assert\s+[^\n]+?\.status_code\s*(?:<|<=|!=)\s*\d+/g,
         /assert\s+True\b/g,
@@ -205,7 +214,7 @@
       ],
       src_dirs: ["src", "app", "services", "lib", "controllers", "routes", "handlers"],
       test_dirs: ["tests", "test", "__tests__", "e2e", "api-tests", "src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, ...API],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...API],
       sleep_patterns: [
         /\btime\.sleep\s*\(\s*[\d.]+/,
         /\basyncio\.sleep\s*\(\s*[\d.]+/,
@@ -217,9 +226,10 @@
         /\bkarate\.sleep\s*\(/,
         /\btime\.Sleep\s*\(/,
       ],
+      focus_patterns: FOCUS_JS,
+      debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS, breakpoint: BREAKPOINT_PY },
       skip_patterns: [
         /mark\.skip/,
-        /\bxfail\b/,
         /\breruns\b/,
         /@flaky/,
         /\bretry\s*=/,
@@ -229,7 +239,6 @@
         /\b(?:it|test|describe)\.skip\b/,
         /\btest\.fixme\b/,
         /\bretries\s*:\s*[1-9]/,
-        /\.only\b/,
         /\[(?:[^\]\n]*,\s*)?Ignore\b/,
         /\[(?:[^\]\n]*,\s*)?Explicit\b/,
         /\[(?:[^\]\n]*,\s*)?Retry\b/,
@@ -298,7 +307,7 @@
       test_runner_patterns: ["pytest", "npm test", "jest", "vitest", "mvn test", "mvn verify", "gradle test", "gradlew", "dotnet test"],
       src_dirs: ["src", "app"],
       test_dirs: ["tests", "test", "__tests__", "e2e", "src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE, ...MOBILE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...MOBILE],
       sleep_patterns: [
         /\btime\.sleep\s*\(\s*[\d.]+/,
         /\bThread\.sleep\s*\(\s*\d+/,
@@ -306,16 +315,9 @@
         /\bTask\.Delay\s*\(\s*\d+/,
         /\bbrowser\.pause\s*\(\s*\d+/,
       ],
-      skip_patterns: [
-        /mark\.skip/,
-        /\bxfail\b/,
-        /@Disabled/,
-        /@Ignore\b/,
-        /\b(?:it|test|describe)\.skip\b/,
-        /\.only\b/,
-        /\[(?:[^\]\n]*,\s*)?Ignore\b/,
-        /\bt\.Skip\w*\s*\(/,
-      ],
+      focus_patterns: FOCUS_JS,
+      debug_patterns: { debug: /\bbrowser\.debug\s*\(/, debugger: DEBUGGER_JS, breakpoint: BREAKPOINT_PY },
+      skip_patterns: [/mark\.skip/, /@Disabled/, /@Ignore\b/, /\b(?:it|test|describe)\.skip\b/, /\[(?:[^\]\n]*,\s*)?Ignore\b/, /\bt\.Skip\w*\s*\(/],
       weak_assert_patterns: [
         /assert\s+True\b/g,
         /assertTrue\s*\(\s*true\s*\)/g,
@@ -336,9 +338,11 @@
       test_runner_patterns: ["cypress run", "cypress open", "npx cypress", "yarn cypress"],
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
       sleep_patterns: [/\bcy\.wait\s*\(\s*\d{3,}/],
-      skip_patterns: [/\b(?:it|describe|context)\.skip\b/, /\.only\b/],
+      focus_patterns: FOCUS_JS,
+      debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
+      skip_patterns: [/\b(?:it|describe|context)\.skip\b/],
       weak_assert_patterns: [/\.should\s*\(\s*['"`]exist['"`]\s*\)/g, /expect\s*\(\s*true\s*\)\s*\.to\.be\.true\b/g, /assert\.isTrue\s*\(\s*true\s*\)/g],
       assert_line_patterns: [/\.should\s*\(/, /\bexpect\s*\(/, /\bcy\.wrap\s*\([^)]*\)\.should\b/],
       test_fn_pattern: /\b(?:it|test)\s*\(\s*['"`]([^'"`]+)['"`]/g,
@@ -355,9 +359,11 @@
       test_runner_patterns: ["detox test", "npx detox test", "detox build", "e2e:test"],
       src_dirs: ["src", "app"],
       test_dirs: ["e2e", "e2e/tests"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover"],
       sleep_patterns: [/setTimeout\s*\([^,]+,\s*\d{3,}/, /new Promise\s*\(\s*resolve\s*=>\s*setTimeout/],
-      skip_patterns: [/\b(?:it|describe|test)\.skip\b/, /\.only\b/],
+      focus_patterns: FOCUS_JS,
+      debug_patterns: { debugger: DEBUGGER_JS },
+      skip_patterns: [/\b(?:it|describe|test)\.skip\b/],
       weak_assert_patterns: [/expect\s*\(\s*true\s*\)\s*\.toBe\s*\(\s*true\s*\)/g],
       assert_line_patterns: [/\bexpect\s*\(/],
       test_fn_pattern: /\b(?:it|test)\s*\(\s*['"`]([^'"`]+)['"`]/g,
@@ -1235,6 +1241,31 @@
       }
       return out;
     },
+    focused_test(ev, cfg) {
+      const out = [];
+      for (const e of ev) {
+        if (!e.new_content) continue;
+        const ln = e.new_content.split("\n").find((l) => (cfg.focus_patterns || []).some((r) => r.test(l)));
+        if (ln)
+          out.push(Object.assign(F("focused_test", "high", e.seq, T("focused", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })), { kind: "only" }));
+      }
+      return out;
+    },
+    // one finding per file and kind: the profile's engine may look for one kind (page.pause) and not another (debugger)
+    debug_leftover(ev, cfg) {
+      const out = [];
+      for (const e of ev) {
+        if (!e.new_content) continue;
+        for (const [kind, rx] of Object.entries(cfg.debug_patterns || {})) {
+          const m = e.new_content.match(rx);
+          if (m)
+            out.push(
+              Object.assign(F("debug_leftover", "medium", e.seq, T("debug_leftover", { file: e.file || inMsg(), line: m[0].trim().slice(0, 80) })), { kind }),
+            );
+        }
+      }
+      return out;
+    },
     assumption_instead_of_question(ev, cfg) {
       const out = [];
       for (const e of ev) {
@@ -1518,20 +1549,16 @@
             seen.set(t, (seen.get(t) || 0) + 1);
           }
           const dup = [...seen].filter(([, n]) => n > 1);
-          if (dup.length)
-            out.push(
-              Object.assign(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })), {
-                kind: "assert",
-              }),
-            );
+          if (dup.length) out.push(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })));
         }
       }
       return out;
     },
     /* test.fail() keeps the suite green while the bug it documents is still open in production. Defensible,
-       but it must be a decision someone made, not a detail buried in a spec file. */
+       but it must be a decision someone made, not a detail buried in a spec file. A test that does not run at all
+       (@Disabled, t.Skip) is a skip: sleep_or_skip_added, not this (0.1.113). */
     expected_failure(ev, cfg) {
-      const RX = /\btest\.fail\s*\(|\bxfail\b|@Disabled\b|\bt\.Skip\b/;
+      const RX = /\btest\.fail\s*\(|\bxfail\b/;
       const out = [];
       for (const e of ev) {
         if (!e.new_content || !RX.test(e.new_content)) continue;
