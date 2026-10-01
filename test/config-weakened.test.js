@@ -5,7 +5,7 @@
    retries on a single test (that stays sleep_or_skip_added). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { load } = require("./helpers");
+const { load, M } = require("./helpers");
 
 const { Lens } = load();
 
@@ -81,6 +81,17 @@ test("Cypress runMode retries and pytest reruns, timeout and --deselect", () => 
     ],
   );
   assert.deepEqual(found("qa-python", [["write", "pytest.ini", "[pytest]\nxfail_strict = true\n"]], "expected_failure"), [], "pytest.ini is not code");
+});
+
+test("a first edit that the import reconstructs from toolUseResult is compared with originalFile (the demo)", () => {
+  const D = require(M("demo-session.js"));
+  const cfg = Lens.profile(D.PROFILE);
+  assert.deepEqual(
+    Lens.runChecks(Lens.importAny(D.TRANSCRIPT, cfg), cfg)
+      .filter((f) => f.check === "config_weakened")
+      .map((f) => `${f.severity}: ${f.message}`),
+    ["high: playwright.config.ts: test config loosened — retries 0 → 2 — right after a failing run (seq 6)"],
+  );
 });
 
 test("a config seen for the first time: only its retries count", () => {
