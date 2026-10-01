@@ -18,6 +18,11 @@
   each gave both findings. A Playwright test with no `expect` is "no assertion after action", as in the other
   languages, not "weak assert". `.only`, `page.pause()`, `cy.pause()`, `cy.debug()` and async Cypress tests moved to
   the new checks above.
+- `hardcoded_secret` and `hardcoded_base_url` are reported in the TypeScript, Cypress, Detox and mobile profiles too,
+  not only in the API profile: a token or a staging host in a UI test is just as common. Both checks moved from the
+  API group to the Code group on the Rules tab.
+- `hardcoded_base_url` no longer reports a runner's config file (`playwright.config.ts`, `cypress.config.ts`,
+  `wdio.conf.ts`, `.detoxrc`…): that is where its own rule says the base URL belongs.
 - Three ESLint style rules (`playwright/max-nested-describe`, `playwright/no-nested-step`, `cypress/no-and`) and
   `playwright/no-duplicate-hooks` are no longer reported.
 - The rule texts of "fragile wait" and "no assertion after action" now cover everything those checks report, and the
