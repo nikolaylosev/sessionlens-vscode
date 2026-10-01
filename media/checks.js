@@ -95,6 +95,13 @@
       good: "restate the task in your own words and wait for confirmation",
       sources: ["regex"],
     },
+    product_code_edited: {
+      group: "process",
+      severity: "high",
+      ruleKey: "r_product_edited",
+      good: "report it and wait: “R3 fails — the total ignores the discount. Product bug?”",
+      sources: ["regex"],
+    },
     // ---- code ----
     assert_weakened: { group: "code", severity: "high", ruleKey: "r_weakened", good: "keep the assertion and triage the failure instead", sources: ["regex"] },
     weak_assert: {
