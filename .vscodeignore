@@ -21,6 +21,7 @@ scripts/**
 **/*.map
 media/screenshots/**
 CONTRIBUTING.md
+docs/**
 
 CLAUDE.md
 SessionLens-TODO.md

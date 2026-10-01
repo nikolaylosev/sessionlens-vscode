@@ -1,5 +1,7 @@
 # SessionLens — architecture of the Rules system
 
+The overview of the whole extension, with diagrams, is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 An internal document for code review before publishing on GitHub. It describes
 **everything** related to "rules" (checks/rules): how a finding is born, how it
 gets its text, severity and on/off state, how this is edited in the UI, stored,
