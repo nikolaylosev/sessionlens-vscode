@@ -165,4 +165,4 @@ if (require.main === module)
     process.stdout.write(JSON.stringify(o, null, 1) + "\n");
     process.exit(0);
   });
-module.exports = { lintSnapshot, CODE, transcript };
+module.exports = { lintSnapshot, loadEngines, CODE, transcript };

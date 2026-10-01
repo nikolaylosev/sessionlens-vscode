@@ -164,7 +164,13 @@
       test_dirs: ["tests", "test"],
       checks: [...METHOD, ...PROCESS, ...CODE],
       sleep_patterns: [/\bThread\.Sleep\s*\(\s*\d+/, /\bTask\.Delay\s*\(\s*\d+/],
-      skip_patterns: [/\[Ignore\b/, /\[Explicit\b/, /\[Retry\b/, /\[(?:Fact|Theory)\s*\([^)]*Skip\s*=/, /\bAssert\.(?:Ignore|Inconclusive)\s*\(/],
+      skip_patterns: [
+        /\[(?:[^\]\n]*,\s*)?Ignore\b/,
+        /\[(?:[^\]\n]*,\s*)?Explicit\b/,
+        /\[(?:[^\]\n]*,\s*)?Retry\b/,
+        /\[(?:Fact|Theory)\s*\([^)]*Skip\s*=/,
+        /\bAssert\.(?:Ignore|Inconclusive)\s*\(/,
+      ],
       weak_assert_patterns: [
         /Assert\.(?:NotNull|IsNotNull)\s*\([^)]*\)\s*;/g,
         /Assert\.(?:True|IsTrue)\s*\(\s*true\s*\)/g,
@@ -224,9 +230,9 @@
         /\btest\.fixme\b/,
         /\bretries\s*:\s*[1-9]/,
         /\.only\b/,
-        /\[Ignore\b/,
-        /\[Explicit\b/,
-        /\[Retry\b/,
+        /\[(?:[^\]\n]*,\s*)?Ignore\b/,
+        /\[(?:[^\]\n]*,\s*)?Explicit\b/,
+        /\[(?:[^\]\n]*,\s*)?Retry\b/,
         /\[(?:Fact|Theory)\s*\([^)]*Skip\s*=/,
         /\bt\.Skip\w*\s*\(/,
         /^\s*@ignore\b/m,
@@ -300,7 +306,16 @@
         /\bTask\.Delay\s*\(\s*\d+/,
         /\bbrowser\.pause\s*\(\s*\d+/,
       ],
-      skip_patterns: [/mark\.skip/, /\bxfail\b/, /@Disabled/, /@Ignore\b/, /\b(?:it|test|describe)\.skip\b/, /\.only\b/, /\[Ignore\b/, /\bt\.Skip\w*\s*\(/],
+      skip_patterns: [
+        /mark\.skip/,
+        /\bxfail\b/,
+        /@Disabled/,
+        /@Ignore\b/,
+        /\b(?:it|test|describe)\.skip\b/,
+        /\.only\b/,
+        /\[(?:[^\]\n]*,\s*)?Ignore\b/,
+        /\bt\.Skip\w*\s*\(/,
+      ],
       weak_assert_patterns: [
         /assert\s+True\b/g,
         /assertTrue\s*\(\s*true\s*\)/g,
@@ -1207,8 +1222,16 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        if (cfg.sleep_patterns.some((r) => r.test(e.new_content))) out.push(F("sleep_or_skip_added", "high", e.seq, T("sleep", { file: e.file || inMsg() })));
-        if (cfg.skip_patterns.some((r) => r.test(e.new_content))) out.push(F("sleep_or_skip_added", "high", e.seq, T("skip", { file: e.file || inMsg() })));
+        // kind (every SUPERSEDES check has one): what LensLint.merge() compares with what the profile's engine looks for
+        if (cfg.sleep_patterns.some((r) => r.test(e.new_content)))
+          out.push(Object.assign(F("sleep_or_skip_added", "high", e.seq, T("sleep", { file: e.file || inMsg() })), { kind: "sleep" }));
+        const skips = cfg.skip_patterns.filter((r) => r.test(e.new_content));
+        if (skips.length)
+          out.push(
+            Object.assign(F("sleep_or_skip_added", "high", e.seq, T("skip", { file: e.file || inMsg() })), {
+              kind: skips.some((r) => RETRY_RX.test(r.source)) ? "retry" : "skip",
+            }),
+          );
       }
       return out;
     },
@@ -1252,8 +1275,10 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        if (/waitUntil:\s*['"]networkidle['"]/.test(e.new_content)) out.push(F("fragile_wait", "medium", e.seq, T("networkidle", { file: e.file || inMsg() })));
-        if (/\.count\(\)\)\.toBe\(\d+\)/.test(e.new_content)) out.push(F("fragile_wait", "low", e.seq, T("exact_count", { file: e.file || inMsg() })));
+        if (/waitUntil:\s*['"]networkidle['"]/.test(e.new_content))
+          out.push(Object.assign(F("fragile_wait", "medium", e.seq, T("networkidle", { file: e.file || inMsg() })), { kind: "networkidle" }));
+        if (/\.count\(\)\)\.toBe\(\d+\)/.test(e.new_content))
+          out.push(Object.assign(F("fragile_wait", "low", e.seq, T("exact_count", { file: e.file || inMsg() })), { kind: "count" }));
       }
       return out;
     },
@@ -1471,7 +1496,12 @@
         for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
           const inner = body.split("\n").slice(1).join("\n");
           const m = inner.match(/^\s+(?:if|for|while|switch|try)\b[^\n]*/m) || inner.match(/^\s+(?:if|for|while)\s*\(/m);
-          if (m) out.push(F("conditional_logic", "low", e.seq, T("conditional", { file: e.file || inMsg(), test: name, line: m[0].trim().slice(0, 50) })));
+          if (m)
+            out.push(
+              Object.assign(F("conditional_logic", "low", e.seq, T("conditional", { file: e.file || inMsg(), test: name, line: m[0].trim().slice(0, 50) })), {
+                kind: "branch",
+              }),
+            );
         }
       }
       return out;
@@ -1488,7 +1518,12 @@
             seen.set(t, (seen.get(t) || 0) + 1);
           }
           const dup = [...seen].filter(([, n]) => n > 1);
-          if (dup.length) out.push(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })));
+          if (dup.length)
+            out.push(
+              Object.assign(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })), {
+                kind: "assert",
+              }),
+            );
         }
       }
       return out;
@@ -1640,6 +1675,8 @@
     return { n, p, level };
   }
   // The regex checks of the profile. They are not calibrated here: calibrate() does that for every source at once.
+  // a skip pattern that is about retrying a failed test rather than not running it (`retries: 2`, @flaky, [Retry])
+  const RETRY_RX = /retr|rerun|flaky/i;
   function runChecks(ev, cfg) {
     const out = [];
     for (const name of cfg.checks) if (checks[name]) out.push(...checks[name](ev, cfg));

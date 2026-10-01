@@ -35,7 +35,7 @@ export function analyzeNow(s) {
     s.lintWhy = lr.why || [];
     s.lintLog = lr.log || [];
     if (lr.pending) s.lintPending = true; // the engine is still loading here: not a final result (see below)
-    if (lr.ran) base = LensLint.merge(formal, lr.findings); // supersede only when the linter actually parsed
+    if (lr.ran) base = LensLint.merge(formal, lr.findings, cfg.language); // supersede only when the linter actually parsed
   }
   // phase 8: calibration per check and source, after the merge (a superseded regex finding is gone before it) and
   // before the Rules tab's overrides

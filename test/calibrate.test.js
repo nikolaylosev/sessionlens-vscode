@@ -74,7 +74,7 @@ test("a check ticked on by hand on the Rules tab is never hidden; one merely lef
 
 test("a regex finding an engine supersedes does not come back when the engine's check is off", () => {
   // LensLint.merge() drops the regex sleep_or_skip_added once the engine parsed the file; calibrate() runs after it
-  const base = LensLint.merge([F("sleep_or_skip_added", "formal")], [F("sleep_or_skip_added", "lint")]);
+  const base = LensLint.merge([Object.assign(F("sleep_or_skip_added", "formal"), { kind: "sleep" })], [F("sleep_or_skip_added", "lint")], "typescript");
   const r = Lens.calibrate(base, { sleep_or_skip_added: { lint: OFF, formal: GOOD } });
   assert.deepEqual([shown(r), hidden(r)], [[], ["sleep_or_skip_added/lint"]]);
 });
