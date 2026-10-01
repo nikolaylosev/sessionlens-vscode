@@ -1659,9 +1659,11 @@
       if (cl.level === "demoted") fs = fs.map((f) => ({ ...f, severity: "low", demoted: true }));
       out.push(...fs);
     }
-    const res = sortFindings(dedupe(out));
+    // source "formal": what the panel's filter and the exported reports already called a finding with no source
+    const formal = (f) => Object.assign(f, { source: "formal" });
+    const res = sortFindings(dedupe(out).map(formal));
     res.suppressed = suppressed;
-    res.hidden = dedupe(hidden);
+    res.hidden = dedupe(hidden).map(formal);
     return res;
   }
   function dedupe(out) {
