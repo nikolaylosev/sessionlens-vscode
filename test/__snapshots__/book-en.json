@@ -270,6 +270,24 @@
   "edited": false
  },
  {
+  "check": "hardcoded_secret",
+  "group": "code",
+  "rule": "No tokens, keys or passwords in test code. Read them from environment variables or a secrets store: a repository is not a safe.",
+  "severity": "high",
+  "enabled": true,
+  "good": "token = os.environ['API_TOKEN']",
+  "edited": false
+ },
+ {
+  "check": "hardcoded_base_url",
+  "group": "code",
+  "rule": "No hard-coded hosts. Take the base URL from configuration or an environment variable, so the same test runs on local and staging and never lands on production by accident.",
+  "severity": "medium",
+  "enabled": true,
+  "good": "BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8080')",
+  "edited": false
+ },
+ {
   "check": "status_only_assert",
   "group": "api",
   "rule": "Assert the body, not just the status. A test that checks only “200” also passes on an empty response or an error page. Check the fields, their types and the headers that matter.",
@@ -285,24 +303,6 @@
   "severity": "medium",
   "enabled": true,
   "good": "call the real service (or a real test instance); mock only its downstream dependencies",
-  "edited": false
- },
- {
-  "check": "hardcoded_secret",
-  "group": "api",
-  "rule": "No tokens, keys or passwords in test code. Read them from environment variables or a secrets store: a repository is not a safe.",
-  "severity": "high",
-  "enabled": true,
-  "good": "token = os.environ['API_TOKEN']",
-  "edited": false
- },
- {
-  "check": "hardcoded_base_url",
-  "group": "api",
-  "rule": "No hard-coded hosts. Take the base URL from configuration or an environment variable, so the same test runs on local and staging and never lands on production by accident.",
-  "severity": "medium",
-  "enabled": true,
-  "good": "BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8080')",
   "edited": false
  },
  {
