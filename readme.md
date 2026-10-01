@@ -101,7 +101,11 @@ Everything about one session. It opens in its own editor tab when you click a se
 
 Learning from your verdicts.
 
-- **Check precision:** for every check, how many findings you confirmed or rejected. A check with at least 10 verdicts and precision below 50% is automatically demoted to low severity. Below 30% it is switched off. The table shows each check's status.
+- **Check precision:** for every check and source (regex, eslint, gherkin, spec, model, imported), how many findings you confirmed or rejected. A check with at least 10 verdicts for one source and precision below 50% is automatically demoted to low severity for that source. Below 30% it is switched off for that source. So when ESLint and a regex check report under the same name, for example `weak_assert`, a poor record of one never switches off the other.
+  - **What is calibrated:** the regex checks, static analysis (ESLint, tree-sitter, Robot Framework), the Gherkin checks, and two specification checks that are guesses: `test_without_requirement` and `out_of_scope_tested`.
+  - **What is never switched off,** marked **not calibrated** in the table with the reason on hover: the model's findings (their precision depends on the model and the prompt, not on the check; the table still shows it, so you can compare models and prompts), `no_spec` and `spec_uncovered` (facts, not guesses), and imported findings.
+  - A switched-off check still runs: its findings are kept out of sight and its verdicts keep counting, so it stays off until you decide otherwise. The line **Disabled for low precision** under a session's findings names each one with its source.
+  - **To bring one back,** tick it on the **Rules** tab. A check you tick on there is never switched off by calibration, and the table and the Rules tab mark it **on by hand**.
 - **Rules for CLAUDE.md/AGENTS.md:** a rule appears once the same check has been confirmed at least N times (2 by default, editable). For each one you see the evidence from your sessions. **Target file** picks which of the two the export, Compress rules.md and Generate skill features are worded for — `CLAUDE.md` (Claude Code), `AGENTS.md` (Codex and other agents that read it), or both.
   - **Moved** marks a rule as applied to the chosen target file(s). From then on SessionLens compares how often that finding occurred before and after.
   - **Delete** hides a rule from the proposals. Confirmed findings are kept, and **Restore hidden rules** brings them back.
@@ -111,7 +115,7 @@ Learning from your verdicts.
 - Every **Compress rules.md** and **Generate skill** run is kept, newest first, below the buttons — with its own **Delete** (and, for a skill, **Save to folder…**). Unlike the raw request/reply log below, these stay until you delete them yourself.
   - **`examples/`** is added from your own sessions and is not written by the model: for each rule whose finding sits in a whole file, up to two of the real files the agent wrote (one per session first), exactly as written, with an `examples/README.md` that says which session and finding each file comes from. Secrets (tokens, keys, literal passwords) are replaced with `[REDACTED]`, but read the files before you share the skill, because they are real code from your work. Rules about process have no file and get no example. Untick **Add examples/** to leave the folder out; the model then never hears about it.
 - **Model request and reply** (appears after the first request from this tab, and only while **Debug model** is on in ⚙ Settings): the exact prompt and the model's answer for each **Compress rules.md** and **Generate skill** request, newest first, failed calls included, with the provider and model that answered. The last 6 are kept, so you can still read them after reopening VS Code. **Copy**, **Download .txt** and **Clear** are below the log. **Delete everything** in Settings also removes it.
-- **Export verdicts.json / Import verdicts / findings** move your verdicts between machines, and import findings from other tools (a JSON array with a `session` field, taking part in calibration as external findings).
+- **Export verdicts.json / Import verdicts / findings** move your verdicts between machines, and import findings from other tools (a JSON array with a `session` field). Imported findings show in the precision table under the source they name (**imported** if none); calibration never switches them off.
 
 ### Rules
 
@@ -162,8 +166,8 @@ For each check you can edit four things:
 |---|---|
 | **Rule** | The wording, as the agent should read it. Used in reports and in `rules.md`. |
 | **Good example** | The right way, in one line of code or one step. It becomes the "Like this" part of an exported rule. |
-| **Severity** | High, medium or low. This decides whether a finding turns the session Red, Yellow or Green. |
-| **On / off** | A check that is off is dropped from every session and report. |
+| **Severity** | High, medium or low. This decides whether a finding turns the session Red, Yellow or Green. While calibration has demoted the check to low, a severity you set here does not apply to its findings; an ⓘ next to it says so. |
+| **On / off** | A check that is off is dropped from every session and report. A check you tick on here stays on even if calibration would switch it off; it is marked **on by hand**. |
 
 Edited checks carry an **edited** mark. Changes apply at once: every session is re-analysed, so the header verdicts update.
 
