@@ -101,7 +101,7 @@
  {
   "check": "sleep_or_skip_added",
   "group": "code",
-  "rule": "No sleep with a constant and no skip / xfail / retry. Wait only via wait_until() from helpers.",
+  "rule": "No sleep with a constant and no skip / retry. Wait only via wait_until() from helpers.",
   "severity": "high",
   "enabled": true,
   "good": "await expect(locator).toBeVisible() — wait for a condition, not for a number",
@@ -119,10 +119,10 @@
  {
   "check": "fragile_wait",
   "group": "code",
-  "rule": "Don't use waitUntil: 'networkidle' or exact element counts. Wait for a specific element or condition.",
+  "rule": "Don't make a test depend on timing or page internals: no waitUntil: 'networkidle', exact element counts, force: true, element handles, eval or waits without a timeout. Wait for and act on a specific element, as a user would.",
   "severity": "medium",
   "enabled": true,
-  "good": "await expect(page.getByRole('heading', { name: 'Recent' })).toBeVisible()",
+  "good": "await page.getByRole('button', { name: 'Pay' }).click(); await expect(page.getByRole('heading', { name: 'Paid' })).toBeVisible()",
   "edited": false
  },
  {
@@ -191,10 +191,10 @@
  {
   "check": "no_assertion_after_action",
   "group": "code",
-  "rule": "A test that taps, types or swipes must also check what happened. An action with no expect(...) anywhere in the same test verifies nothing — it only proves the app didn't crash.",
+  "rule": "Every test must check what happened. A test that clicks, taps, types or sends a request with no assertion anywhere in it verifies nothing — it only proves nothing crashed.",
   "severity": "high",
   "enabled": true,
-  "good": "await expect(element(by.id('home-screen'))).toBeVisible();",
+  "good": "await page.getByRole('button', { name: 'Pay' }).click(); await expect(page.getByText('Paid')).toBeVisible();",
   "edited": false
  },
  {
@@ -231,6 +231,33 @@
   "severity": "medium",
   "enabled": true,
   "good": "assertEquals(200, actualStatus)  // expected first, actual second",
+  "edited": false
+ },
+ {
+  "check": "focused_test",
+  "group": "code",
+  "rule": "Never leave .only / fit / fdescribe in a test. Only the focused test runs, the rest of the suite is silently skipped, and the run stays green.",
+  "severity": "high",
+  "enabled": true,
+  "good": "test('total', async ({ page }) => { … }) — no .only, so the whole suite runs",
+  "edited": false
+ },
+ {
+  "check": "debug_leftover",
+  "group": "code",
+  "rule": "Remove debugging calls before you finish: page.pause(), cy.pause(), cy.debug(), debugger, breakpoint(). They stop the run locally and hang or do nothing in CI.",
+  "severity": "medium",
+  "enabled": true,
+  "good": "await expect(page.getByText('Total')).toBeVisible(); — no page.pause() or debugger left behind",
+  "edited": false
+ },
+ {
+  "check": "cypress_async_test",
+  "group": "code",
+  "rule": "Don't use async/await in Cypress tests and hooks. Cypress queues its commands, so an async test can finish before they run. Chain the commands instead.",
+  "severity": "medium",
+  "enabled": true,
+  "good": "it('total', () => { cy.contains('Total').should('be.visible'); })",
   "edited": false
  },
  {
