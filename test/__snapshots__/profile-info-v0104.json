@@ -154,6 +154,11 @@
       "name": "debug_leftover",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -183,7 +188,7 @@
     ]
    }
   ],
-  "count": 29,
+  "count": 30,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -350,6 +355,11 @@
       "name": "cypress_async_test",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -379,7 +389,7 @@
     ]
    }
   ],
-  "count": 27,
+  "count": 28,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -551,6 +561,11 @@
       "name": "debug_leftover",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -580,7 +595,7 @@
     ]
    }
   ],
-  "count": 28,
+  "count": 29,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -741,6 +756,11 @@
       "name": "debug_leftover",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -770,7 +790,7 @@
     ]
    }
   ],
-  "count": 27,
+  "count": 28,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -932,6 +952,11 @@
       "name": "assert_args_reversed",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -961,7 +986,7 @@
     ]
    }
   ],
-  "count": 27,
+  "count": 28,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1120,6 +1145,11 @@
       "name": "assert_args_reversed",
       "off": false,
       "engineOnly": true
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1149,7 +1179,7 @@
     ]
    }
   ],
-  "count": 27,
+  "count": 28,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1320,6 +1350,11 @@
       "name": "debug_leftover",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1389,7 +1424,7 @@
     ]
    }
   ],
-  "count": 32,
+  "count": 33,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1561,6 +1596,11 @@
       "name": "debug_leftover",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "test_deleted",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1610,7 +1650,7 @@
     ]
    }
   ],
-  "count": 28,
+  "count": 29,
   "engine": {
    "kind": "none",
    "state": "none"

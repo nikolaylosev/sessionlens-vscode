@@ -261,6 +261,15 @@
   "edited": false
  },
  {
+  "check": "test_deleted",
+  "group": "code",
+  "rule": "Never delete a test or a test file to make the suite pass. A failing test calls for triage; removing one needs the user's explicit agreement.",
+  "severity": "high",
+  "enabled": true,
+  "good": "keep the failing test and triage it: product bug / test bug / spec defect",
+  "edited": false
+ },
+ {
   "check": "status_only_assert",
   "group": "api",
   "rule": "Assert the body, not just the status. A test that checks only “200” also passes on an empty response or an error page. Check the fields, their types and the headers that matter.",
