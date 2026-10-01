@@ -15,6 +15,8 @@ const { makeFixture } = require("../perf/fixtures");
 const { snapshot } = require("../perf/snapshot-calib");
 const { root } = require("./helpers");
 
+const UPDATE = process.env.SL_UPDATE_SNAPSHOTS === "1";
+
 // counts analyze() calls in a page: window.__analyze
 // (the anchor must exist: a silent no-op patch would make the counts below meaningless)
 const countAnalyze = (src) => {
@@ -38,8 +40,13 @@ test("app.js has no state.sessions left", () => {
 
 // rules and rulesList as 0.1.100 rendered them; precision as of 0.1.112 (a row per check and source, phase 8)
 test("Calibration, proposed rules and their effect are the same as in 0.1.100 (snapshot)", async () => {
-  const want = JSON.parse(fs.readFileSync(path.join(root, "test", "__snapshots__", "calib-v0100.json"), "utf8"));
+  const file = path.join(root, "test", "__snapshots__", "calib-v0100.json");
   const got = await snapshot(root);
+  if (UPDATE) {
+    fs.writeFileSync(file, JSON.stringify(got, null, 1) + "\n"); // what perf/snapshot-calib.js prints
+    return;
+  }
+  const want = JSON.parse(fs.readFileSync(file, "utf8"));
   assert.equal(got.precision, want.precision);
   assert.equal(got.rules, want.rules);
   assert.equal(got.rulesList, want.rulesList);

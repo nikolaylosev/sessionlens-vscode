@@ -9,6 +9,8 @@ const { fakeTreeSitterEngine } = require("./engine-stub");
 const { lintSnapshot, CODE, transcript } = require("../perf/snapshot-lint");
 const { root } = require("./helpers");
 
+const UPDATE = process.env.SL_UPDATE_SNAPSHOTS === "1";
+
 const MEDIA = path.join(root, "media");
 const read = (f) => fs.readFileSync(path.join(MEDIA, f), "utf8");
 const LensLint = require(path.join(MEDIA, "lint.js"));
@@ -80,10 +82,14 @@ test("Node (no page): ensure() loads nothing and run() reports what it did befor
 });
 
 test("with the real engines loaded, run() reports exactly what 0.1.101 reported (snapshot)", async () => {
-  const want = JSON.parse(fs.readFileSync(path.join(root, "test", "__snapshots__", "lint-v0101.json"), "utf8"));
+  const file = path.join(root, "test", "__snapshots__", "lint-v0101.json");
   const got = await lintSnapshot(root);
-  assert.deepEqual(got, want);
   for (const [profile, r] of Object.entries(got)) assert.ok(r.ran && r.findings.length, `${profile}: the engine ran`);
+  if (UPDATE) {
+    fs.writeFileSync(file, JSON.stringify(got, null, 1) + "\n"); // what perf/snapshot-lint.js prints
+    return;
+  }
+  assert.deepEqual(got, JSON.parse(fs.readFileSync(file, "utf8")));
 });
 
 test("sidebar import of qa-java: loads tree-sitter.js and lint-java.js, boots with the WASM URIs, saves lint findings", async () => {
