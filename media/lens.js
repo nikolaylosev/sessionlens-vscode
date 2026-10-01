@@ -1447,11 +1447,13 @@
       for (const e of ev) {
         const src = e.new_content || e.config_content;
         if (!["write", "edit"].includes(e.kind) || !src || !isRunnerConfig(e.file)) continue;
-        const prevSrc = e.prev_content ?? last[e.file] ?? null;
+        // the import's prev_content is the file as it was, even when the event itself started as a fragment (a first
+        // Edit that toolUseResult made whole); without it a fragment has nothing to compare with
+        const prevSrc = e.prev_content ?? (e.fragment_only ? null : last[e.file]) ?? null;
         last[e.file] = src;
         const now = read(src),
           what = [];
-        if (prevSrc == null || e.fragment_only) {
+        if (prevSrc == null) {
           if (now.retries > 0) what.push(T("cw_set", { key: "retries", to: now.retries }));
         } else {
           const was = read(prevSrc);
