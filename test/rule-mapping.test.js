@@ -13,7 +13,7 @@ const { loadEngines } = require("../perf/snapshot-lint");
 const { Lens } = load();
 const LensLint = require(M("lint.js"));
 const IGNORED = new Set(["method", "process", "spec"]);
-const PINNED = new Set(["product_code_edited"]); // a process check, but about the case, not the transcript's shape
+const PINNED = new Set(["product_code_edited", "snapshot_overwritten"]); // process checks, but about the case, not the transcript's shape
 const C = require(M("checks.js")).CHECKS;
 
 // steps: ["write", file, content] | ["edit", file, old, new] | ["bash", command, output]
@@ -237,7 +237,8 @@ const CASES = [
 ];
 
 // 0.1.112 plus #27; 0.1.113: every finding under its own name (step 1), test_deleted (step 2), secrets and hosts in
-// the UI profiles (step 3), product code edited (step 4). Later steps change it case by case.
+// the UI profiles (step 3), product code edited (step 4),
+// snapshots overwritten (step 5). Later steps change it case by case.
 const EXPECTED = {
   "1a xfail (Python)": ["expected_failure/formal"],
   "1a @Disabled (Java)": ["sleep_or_skip_added/formal"],
@@ -257,7 +258,7 @@ const EXPECTED = {
   "3.1 a test deleted (Playwright)": ["test_deleted/formal"],
   "3.1 a test file deleted (Playwright)": ["test_deleted/formal"],
   "3.2 product code edited (Playwright)": ["product_code_edited/formal"],
-  "3.3 snapshots overwritten (Jest)": [],
+  "3.3 snapshots overwritten (Jest)": ["snapshot_overwritten/formal"],
   "3.4 retries and timeout raised (Playwright config)": ["sleep_or_skip_added/formal"],
   "3.5 a token and a host in a UI test (Playwright)": ["hardcoded_base_url/formal", "hardcoded_secret/formal"],
   "3.5 the same in qa-api": ["hardcoded_base_url/formal", "hardcoded_secret/formal"],
