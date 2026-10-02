@@ -1713,8 +1713,7 @@ ${en.raw}`).join("\n\n\n");
       await needEngine(s.profile);
       await updateSession(state.current, (x) => {
         const cfg = Lens.profile(x.profile);
-        const res = Lens.importAny(x.source_text, cfg);
-        x.events = Array.isArray(res) && res.length && res[0].events ? res[0].events : res;
+        x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg)) || x.events;
         x.seg = null;
         x.importGen = Lens.IMPORT_GEN;
         analyze(x);
@@ -1806,17 +1805,12 @@ ${en.raw}`).join("\n\n\n");
       text = r.text;
     }
     const cfg = Lens.profile(s.profile);
-    const res = Lens.importAny(text, cfg);
-    const convs = Array.isArray(res) && res.length && res[0].events ? res.map((c) => c.events) : [res];
-    let events = null, match = -1;
-    for (const ev of convs) {
-      const m = Lens.transcriptMatch(s.events, ev);
-      if (ev.length && m > match) [events, match] = [ev, m];
-    }
+    const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg));
     if (!events) {
       await alertDialog(T("no_events"));
       return;
     }
+    const match = Lens.transcriptMatch(s.events, events);
     if (match < 0.8 && !await confirmDialog(T("reimport_other", { p: Math.round(match * 100) }))) return;
     await needEngine(s.profile);
     const keys = (x) => new Set([...x.findings || [], ...x.calibHidden || []].map(fkey).filter((k) => s.verdicts[k]));

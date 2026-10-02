@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.115 `npm test` runs 256 tests in 37 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.115 `npm test` runs 259 tests in 38 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -147,6 +147,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `calibration-ui.test.js` | The Calibration table per check and source, "on by hand" and the ⓘ mark on the Rules tab, the source in a session's line of disabled checks. |
 | `demo-session.test.js` | "Try a demo session": the demo transcript has no real data; the button imports it with its name, profile and spec; the findings the readme, screenshots and GIF show; a second click opens the same session; the demo is left out of calibration; the setting that hides the button. |
 | `reimport.test.js` | **Import again**: which sessions show it (`Lens.needsReimport`), `Lens.transcriptMatch`; the same session gets the new findings and keeps its name, spec and verdicts; the file is picked again when no text was kept; another session's transcript and verdicts that would detach are asked about first. |
+| `pick-conversation.test.js` | `Lens.pickConversation`: a session made from one conversation of a claude.ai export is parsed again from that conversation, whatever its place or title, also after segmentation; **Back to regex parsing** keeps it (until 0.1.115 it took the first one). |
 | `rules-filter.test.js` | **Show checks for** on the Rules tab: the Sessions tab's profile by default, its checks plus the spec and model ones, no empty groups; a picked profile and All profiles are saved; an override of a hidden check stays. |
 | `xss.test.js` | A markup payload in every stored string (transcript, model answer, imported file) renders as text: no new element, no `on*` attribute. Mutation tests remove one `esc()` call from `app.js` and check that the test notices. |
 

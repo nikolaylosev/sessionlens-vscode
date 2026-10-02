@@ -1103,6 +1103,19 @@
     }
     return n / a.length;
   }
+  /* The steps of the conversation in `parsed` (what importAny returned) that a stored session was made from: a file
+     of several conversations (a claude.ai export) is kept whole as source_text by each session made from it. Picked
+     by content: titles repeat, and segmentation leaves the compared fields alone. null when the file has no steps. */
+  function pickConversation(stored, parsed) {
+    const convs = Array.isArray(parsed) && parsed.length && parsed[0].events ? parsed.map((c) => c.events) : [parsed || []];
+    let best = null,
+      score = -1;
+    for (const ev of convs) {
+      const m = transcriptMatch(stored, ev);
+      if (ev.length && m > score) [best, score] = [ev, m];
+    }
+    return best;
+  }
 
   // ---------- timeline helpers ----------
   const planSeq = (ev, cfg) => {
@@ -2294,6 +2307,7 @@
     IMPORT_GEN,
     needsReimport,
     transcriptMatch,
+    pickConversation,
     runChecks,
     calibrate,
     isCalibrated: (check, source) => calibrated({ check, source }),
