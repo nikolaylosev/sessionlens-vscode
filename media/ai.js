@@ -539,6 +539,12 @@ If you find nothing, reply exactly: []`;
     provider: (s && s.provider) || "anthropic",
     model: (s && s.model) || (PROVIDERS[(s && s.provider) || "anthropic"] || {}).defaultModel || "",
   });
+  /* "provider/model" of a request, kept on the model's findings (0.1.115): model on what the review found, verifier
+     on what a verification kept or dropped. A CLI without a model of its own is "claude-cli/default". */
+  const modelLabel = (s) => {
+    const u = used(s);
+    return `${u.provider}/${u.model || "default"}`;
+  };
   // a provider that needs no API key: a local server, or the Claude Code CLI that is signed in by itself
   const keyless = (name) => {
     const p = PROVIDERS[name] || {};
@@ -830,7 +836,8 @@ with real newline characters.`;
       return candidates.some((x) => materials.includes(x.slice(0, 80)));
     };
     const kept = [],
-      dropped = [];
+      dropped = [],
+      verifier = modelLabel(settings);
     findings.forEach((f, i) => {
       const v = arr.find((x) => x && x.i === i);
       if (!v) {
@@ -839,13 +846,13 @@ with real newline characters.`;
       }
       const grounded = isGrounded(v.evidence || "");
       if (v.keep && grounded) {
-        kept.push({ ...f, verified: true, evidence: v.evidence });
+        kept.push({ ...f, verified: true, evidence: v.evidence, verifier });
         return;
       }
       // a kept-but-ungrounded finding is dropped for that reason, not for the model's own rationale
       // "duplicate of a formal finding" is the verifier working as intended, not a defect worth reading
       const dup = !v.keep && /duplicate of (?:the )?formal finding|дубл/i.test(String(v.why || ""));
-      dropped.push({ ...f, why: v.keep ? T("not_grounded") : v.why || T("not_proven"), model_why: v.why || "", duplicate: dup });
+      dropped.push({ ...f, why: v.keep ? T("not_grounded") : v.why || T("not_proven"), model_why: v.why || "", duplicate: dup, verifier });
     });
     return { kept, dropped, raw: rawV };
   }
@@ -887,6 +894,7 @@ with real newline characters.`;
     const reqText = `${T("req_review", used(settings))}\n--- system ---\n${p.system}\n\n--- user ---\n${p.user}`;
     if ((PROVIDERS[settings.provider] || {}).local) {
       const r = await reviewChunked(session, settings, fetchImpl);
+      for (const f of r.findings) f.model = modelLabel(settings);
       const raw1 = `${T("req_review", used(settings))} (${T("review_per_file", { n: r.files })})\n--- system ---\n${pick("review_local", LOCAL_FILE_SYSTEM)}\n\n${T("resp")}\n${r.exchanges.join("\n\n")}`;
       if (settings.verify === false) return { findings: r.findings, dropped: [], raw: raw1, truncated: p.truncated };
       const v = await verify(session, r.findings, routed, fetchImpl);
@@ -906,6 +914,7 @@ with real newline characters.`;
       e.raw = reqText + "\n\n" + T("resp") + "\n" + text;
       throw e;
     }
+    for (const f of candidates) f.model = modelLabel(settings);
     const raw1 = reqText + "\n\n" + T("resp") + "\n" + text;
     if (settings.verify === false)
       return { findings: candidates, dropped: [], raw: raw1, truncated: p.truncated, repaired: /** @type {any} */ (candidates).repaired };
@@ -923,6 +932,7 @@ with real newline characters.`;
   return {
     keyless,
     used,
+    modelLabel,
     settingsFor,
     missingKey,
     hasKey,

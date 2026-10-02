@@ -276,6 +276,9 @@ export function initCalibration() {
 }
 
 // ---------- export ----------
+// which model found a model finding, and which one verified it (0.1.115); nothing for the other sources
+const modelOf = (f) => Object.assign({}, f.model ? { model: f.model } : {}, f.verifier ? { verifier: f.verifier } : {});
+
 export function reportObj(s) {
   return {
     schema: "sessionlens/finding@1",
@@ -293,6 +296,7 @@ export function reportObj(s) {
       message: f.message,
       evidence: f.evidence || null,
       source: f.source || "formal",
+      ...modelOf(f),
       verdict: s.verdicts[fkey(f)] || null,
     })),
     dropped: s.dropped || [],
@@ -708,6 +712,7 @@ export async function exportVerdicts() {
             seq: f.seq,
             message: f.message,
             source: f.source || "formal",
+            ...modelOf(f),
             verdict: vd.v,
             note: vd.note,
             at: vd.at,

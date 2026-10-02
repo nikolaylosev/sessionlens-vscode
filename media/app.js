@@ -394,6 +394,7 @@
       ev.target.value = "";
     });
   }
+  var modelOf = (f) => Object.assign({}, f.model ? { model: f.model } : {}, f.verifier ? { verifier: f.verifier } : {});
   function reportObj(s) {
     return {
       schema: "sessionlens/finding@1",
@@ -411,6 +412,7 @@
         message: f.message,
         evidence: f.evidence || null,
         source: f.source || "formal",
+        ...modelOf(f),
         verdict: s.verdicts[fkey(f)] || null
       })),
       dropped: s.dropped || []
@@ -757,6 +759,7 @@ ${en.raw}`).join("\n\n\n");
               seq: f.seq,
               message: f.message,
               source: f.source || "formal",
+              ...modelOf(f),
               verdict: vd.v,
               note: vd.note,
               at: vd.at

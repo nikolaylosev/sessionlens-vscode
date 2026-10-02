@@ -489,7 +489,9 @@ sequenceDiagram
   server, and the user's **Claude Code** or **Codex** subscription through their CLI.
 - **Tasks** (`TASKS`): `segment`, `review`, `verify`, `compress`, `skill`; each may use its own model.
 - **Review** sends the session (chunked when large) and asks for findings in the same schema as the checks;
-  **verify** asks a second call to keep only findings it can support with evidence (on by default).
+  **verify** asks a second call to keep only findings it can support with evidence (on by default). Since 0.1.115
+  each model finding records `model` and, once verified, `verifier` (`provider/model`, `LensAI.modelLabel()`); the
+  report and `verdicts.json` export them, for precision per model later.
 - **Pacing:** a queue with a minimum gap between requests and retries on HTTP 429 (`sessionlens.minGapMs`).
 - **Model rules** tab: the prompts of each task are editable and exportable.
 - **CLI safety:** `claude -p` runs with no tools, no MCP, no slash commands, in an empty temp folder, without
