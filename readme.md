@@ -120,7 +120,7 @@ Learning from your verdicts.
 
 ### Rules
 
-![The Rules tab: the rule book, with every check grouped and exportable as rules.json](media/screenshots/rules.png)
+![The Rules tab: Show checks for qa-ts, and the Code group open with each check's severity, on/off, rule and good example](media/screenshots/rules.png)
 
 The rule book. See [the next section](#rules-the-rule-book).
 
