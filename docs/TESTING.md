@@ -147,6 +147,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `calibration-ui.test.js` | The Calibration table per check and source, "on by hand" and the ⓘ mark on the Rules tab, the source in a session's line of disabled checks. |
 | `demo-session.test.js` | "Try a demo session": the demo transcript has no real data; the button imports it with its name, profile and spec; the findings the readme, screenshots and GIF show; a second click opens the same session; the demo is left out of calibration; the setting that hides the button. |
 | `reimport.test.js` | **Import again**: which sessions show it (`Lens.needsReimport`), `Lens.transcriptMatch`; the same session gets the new findings and keeps its name, spec and verdicts; the file is picked again when no text was kept; another session's transcript and verdicts that would detach are asked about first. |
+| `rules-filter.test.js` | **Show checks for** on the Rules tab: the Sessions tab's profile by default, its checks plus the spec and model ones, no empty groups; a picked profile and All profiles are saved; an override of a hidden check stays. |
 | `xss.test.js` | A markup payload in every stored string (transcript, model answer, imported file) renders as text: no new element, no `on*` attribute. Mutation tests remove one `esc()` call from `app.js` and check that the test notices. |
 
 ### 4.3 The host and the message boundary (fake `vscode`)

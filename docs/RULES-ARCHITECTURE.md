@@ -633,6 +633,10 @@ function renderRules() {
 }
 ```
 
+- **Show checks for** (since 0.1.114): `rulesProfile()` is `settings.rulesProfile`, or the Sessions tab's profile
+  until one is picked here; `""` is all profiles. `profileChecks(p)` is what `Lens.profileInfo(p)` lists plus the
+  `spec` and `ai` groups, which every profile has. A group with no check left is not drawn. Only a view: the overrides,
+  `rules.json` and **Reset** cover every check.
 - The list of groups and their order come from `GROUPS_ORDER`; the label is always
   `g_<id>` in `i18n.js`. A new group is added to the registry and to the dictionary;
   the consistency test checks that `g_<id>` exists.

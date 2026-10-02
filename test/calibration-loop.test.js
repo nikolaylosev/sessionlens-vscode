@@ -57,7 +57,8 @@ async function threeRulesEdits(s, check, { lint }) {
   const host = bootHost({
     globalState: {
       sessions: { [s.id]: s },
-      settings: { profile: s.profile, lint, rulesTarget: "claude", modelPool: [], defaultModelId: null },
+      // rulesProfile "": the Rules tab shows every check (0.1.114), so it can switch checks the profile does not have
+      settings: { profile: s.profile, lint, rulesTarget: "claude", modelPool: [], defaultModelId: null, rulesProfile: "" },
       ruleOverrides: {},
     },
   });

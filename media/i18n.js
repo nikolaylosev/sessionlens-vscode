@@ -366,6 +366,10 @@
       rules_import: "Import rules.json",
       rules_reset: "Reset to defaults",
       rules_reset_confirm: "Discard all rule edits?",
+      rules_for: "Show checks for",
+      rules_for_all: "All profiles",
+      rules_shown:
+        "{n} of {all} checks: what {p} can report, and the specification and model checks of every profile. A rule you change applies in every profile that has the check.",
       rules_on: "on",
       rules_edited: "edited",
       rules_text_ph: "the rule as the agent should read it",
