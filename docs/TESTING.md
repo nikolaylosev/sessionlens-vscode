@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.114 `npm test` runs 245 tests in 35 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.114 `npm test` runs 252 tests in 36 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
