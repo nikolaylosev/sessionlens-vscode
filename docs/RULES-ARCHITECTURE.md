@@ -95,6 +95,8 @@ A finding is a flat object. The general shape (the union of all sources):
   rule: "detox/no-hardcoded-wait", // only for source==="lint": the engine's original rule id
   line: 7,                          // only for source==="lint": the line number
   code: "  5  ...\n  6  ▸...\n  7  ...", // only for regex checks with context (not all of them)
+  model: "anthropic/claude-sonnet-5", // only for source==="ai", since v0.1.115: the review's provider/model
+  verifier: "google/gemini-3.1-flash-lite", // only for source==="ai" after a verification call (kept or dropped)
 }
 ```
 

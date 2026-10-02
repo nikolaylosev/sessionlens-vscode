@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.115
+
+### Added
+- A model finding records which model found it and, after the verification call, which model verified it, as
+  `provider/model` (for example `anthropic/claude-sonnet-5`, or `claudecli/sonnet` for the Claude Code subscription).
+  **Report .json** and **verdicts.json** carry them as `model` and `verifier`. Findings the model made before this
+  version have neither. A later version will use them to show the precision of each model.
+
 ## 0.1.114
 
 ### Added

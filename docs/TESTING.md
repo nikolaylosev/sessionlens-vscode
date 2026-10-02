@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.114**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.115**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.114 `npm test` runs 252 tests in 36 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.115 `npm test` runs 256 tests in 37 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -165,6 +165,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `vscode-integration.test.js` | `package.json` contributions and `package.nls.json`; English host strings whatever the VS Code language; the five settings in VS Code Settings (overlay, write, migration, outside changes); the Sessions tree and its commands; palette commands; the `page:ready` channel; the Output channel never logs transcript text or prompts. |
 | `bridge-timeout.test.js` | `vscode-bridge.js` gives up on a reply after a limit per message type and resolves with `bridge-timeout`; dialogs and local model servers have no limit; the limits match the host's. |
 | `ai-transport.test.js` | `ai.js` in the VS Code build: model requests go through the host transport, the payload carries no key, 429 retries, `no_key`, CLI providers never use HTTP. |
+| `model-in-findings.test.js` | A model finding records `model` from the review's route and `verifier` from the verification's (also on Verify again); `LensAI.modelLabel`; Report .json and verdicts.json carry both for model findings only. |
 
 ### 4.4 Repository and release
 
