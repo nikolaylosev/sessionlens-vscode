@@ -8,6 +8,11 @@
   **Report .json** and **verdicts.json** carry them as `model` and `verifier`. Findings the model made before this
   version have neither. A later version will use them to show the precision of each model.
 
+### Fixed
+- **Back to regex parsing** on a session made from a claude.ai export with several conversations replaced the
+  session's steps with the first conversation of the file. It now parses the session's own conversation again. A
+  session this already happened to has the first conversation's steps; import that conversation again to get it back.
+
 ## 0.1.114
 
 ### Added

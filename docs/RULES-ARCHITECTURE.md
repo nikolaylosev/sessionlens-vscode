@@ -1304,7 +1304,8 @@ What the import keeps for them:
   none for an import before 0.1.114). `Lens.needsReimport(s)` is true for a session without it that wrote or edited
   a test file or a runner config and has no `prev_content` and no `delete` event; the session's tab then shows
   **Import again** (`reimport()` in `src/webview/review.js`). It parses `source_text`, or a file picked again when
-  the transcript was too large to keep (400 KB), into the same session: id, name, spec and verdicts stay, `events`
+  the transcript was too large to keep (400 KB), into the same session (`Lens.pickConversation()` takes the session's
+  own conversation of a file with several; "Back to regex parsing" uses it too since 0.1.115): id, name, spec and verdicts stay, `events`
   are replaced, the model's segmentation is dropped. `Lens.transcriptMatch()` (the share of the stored steps the new
   import repeats, in order) below 0.8 asks first; so do verdicts that would no longer match a finding, since a verdict
   is keyed by `seq` and a Codex `delete` event shifts the steps after it. A session imported with 0.1.113 that only
