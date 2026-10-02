@@ -204,7 +204,7 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `user_frustration` | Medium | The user corrected the agent or repeated a request |
 | `product_code_edited` | High | The agent changed product code (a file in the profile's source folders) in a testing task. High right after a failing run, medium otherwise. Tests, fixtures, page objects, mocks, a runner's config and a file named in the approved plan do not count |
 | `snapshot_overwritten` | High | Snapshots were rewritten instead of read: a run with `-u`, `--update-snapshots`, `--snapshot-update` or `UPDATE_SNAPSHOTS=1`, or a snapshot or baseline file (`__snapshots__`, `*.snap`, `*-snapshots/`, `*.approved.*`, `*.verified.*`) written by hand. High right after a failing run, medium otherwise |
-| `config_weakened` | High | The test runner's config was loosened compared with its previous version: more retries, a longer timeout, or tests excluded (`testIgnore`, `testPathIgnorePatterns`, `--deselect` …). High right after a failing run, medium otherwise. A config written for the first time counts only for its retries |
+| `config_weakened` | High | The test runner's config was loosened compared with its previous version: more retries, a longer timeout, tests excluded (`testIgnore`, `testPathIgnorePatterns`, `--deselect`, surefire `<excludes>`, Gradle `excludeTestsMatching`, `TestCaseFilter` …) or failures ignored (`testFailureIgnore`, `skipTests`, `ignoreFailures`). Reads JS/TS configs, pytest's files, Maven's surefire and failsafe, Gradle's test tasks and `.runsettings`. High right after a failing run, medium otherwise. A config written for the first time counts only for its retries |
 
 **Code**
 

@@ -1272,7 +1272,7 @@ high and adds "right after a failing run (seq N)" to the message), `TEST_FILE_RX
 | `test_deleted` | code | the tests (`blocksByTest`) of two consecutive versions of a file the session saw; `rm`/`git rm`/`unlink`/`del`/`Remove-Item` of a test file or folder; a `delete` event | a test renamed with the same body, moved to another file, or restored later; `rm` of files that are not tests; a file first seen as an edit fragment |
 | `product_code_edited` | process | a write or an edit of a file in the profile's `src_dirs` (anywhere in the path: Claude Code started in a parent folder writes `shop/src/…`) | test-side code inside `src`, a runner config, a file named in the approved plan |
 | `snapshot_overwritten` | process | a test run with an update flag after the runner (`jest -u`, `--update-snapshots`, `--snapshot-update`, `UPDATE_SNAPSHOTS=1`); a snapshot or baseline file written by hand | `-u` of another command (`env -u`, `git push -u`), a runner named in a heredoc or a string |
-| `config_weakened` | process | a runner config with its previous text: more retries, a longer timeout (each in source order), a new line excluding tests | a shorter timeout, an unrelated change; a config seen for the first time counts only for its retries |
+| `config_weakened` | process | a runner config with its previous text: more retries, a longer timeout (each in source order), a new line excluding tests, a new line ignoring failures or skipping the tests (since 0.1.114: `testFailureIgnore`, `skipTests`, `ignoreFailures`) | a shorter timeout, an unrelated change; a config seen for the first time counts only for its retries; in a `pom.xml` anything outside the surefire and failsafe plugins and `<properties>`, in a Gradle script anything outside the blocks of test tasks |
 
 What the import keeps for them:
 
@@ -1280,13 +1280,15 @@ What the import keeps for them:
   `{ kind: "delete", file }`; until 0.1.113 it was dropped. Claude Code has no delete tool: there a deletion is a
   shell command, read by `test_deleted` itself.
 - **`prev_content`.** For a runner config (`isRunnerConfig()`: `*.config.*`, `*.conf.*`, `.detoxrc*`, `.mocharc*`,
-  `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`) and a test file (`isTestFile()`: `TEST_FILE_RX` or one of
-  the profile's `test_dirs` anywhere in the path) the import keeps the file's previous text on the write or edit
-  event, from its own replay or from `toolUseResult.originalFile`. So the first edit of a file that existed before
-  the session is compared too: a config in the demo, a failing test someone else wrote and the agent cut out. The
-  event may still be `fragment_only` (the Edit started as a fragment); `prev_content` wins over that flag.
-- **`config_content`.** `stripNonSource()` drops the text of files that are not code. For the four Python configs it
-  moves `new_content` to `config_content` instead: `config_weakened` reads it, the code checks do not
+  `pytest.ini`, `tox.ini`, `setup.cfg`, `pyproject.toml`, and since 0.1.114 `pom.xml`, `build.gradle(.kts)`,
+  `*.runsettings`) and a test file (`isTestFile()`: `TEST_FILE_RX` or one of the profile's `test_dirs` anywhere in the
+  path) the import keeps the file's previous text on the write or edit event, from its own replay or from
+  `toolUseResult.originalFile`. So the first edit of a file that existed before the session is compared too: a config
+  in the demo, a failing test someone else wrote and the agent cut out. The event may still be `fragment_only` (the
+  Edit started as a fragment); `prev_content` wins over that flag.
+- **`config_content`.** `stripNonSource()` drops the text of files that are not code. For the runner configs that are
+  not code (`TEXT_RUNNER_CONFIG_RX`: the four Python files, and since 0.1.114 `pom.xml`, `build.gradle(.kts)` and
+  `*.runsettings`; `config_weakened` is in qa-java and qa-c# since then) it moves `new_content` to `config_content` instead: `config_weakened` reads it, the code checks do not
   (`xfail_strict = true` must not be an expected failure).
 - **Stored sessions.** `test_deleted` and `product_code_edited` read what every stored session already has
   (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first

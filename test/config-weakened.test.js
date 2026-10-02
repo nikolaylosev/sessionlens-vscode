@@ -122,3 +122,148 @@ test("not loosened: shorter timeouts, fewer retries, an unrelated change; retrie
   assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", onTest]]), []);
   assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", onTest]], "sleep_or_skip_added"), ["high: e2e/cart.spec.ts: skip / retry added"]);
 });
+
+/* 0.1.114: Maven (surefire, failsafe), Gradle and .runsettings. Only the parts about tests are read: other plugins of a
+   pom.xml and other blocks of a Gradle script (jar, dependencies) have their own excludes and skips. */
+const POM = `<project>
+  <properties>
+    <java.version>17</java.version>
+  </properties>
+  <build><plugins>
+    <plugin>
+      <groupId>org.jacoco</groupId>
+      <artifactId>jacoco-maven-plugin</artifactId>
+      <configuration><excludes><exclude>**/dto/**</exclude></excludes><skip>false</skip></configuration>
+    </plugin>
+    <plugin>
+      <artifactId>maven-surefire-plugin</artifactId>
+      <configuration>
+        <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
+      </configuration>
+    </plugin>
+  </plugins></build>
+</project>
+`;
+const GRADLE = "plugins { id 'java' }\njar {\n  exclude 'META-INF/*.SF'\n}\ntest {\n  useJUnitPlatform()\n}\n";
+const RUNSETTINGS = "<RunSettings>\n  <RunConfiguration>\n    <TestSessionTimeout>60000</TestSessionTimeout>\n  </RunConfiguration>\n</RunSettings>\n";
+
+test("Maven: surefire retries, timeout, excludes and testFailureIgnore; skipTests in the properties", () => {
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", "pom.xml", POM],
+      ["bash", "mvn test", "Tests run: 3, Failures: 1, Errors: 0, Skipped: 0"],
+      [
+        "edit",
+        "pom.xml",
+        "        <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>",
+        "        <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>\n        <rerunFailingTestsCount>2</rerunFailingTestsCount>\n" +
+          "        <testFailureIgnore>true</testFailureIgnore>\n        <excludes>\n          <exclude>**/CheckoutIT.java</exclude>\n        </excludes>",
+      ],
+    ]),
+    [
+      "high: pom.xml: test config loosened — retries 0 → 2; forkedProcessTimeoutInSeconds 300 → 900; " +
+        "tests excluded “<exclude>**/CheckoutIT.java</exclude>”; failures ignored or tests skipped “<testFailureIgnore>true</testFailureIgnore>” " +
+        "— right after a failing run (seq 2)",
+    ],
+  );
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", "pom.xml", POM],
+      ["edit", "pom.xml", "<java.version>17</java.version>", "<java.version>17</java.version>\n    <skipTests>true</skipTests>"],
+    ]),
+    ["medium: pom.xml: test config loosened — failures ignored or tests skipped “<skipTests>true</skipTests>”"],
+  );
+  assert.deepEqual(
+    found("qa-java", [
+      [
+        "write",
+        "pom.xml",
+        POM.replace("<forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>", "<rerunFailingTestsCount>2</rerunFailingTestsCount>"),
+      ],
+    ]),
+    ["medium: pom.xml: test config loosened — retries 2"],
+    "a pom.xml seen for the first time: only its retries count",
+  );
+  assert.deepEqual(found("qa-java", [["write", "pom.xml", POM]], "weak_assert"), [], "pom.xml is not code");
+});
+
+test("Gradle (Groovy and Kotlin): test-retry, excluded tests and tags, ignoreFailures", () => {
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", "build.gradle", GRADLE],
+      ["bash", "./gradlew test", "Tests run: 3, Failures: 1, Errors: 0, Skipped: 0"],
+      ["edit", "build.gradle", "  useJUnitPlatform()\n}", "  useJUnitPlatform { excludeTags 'slow' }\n  ignoreFailures = true\n  retry { maxRetries = 3 }\n}"],
+    ]),
+    [
+      "high: build.gradle: test config loosened — retries 0 → 3; tests excluded “useJUnitPlatform { excludeTags 'slow' }”; " +
+        "failures ignored or tests skipped “ignoreFailures = true” — right after a failing run (seq 2)",
+    ],
+  );
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", "build.gradle.kts", "tasks.withType<Test> {\n    useJUnitPlatform()\n}\n"],
+      [
+        "edit",
+        "build.gradle.kts",
+        "    useJUnitPlatform()",
+        '    useJUnitPlatform()\n    filter { excludeTestsMatching("*CheckoutTest") }\n    retry { maxRetries.set(2) }',
+      ],
+    ]),
+    ['medium: build.gradle.kts: test config loosened — retries 0 → 2; tests excluded “filter { excludeTestsMatching("*CheckoutTest") }”'],
+  );
+});
+
+test(".runsettings: a longer session timeout and a test case filter", () => {
+  assert.deepEqual(
+    found("qa-c#", [
+      ["write", "tests/test.runsettings", RUNSETTINGS],
+      ["bash", "dotnet test", "Failed!  - Failed:     1, Passed:     4, Skipped:     0, Total:     5"],
+      [
+        "edit",
+        "tests/test.runsettings",
+        "    <TestSessionTimeout>60000</TestSessionTimeout>",
+        "    <TestSessionTimeout>600000</TestSessionTimeout>\n    <TestCaseFilter>Category!=Flaky</TestCaseFilter>",
+      ],
+    ]),
+    [
+      "high: tests/test.runsettings: test config loosened — TestSessionTimeout 60000 → 600000; " +
+        "tests excluded “<TestCaseFilter>Category!=Flaky</TestCaseFilter>” — right after a failing run (seq 2)",
+    ],
+  );
+});
+
+test("Maven, Gradle, .runsettings not loosened: other plugins and blocks, a shorter timeout", () => {
+  const none = (profile, steps, why) => assert.deepEqual(found(profile, steps), [], why);
+  none(
+    "qa-java",
+    [
+      ["write", "pom.xml", POM],
+      ["edit", "pom.xml", "<exclude>**/dto/**</exclude><skip>false</skip>", "<exclude>**/dto/**</exclude><exclude>**/config/**</exclude><skip>true</skip>"],
+    ],
+    "jacoco's excludes and skip",
+  );
+  none(
+    "qa-java",
+    [
+      ["write", "build.gradle", GRADLE],
+      ["edit", "build.gradle", "  exclude 'META-INF/*.SF'", "  exclude 'META-INF/*.SF'\n  exclude 'META-INF/*.RSA'"],
+    ],
+    "an exclude in the jar block",
+  );
+  none(
+    "qa-java",
+    [
+      ["write", "pom.xml", POM],
+      ["edit", "pom.xml", "<forkedProcessTimeoutInSeconds>300<", "<forkedProcessTimeoutInSeconds>120<"],
+    ],
+    "a shorter timeout",
+  );
+  none(
+    "qa-c#",
+    [
+      ["write", "tests/test.runsettings", RUNSETTINGS],
+      ["edit", "tests/test.runsettings", "60000", "30000"],
+    ],
+    "a shorter timeout",
+  );
+});

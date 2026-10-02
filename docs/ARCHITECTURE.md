@@ -336,8 +336,8 @@ Key points:
 
 - **Event.** One step of the transcript. `new_content` is the whole file as it stands after a write or an edit (a
   fragment only when the file was never seen whole: `fragment_only`). `prev_content` is the file as it was, kept for
-  runner configs and test files so a first edit can be compared. `config_content` is the text of a Python runner
-  config (`pytest.ini`…), kept away from the code checks.
+  runner configs and test files so a first edit can be compared. `config_content` is the text of a runner config
+  that is not code (`pytest.ini`, `pom.xml`, `build.gradle`, `.runsettings`…), kept away from the code checks.
 - **Finding.** `check` is the one key of the rules system (RA §1). `source` says which track made it; calibration
   is per check and source. `kind` is set on regex findings of the checks an engine may replace (RA §6.3).
 - **Verdict key** is `check@seq@first 40 characters of the message`. Renaming a check or changing a message text
@@ -650,6 +650,5 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **Stored sessions** keep the events they were imported with: findings that need `prev_content` or a Codex
   `delete` event appear only after the transcript is imported again (**Import again** in the session's tab, since
   0.1.114).
-- **Java and C# runner configs** (`pom.xml` surefire retries, `.runsettings`) are not read by `config_weakened`.
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **English UI only** (decided in 0.1.110); Russian stays only in the recognition patterns.

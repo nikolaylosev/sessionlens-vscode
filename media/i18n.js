@@ -34,6 +34,7 @@
       cw_added: "{key} {to} added",
       cw_set: "{key} {to}",
       cw_excluded: "tests excluded “{line}”",
+      cw_ignored: "failures ignored or tests skipped “{line}”",
       assumption: "Assumption instead of a question: “{snippet}”",
       no_plan: "Code written without a plan",
       no_approval: "Plan produced, but no stop and approval — straight to code",
