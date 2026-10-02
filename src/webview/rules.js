@@ -3,7 +3,7 @@
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
 import { $, SEV, T, esc, save, saveKeys, srcLabel, state } from "./common.js";
 import { calibStatsBySource, onGenChanged } from "./store.js";
-import { readFile } from "./sessions.js";
+import { piDeps, readFile } from "./sessions.js";
 import { download } from "./calibration.js";
 
 // set in initRules(), in the order the single app.js ran its statements
@@ -39,6 +39,11 @@ export function initRules() {
       });
     ev.target.value = "";
   });
+  $("#rules-profile").addEventListener("change", async (e) => {
+    state.settings.rulesProfile = e.target.value; // "" = all profiles
+    renderRules();
+    await save();
+  });
   $("#rules-reset").addEventListener("click", async () => {
     if (!(await confirmDialog(T("rules_reset_confirm")))) return;
     state.ruleOverrides = {};
@@ -47,9 +52,31 @@ export function initRules() {
   });
 }
 
+/* 0.1.114: the profile whose checks the Rules tab shows; "" for all of them. Until one is picked here, the profile of
+   the Sessions tab. Only a view: overrides, export and reset cover every check as before. */
+export function rulesProfile() {
+  const p = state.settings.rulesProfile;
+  if (p === "" || Lens.PROFILES.includes(p)) return p;
+  return Lens.PROFILES.includes(state.settings.profile) ? state.settings.profile : "";
+}
+/* what a profile can report (Lens.profileInfo), and the specification and model checks, which every profile has:
+   they follow a specification and a model review, not the profile */
+export function profileChecks(p) {
+  const own = Lens.profileInfo(p, piDeps(p)).groups.flatMap((g) => g.checks.map((c) => c.name));
+  const anyProfile = Object.keys(LensChecks.CHECKS).filter((c) => ["spec", "ai"].includes(LensChecks.CHECKS[c].group));
+  return new Set([...own, ...anyProfile]);
+}
+
 // ---------- rules ----------
 export function renderRules() {
-  const book = LensRules.book(state.ruleOverrides);
+  const all = LensRules.book(state.ruleOverrides);
+  const prof = rulesProfile();
+  const shown = prof ? profileChecks(prof) : null;
+  const book = shown ? all.filter((r) => shown.has(r.check)) : all;
+  $("#rules-profile").innerHTML =
+    `<option value="" ${prof ? "" : "selected"}>${esc(T("rules_for_all"))}</option>` +
+    Lens.PROFILES.map((p) => `<option value="${esc(p)}" ${p === prof ? "selected" : ""}>${esc(p)}</option>`).join("");
+  $("#rules-shown").textContent = shown ? T("rules_shown", { n: book.length, all: all.length, p: prof }) : "";
   // Group order and ids come from the registry (media/checks.js); the label is always g_<id>.
   const groups = Object.fromEntries(LensChecks.GROUPS_ORDER.map((g) => [g, T("g_" + g)]));
   // Calibration demotes a check's findings to low and apply() then ignores a manual severity for them —
@@ -76,6 +103,7 @@ export function renderRules() {
   $("#rules-list").innerHTML = Object.entries(groups)
     .map(([g, label]) => {
       const rows = book.filter((r) => r.group === g);
+      if (!rows.length) return ""; // a group the profile has no check of (api, mobile, robot)
       const isOpen = openMap[g] === true;
       return (
         `<details class="sec-d" data-group="${esc(g)}" ${isOpen ? "open" : ""}><summary class="h2">${esc(label)}</summary>` +

@@ -159,6 +159,8 @@ Only the instruction part is editable. The specification, code and transcript ar
 
 The **Rules** tab lists every check SessionLens can raise, with the rule an agent should follow to avoid it. The same rules are what the Calibration tab proposes for `CLAUDE.md`/`AGENTS.md`, so this tab is where you make them sound like your team.
 
+**Show checks for** picks whose checks the list shows: by default the profile chosen on the Sessions tab, or **All profiles**. A profile's list has what it can report plus the specification and model checks, which every profile has. It only changes the view: a rule you edit applies in every profile that has the check, and export and **Reset** cover all of them.
+
 ### What you can change
 
 For each check you can edit four things:

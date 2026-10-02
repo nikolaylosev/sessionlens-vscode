@@ -855,6 +855,11 @@ ${en.raw}`).join("\n\n\n");
         });
       ev.target.value = "";
     });
+    $("#rules-profile").addEventListener("change", async (e) => {
+      state.settings.rulesProfile = e.target.value;
+      renderRules();
+      await save();
+    });
     $("#rules-reset").addEventListener("click", async () => {
       if (!await confirmDialog(T("rules_reset_confirm"))) return;
       state.ruleOverrides = {};
@@ -862,8 +867,23 @@ ${en.raw}`).join("\n\n\n");
       renderRules();
     });
   }
+  function rulesProfile() {
+    const p = state.settings.rulesProfile;
+    if (p === "" || Lens.PROFILES.includes(p)) return p;
+    return Lens.PROFILES.includes(state.settings.profile) ? state.settings.profile : "";
+  }
+  function profileChecks(p) {
+    const own = Lens.profileInfo(p, piDeps(p)).groups.flatMap((g) => g.checks.map((c) => c.name));
+    const anyProfile = Object.keys(LensChecks.CHECKS).filter((c) => ["spec", "ai"].includes(LensChecks.CHECKS[c].group));
+    return /* @__PURE__ */ new Set([...own, ...anyProfile]);
+  }
   function renderRules() {
-    const book = LensRules.book(state.ruleOverrides);
+    const all = LensRules.book(state.ruleOverrides);
+    const prof = rulesProfile();
+    const shown = prof ? profileChecks(prof) : null;
+    const book = shown ? all.filter((r) => shown.has(r.check)) : all;
+    $("#rules-profile").innerHTML = `<option value="" ${prof ? "" : "selected"}>${esc(T("rules_for_all"))}</option>` + Lens.PROFILES.map((p) => `<option value="${esc(p)}" ${p === prof ? "selected" : ""}>${esc(p)}</option>`).join("");
+    $("#rules-shown").textContent = shown ? T("rules_shown", { n: book.length, all: all.length, p: prof }) : "";
     const groups = Object.fromEntries(LensChecks.GROUPS_ORDER.map((g) => [g, T("g_" + g)]));
     const calib = calibStatsBySource();
     const levels = (check) => Object.entries(calib[check] || {}).filter(([src]) => Lens.isCalibrated(check, src)).map(([src, st]) => Object.assign({ src }, Lens.calibLevel(st)));
@@ -879,6 +899,7 @@ ${en.raw}`).join("\n\n\n");
     const openMap = state.settings.ruleGroupsOpen || {};
     $("#rules-list").innerHTML = Object.entries(groups).map(([g, label]) => {
       const rows = book.filter((r) => r.group === g);
+      if (!rows.length) return "";
       const isOpen = openMap[g] === true;
       return `<details class="sec-d" data-group="${esc(g)}" ${isOpen ? "open" : ""}><summary class="h2">${esc(label)}</summary>` + rows.map(
         (r) => `<div class="rule-row ${r.enabled ? "" : "off"}" data-check="${esc(r.check)}">

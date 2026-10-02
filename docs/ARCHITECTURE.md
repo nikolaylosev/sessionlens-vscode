@@ -525,7 +525,8 @@ flowchart TD
 - **Calibration tab:** the precision table per check and source, the proposed rules, export and import of
   verdicts (`verdicts.json`), the calibration log (RA §5.2).
 - **Rules tab:** the rule book — wording, severity and on/off of every check, grouped like the registry; changes
-  re-analyze the sessions; the book exports and imports as a diff (`rules.json`, RA §4).
+  re-analyze the sessions; the book exports and imports as a diff (`rules.json`, RA §4). **Show checks for** narrows
+  the list to one profile's checks (a view only, since 0.1.114).
 - **Model rules tab:** the prompts of the model tasks.
 
 ### 6.10 Storage

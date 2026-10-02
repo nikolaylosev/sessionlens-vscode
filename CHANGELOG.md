@@ -15,6 +15,9 @@
   `TestSessionTimeout`), tests excluded (`<excludes>`, `excludeTestsMatching`, `excludeTags`, `TestCaseFilter`).
 - `config_weakened` also reports a config that lets the build pass whatever the tests do: `testFailureIgnore`,
   `skipTests` or `maven.test.skip` in Maven, `ignoreFailures = true` in Gradle.
+- **Show checks for** on the Rules tab: the list shows the checks of one profile (by default the one chosen on the
+  Sessions tab) with the specification and model checks, or of all profiles. Only the view changes: rules, export and
+  reset still cover every check.
 
 ## 0.1.113
 
