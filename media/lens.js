@@ -158,7 +158,7 @@
       test_runner_patterns: ["mvn test", "mvn verify", "gradle test", "gradlew"],
       src_dirs: ["src/main"],
       test_dirs: ["src/test"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "config_weakened"],
       sleep_patterns: [/\bThread\.sleep\s*\(\s*\d+/, /\bTimeUnit\.\w+\.sleep\s*\(/],
       skip_patterns: [/@Disabled/, /@Ignore\b/, /@Retry\b/],
       weak_assert_patterns: [/assertNotNull\s*\([^)]*\)\s*;/g, /assertTrue\s*\(\s*true\s*\)/g, /assertThat\s*\([^)]*\)\s*\.isNotNull\s*\(\)\s*;/g],
@@ -176,7 +176,7 @@
       test_runner_patterns: ["dotnet test"],
       src_dirs: ["src"],
       test_dirs: ["tests", "test"],
-      checks: [...METHOD, ...PROCESS, ...CODE],
+      checks: [...METHOD, ...PROCESS, ...CODE, "config_weakened"],
       sleep_patterns: [/\bThread\.Sleep\s*\(\s*\d+/, /\bTask\.Delay\s*\(\s*\d+/],
       skip_patterns: [
         /\[(?:[^\]\n]*,\s*)?Ignore\b/,
@@ -604,9 +604,10 @@
   const isCode = (f, cfg) => !!f && (!cfg.code_ext.length || cfg.code_ext.some((x) => f.endsWith(x)));
   // a test runner's config: playwright.config.ts, cypress.config.ts, wdio.conf.ts, .detoxrc.js, .mocharc.js…
   const RUNNER_CONFIG_RX = /(?:^|\/)(?:[^/]*\.(?:config|conf)\.[cm]?[jt]s|\.detoxrc[^/]*|\.mocharc[^/]*)$/i;
-  // pytest reads these; they are not code, so their text is kept apart (config_content), away from the code checks
-  const PY_RUNNER_CONFIG_RX = /(?:^|\/)(?:pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml)$/i;
-  const isRunnerConfig = (f) => !!f && (RUNNER_CONFIG_RX.test(f) || PY_RUNNER_CONFIG_RX.test(f));
+  /* runner configs that are not code: what pytest reads, Maven's pom.xml (surefire, failsafe), Gradle's build script
+     and a .NET .runsettings. Their text is kept apart (config_content), away from the code checks */
+  const TEXT_RUNNER_CONFIG_RX = /(?:^|\/)(?:pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|pom\.xml|build\.gradle(?:\.kts)?|[^/]*\.runsettings)$/i;
+  const isRunnerConfig = (f) => !!f && (RUNNER_CONFIG_RX.test(f) || TEXT_RUNNER_CONFIG_RX.test(f));
   // a test file: by its name, or in one of the profile's test folders (anywhere in the path)
   const isTestFile = (f, cfg) => isCode(f, cfg) && (TEST_FILE_RX.test(f) || (cfg.test_dirs || []).some((d) => ("/" + f).includes("/" + d + "/")));
   /* what a runner config or a test file was before this write or edit: config_weakened and test_deleted compare with
@@ -1048,7 +1049,7 @@
       if (/\.feature$/i.test(e.file)) continue;
       const ext = (cfg.code_ext || []).some((x) => e.file.endsWith(x));
       if (!ext && (NOT_SOURCE.test(e.file) || (cfg.code_ext || []).length)) {
-        if (PY_RUNNER_CONFIG_RX.test(e.file)) e.config_content = e.new_content;
+        if (TEXT_RUNNER_CONFIG_RX.test(e.file)) e.config_content = e.new_content;
         else delete e.prev_content;
         delete e.new_content;
         delete e.code_versions;
@@ -1458,27 +1459,65 @@
       }
       return out;
     },
-    /* A runner config loosened so that red turns green: more retries, a longer timeout, tests excluded. Compared with
-       what the file was before (prev_content from the import, or the session's previous version of it); a config seen
-       for the first time is reported only for retries, as before 0.1.113. High right after a red run. */
+    /* A runner config loosened so that red turns green: more retries, a longer timeout, tests excluded, failures
+       ignored. Compared with what the file was before (prev_content from the import, or the session's previous version
+       of it); a config seen for the first time is reported only for retries, as before 0.1.113. High right after a red
+       run. Since 0.1.114 also Maven (surefire, failsafe), Gradle and .runsettings. */
     config_weakened(ev) {
       const num = (x) => x.split("*").reduce((a, t) => a * Number(t.replace(/_/g, "").trim()), 1);
       const TIMEOUT =
         /\b(timeout|testTimeout|hookTimeout|actionTimeout|navigationTimeout|defaultCommandTimeout|pageLoadTimeout|requestTimeout|responseTimeout|execTimeout|taskTimeout)\s*[:=]\s*([\d_]+(?:\s*\*\s*[\d_]+)*)|--timeout[=\s]+(\d+)/g;
-      const RETRIES = /\bretries\s*[:=]\s*(?:\{[^}]*?\brunMode\s*:\s*)?(\d+)|--reruns[=\s]+(\d+)|\breruns\s*=\s*(\d+)/g;
+      // Maven surefire/failsafe and .runsettings (MSTest's TestTimeout inside it): <key>seconds or ms</key>
+      const XML_TIMEOUT =
+        /<(forkedProcessTimeoutInSeconds|forkedProcessExitTimeoutInSeconds|parallelTestsTimeoutInSeconds|TestSessionTimeout|TestTimeout)>\s*(\d+)\s*</g;
+      const RETRIES =
+        /\bretries\s*[:=]\s*(?:\{[^}]*?\brunMode\s*:\s*)?(\d+)|--reruns[=\s]+(\d+)|\breruns\s*=\s*(\d+)|<rerunFailingTestsCount>\s*(\d+)|\bmaxRetries\s*(?:=|\.set\(|\(\s*)\s*(\d+)/g;
       const EXCLUDE =
-        /\b(?:testIgnore|testPathIgnorePatterns|excludeSpecPattern|grepInvert|exclude)\s*[:=]|--ignore(?:-glob)?[=\s]|--deselect[=\s]|\s-k\s+["']?not\b/;
-      const read = (src) => {
-        const timeouts = {};
-        for (const m of src.matchAll(TIMEOUT)) (timeouts[m[1] || "timeout"] = timeouts[m[1] || "timeout"] || []).push(num(m[2] || m[3]));
-        const retries = [...src.matchAll(RETRIES)].map((m) => +(m[1] || m[2] || m[3]));
-        const excludes = new Set(
-          src
-            .split("\n")
-            .filter((l) => EXCLUDE.test(l) && !/^\s*(?:\/\/|#|\*)/.test(l))
-            .map((l) => l.trim()),
-        );
-        return { timeouts, retries: retries.length ? Math.max(...retries) : 0, excludes };
+        /\b(?:testIgnore|testPathIgnorePatterns|excludeSpecPattern|grepInvert|exclude)\s*[:=]|--ignore(?:-glob)?[=\s]|--deselect[=\s]|\s-k\s+["']?not\b|<(?:exclude|excludedGroups|excludes|TestCaseFilter)>\s*[^<\s]|\b(?:excludeTestsMatching|excludeTags|excludeCategories)\b|\bexclude\s*\(?\s*["']/;
+      // the build passes whatever the tests do, or skips them: Maven, Gradle
+      const IGNORE =
+        /<(?:testFailureIgnore|skipTests|skip|maven\.test\.skip|maven\.test\.failure\.ignore)>\s*true\s*<|\bignoreFailures\s*(?:=|\.set\()\s*true\b/;
+      /* the part of a build file about tests: in a pom.xml the surefire and failsafe plugins and <properties> (other
+         plugins have their own <exclude> and <skip>); in a Gradle script the blocks of the test tasks (a jar or a
+         dependency has its own exclude). Other configs are read whole. */
+      const scope = (src, file) => {
+        if (/(?:^|\/)pom\.xml$/i.test(file))
+          return [
+            ...src.matchAll(
+              /<plugin>(?:(?!<\/plugin>)[\s\S])*?<artifactId>\s*maven-(?:surefire|failsafe)-plugin\s*<\/artifactId>[\s\S]*?<\/plugin>|<properties>[\s\S]*?<\/properties>/g,
+            ),
+          ]
+            .map((m) => m[0])
+            .join("\n");
+        if (!/(?:^|\/)build\.gradle(?:\.kts)?$/i.test(file)) return src;
+        const parts = [];
+        for (const m of src.matchAll(/[^\n;{}]*\{/g)) {
+          if (!/\btest\b|\bTest\b|\b\w*[a-z]Test\b|\btest[A-Z]\w*/.test(m[0].slice(0, -1))) continue;
+          let depth = 0,
+            i = m.index + m[0].length - 1;
+          for (; i < src.length; i++) {
+            if (src[i] === "{") depth++;
+            else if (src[i] === "}" && --depth === 0) break;
+          }
+          parts.push(src.slice(m.index, i + 1));
+        }
+        return parts.join("\n");
+      };
+      const read = (whole, file) => {
+        const src = scope(whole, file),
+          timeouts = {};
+        const add = (k, v) => (timeouts[k] = timeouts[k] || []).push(v);
+        for (const m of src.matchAll(TIMEOUT)) add(m[1] || "timeout", num(m[2] || m[3]));
+        for (const m of src.matchAll(XML_TIMEOUT)) add(m[1], +m[2]);
+        const retries = [...src.matchAll(RETRIES)].map((m) => +(m[1] || m[2] || m[3] || m[4] || m[5]));
+        const lines = (rx) =>
+          new Set(
+            src
+              .split("\n")
+              .filter((l) => rx.test(l) && !/^\s*(?:\/\/|#|\*|<!--)/.test(l))
+              .map((l) => l.trim()),
+          );
+        return { timeouts, retries: retries.length ? Math.max(...retries) : 0, excludes: lines(EXCLUDE), ignores: lines(IGNORE) };
       };
       const out = [],
         last = {};
@@ -1489,12 +1528,12 @@
         // Edit that toolUseResult made whole); without it a fragment has nothing to compare with
         const prevSrc = e.prev_content ?? (e.fragment_only ? null : last[e.file]) ?? null;
         last[e.file] = src;
-        const now = read(src),
+        const now = read(src, e.file),
           what = [];
         if (prevSrc == null) {
           if (now.retries > 0) what.push(T("cw_set", { key: "retries", to: now.retries }));
         } else {
-          const was = read(prevSrc);
+          const was = read(prevSrc, e.file);
           if (now.retries > was.retries) what.push(T("cw_change", { key: "retries", from: was.retries, to: now.retries }));
           for (const [key, vals] of Object.entries(now.timeouts)) {
             const old = was.timeouts[key] || [];
@@ -1504,6 +1543,7 @@
             });
           }
           for (const l of now.excludes) if (!was.excludes.has(l)) what.push(T("cw_excluded", { line: l.slice(0, 80) }));
+          for (const l of now.ignores) if (!was.ignores.has(l)) what.push(T("cw_ignored", { line: l.slice(0, 80) }));
         }
         if (!what.length) continue;
         const r = redRunBefore(ev, e.seq);

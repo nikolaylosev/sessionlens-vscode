@@ -9,6 +9,12 @@
   verdicts. The transcript is taken from the session itself when it was small enough to be kept at import (under
   400 KB); otherwise you pick the file again. A file that does not look like this session, and verdicts that would no
   longer match a finding, are asked about first.
+- `config_weakened` in the Java and C# profiles. It reads Maven's `pom.xml` (the surefire and failsafe plugins and
+  the properties), Gradle's test tasks (`build.gradle`, `build.gradle.kts`) and `.runsettings`: more retries
+  (`rerunFailingTestsCount`, test-retry's `maxRetries`), a longer timeout (`forkedProcessTimeoutInSeconds`,
+  `TestSessionTimeout`), tests excluded (`<excludes>`, `excludeTestsMatching`, `excludeTags`, `TestCaseFilter`).
+- `config_weakened` also reports a config that lets the build pass whatever the tests do: `testFailureIgnore`,
+  `skipTests` or `maven.test.skip` in Maven, `ignoreFailures = true` in Gradle.
 
 ## 0.1.113
 
