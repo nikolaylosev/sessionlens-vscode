@@ -93,6 +93,7 @@ Everything about one session. It opens in its own editor tab when you click a se
 - **Model request and reply:** the exact prompts and answers of the session, downloadable as `.txt`. Each request is headed with the provider and model that really answered it, which matters once you choose a model per request in ⚙ Settings. Hidden unless **Debug model** is on in ⚙ Settings.
 - **Timeline, Assertions, Transcript:** the sequence of reads, edits and test runs, a before-and-after comparison of assertions in each test, and the full conversation.
 - **Export:** **PR report (.md)** copies a report with confirmed, rejected and undecided findings. It is blocked until every high-severity finding has a verdict. **Report .json** exports the same data in an open schema.
+- **Import again:** shown on a session imported before 0.1.113, which may miss deleted tests and loosened runner configs. It parses the transcript once more into the same session, keeping its name, specification and verdicts; if the transcript was too large to keep at import, you pick the file again.
 - **Mark reviewed**, **Rename** and **Delete** manage the session itself. **Delete** also closes this tab, since there is nothing left to show in it.
 
 ### Calibration

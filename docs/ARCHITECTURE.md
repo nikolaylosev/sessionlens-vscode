@@ -648,7 +648,8 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **Fragments.** A file first seen as an edit fragment, with no `toolUseResult`, cannot be compared: deletions and
   loosened configs in it are not reported.
 - **Stored sessions** keep the events they were imported with: findings that need `prev_content` or a Codex
-  `delete` event appear only after the transcript is imported again.
+  `delete` event appear only after the transcript is imported again (**Import again** in the session's tab, since
+  0.1.114).
 - **Java and C# runner configs** (`pom.xml` surefire retries, `.runsettings`) are not read by `config_weakened`.
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **English UI only** (decided in 0.1.110); Russian stays only in the recognition patterns.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.114
+
+### Added
+- **Import again** in a session's tab. A session imported before 0.1.113 lacks what the new checks need, so a test
+  deleted or a runner config loosened in the first edit of a file is not reported in it. Such a session now says so,
+  and **Import again** parses its transcript once more into the same session: it keeps its name, specification and
+  verdicts. The transcript is taken from the session itself when it was small enough to be kept at import (under
+  400 KB); otherwise you pick the file again. A file that does not look like this session, and verdicts that would no
+  longer match a finding, are asked about first.
+
 ## 0.1.113
 
 ### Added

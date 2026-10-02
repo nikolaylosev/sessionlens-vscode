@@ -1070,6 +1070,39 @@
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
   }
 
+  /* What the import keeps changes now and then; a stored session keeps the events it was imported with. A session
+     records the IMPORT_GEN it was imported with (importGen); none means an import before 0.1.114.
+     2: prev_content and Codex delete events (0.1.113), which test_deleted and config_weakened read. */
+  const IMPORT_GEN = 2;
+  /* A session imported before 0.1.113 may hide test_deleted and config_weakened findings that a new import shows: it
+     wrote or edited a test file or a runner config and has none of what the 0.1.113 import keeps for them. A session
+     imported with 0.1.113 that only wrote new files looks the same; importing it again changes nothing there. */
+  function needsReimport(s) {
+    if (!s || !Array.isArray(s.events) || s.importGen >= IMPORT_GEN) return false;
+    const cfg = profile(s.profile);
+    if (!cfg.checks.includes("test_deleted") && !cfg.checks.includes("config_weakened")) return false;
+    if (s.events.some((e) => e.prev_content != null || e.kind === "delete")) return false;
+    return s.events.some((e) => (e.kind === "write" || e.kind === "edit") && (isRunnerConfig(e.file) || isTestFile(e.file, cfg)));
+  }
+  /* How much of a stored session's timeline a new import of a transcript repeats, in order: 1 for the same transcript
+     (a newer import may add events, such as Codex deletions), near 0 for another one. */
+  function transcriptMatch(stored, fresh) {
+    const sig = (e) => [e.kind, e.file || "", e.cmd || "", String(e.text || "").slice(0, 60)].join("|");
+    const a = (stored || []).map(sig),
+      b = (fresh || []).map(sig);
+    if (!a.length) return b.length ? 0 : 1;
+    let j = 0,
+      n = 0;
+    for (const x of a) {
+      const k = b.indexOf(x, j);
+      if (k >= 0) {
+        n++;
+        j = k + 1;
+      }
+    }
+    return n / a.length;
+  }
+
   // ---------- timeline helpers ----------
   const planSeq = (ev, cfg) => {
     const e = ev.find((x) => x.kind === "message" && cfg.plan_markers.some((m) => x.text.includes(m)));
@@ -2218,6 +2251,9 @@
     ALIAS,
     redactSecrets,
     importAny,
+    IMPORT_GEN,
+    needsReimport,
+    transcriptMatch,
     runChecks,
     calibrate,
     isCalibrated: (check, source) => calibrated({ check, source }),

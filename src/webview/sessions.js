@@ -183,6 +183,7 @@ export async function importText(text, name) {
       dropped: [],
       source_text: text.length < 400000 ? text : "",
       seg: null,
+      importGen: Lens.IMPORT_GEN,
     };
     analyze(s, "import");
     await putNew(s);
@@ -223,6 +224,7 @@ export async function openDemo() {
       dropped: [],
       source_text: D.TRANSCRIPT,
       seg: null,
+      importGen: Lens.IMPORT_GEN,
     };
     analyze(s, "import");
     await putNew(s);

@@ -1292,6 +1292,15 @@ What the import keeps for them:
   (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first
   edit of a file, which needs `prev_content`, like `config_weakened` for a config the session only edited; a Codex
   deletion needs the `delete` event. These come with a new import.
+- **Import again (since 0.1.114).** A session records the `importGen` it was imported with (`Lens.IMPORT_GEN`, 2;
+  none for an import before 0.1.114). `Lens.needsReimport(s)` is true for a session without it that wrote or edited
+  a test file or a runner config and has no `prev_content` and no `delete` event; the session's tab then shows
+  **Import again** (`reimport()` in `src/webview/review.js`). It parses `source_text`, or a file picked again when
+  the transcript was too large to keep (400 KB), into the same session: id, name, spec and verdicts stay, `events`
+  are replaced, the model's segmentation is dropped. `Lens.transcriptMatch()` (the share of the stored steps the new
+  import repeats, in order) below 0.8 asks first; so do verdicts that would no longer match a finding, since a verdict
+  is keyed by `seq` and a Codex `delete` event shifts the steps after it. A session imported with 0.1.113 that only
+  wrote new files looks old too; importing it again changes nothing but `importGen`.
 
 Retries in a runner config are `config_weakened`, not `sleep_or_skip_added` (`sleep_or_skip_added` skips runner
 configs); retries on one test (`describe.configure({ retries })`, `@flaky`, `[Retry]`) stay `sleep_or_skip_added`.
