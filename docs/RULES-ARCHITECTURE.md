@@ -723,7 +723,7 @@ Rules and ⚙ Settings reach it when the Sessions tab is shown again and on a `k
 the one-line summary, also the `title` of the profile name in `#hdr`. The list options: `name — profile_desc_<name>`. All output goes through
 `esc()`; a check's rule text is the `title` attribute.
 
-## 9. The full table of checks at v0.1.113 (61 of them)
+## 9. The full table of checks at v0.1.115 (61 of them)
 
 The reference is `media/checks.js`; this table is a readable copy of it, generated from the registry and
 `LensLint.RULE_MAPS` (the "Source" column), not written by hand.
@@ -1294,8 +1294,8 @@ What the import keeps for them:
   Edit started as a fragment); `prev_content` wins over that flag.
 - **`config_content`.** `stripNonSource()` drops the text of files that are not code. For the runner configs that are
   not code (`TEXT_RUNNER_CONFIG_RX`: the four Python files, and since 0.1.114 `pom.xml`, `build.gradle(.kts)` and
-  `*.runsettings`; `config_weakened` is in qa-java and qa-c# since then) it moves `new_content` to `config_content` instead: `config_weakened` reads it, the code checks do not
-  (`xfail_strict = true` must not be an expected failure).
+  `*.runsettings`; `config_weakened` is in qa-java and qa-c# since then) it moves `new_content` to `config_content`
+  instead: `config_weakened` reads it, the code checks do not (`xfail_strict = true` must not be an expected failure).
 - **Stored sessions.** `test_deleted` and `product_code_edited` read what every stored session already has
   (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first
   edit of a file, which needs `prev_content`, like `config_weakened` for a config the session only edited; a Codex
