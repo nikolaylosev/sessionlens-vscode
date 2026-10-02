@@ -977,6 +977,11 @@
       "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1086,7 +1091,7 @@
     ]
    }
   ],
-  "count": 30,
+  "count": 31,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1180,6 +1185,11 @@
       "name": "snapshot_overwritten",
       "off": false,
       "engineOnly": false
+     },
+     {
+      "name": "config_weakened",
+      "off": false,
+      "engineOnly": false
      }
     ]
    },
@@ -1289,7 +1299,7 @@
     ]
    }
   ],
-  "count": 30,
+  "count": 31,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
