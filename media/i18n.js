@@ -170,6 +170,12 @@
       seg_failed_hdr: "SEGMENTATION FAILED",
       seg_use_spec: "Use the found specification",
       seg_reset: "Back to regex parsing",
+      reimport_msg:
+        "Imported with an older version of SessionLens: deleted tests and loosened runner configs may be missing. Import the transcript again to check; the session keeps its name, specification and verdicts.",
+      reimport_go: "Import again",
+      reimport_pick: "Pick the transcript of this session. Where is it?",
+      reimport_other: "This file does not look like this session: {p}% of its steps are in it. Replace the session's steps with it anyway?",
+      reimport_lost: "{n} {n|verdict|verdicts} would no longer match a finding: the steps are numbered differently now. Import again anyway?",
       req_review: "=== REQUEST: review ({provider} / {model}) ===",
       req_verify: "=== REQUEST: verification ({provider} / {model}) ===",
       req_compress: "=== REQUEST: compress rules.md ({provider} / {model}) ===",

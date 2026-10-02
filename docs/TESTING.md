@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.113**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.114**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.113 `npm test` runs 239 tests in 34 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.114 `npm test` runs 245 tests in 35 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -146,6 +146,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `calibration-loop.test.js` | A check switched off by calibration stays off when sessions are analyzed again (regex and an engine check). |
 | `calibration-ui.test.js` | The Calibration table per check and source, "on by hand" and the ⓘ mark on the Rules tab, the source in a session's line of disabled checks. |
 | `demo-session.test.js` | "Try a demo session": the demo transcript has no real data; the button imports it with its name, profile and spec; the findings the readme, screenshots and GIF show; a second click opens the same session; the demo is left out of calibration; the setting that hides the button. |
+| `reimport.test.js` | **Import again**: which sessions show it (`Lens.needsReimport`), `Lens.transcriptMatch`; the same session gets the new findings and keeps its name, spec and verdicts; the file is picked again when no text was kept; another session's transcript and verdicts that would detach are asked about first. |
 | `xss.test.js` | A markup payload in every stored string (transcript, model answer, imported file) renders as text: no new element, no `on*` attribute. Mutation tests remove one `esc()` call from `app.js` and check that the test notices. |
 
 ### 4.3 The host and the message boundary (fake `vscode`)

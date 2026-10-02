@@ -1501,7 +1501,8 @@ ${en.raw}`).join("\n\n\n");
         spec: "",
         dropped: [],
         source_text: text.length < 4e5 ? text : "",
-        seg: null
+        seg: null,
+        importGen: Lens.IMPORT_GEN
       };
       analyze(s, "import");
       await putNew(s);
@@ -1533,7 +1534,8 @@ ${en.raw}`).join("\n\n\n");
         spec: D.SPEC,
         dropped: [],
         source_text: D.TRANSCRIPT,
-        seg: null
+        seg: null,
+        importGen: Lens.IMPORT_GEN
       };
       analyze(s, "import");
       await putNew(s);
@@ -1690,11 +1692,13 @@ ${en.raw}`).join("\n\n\n");
         const res = Lens.importAny(x.source_text, cfg);
         x.events = Array.isArray(res) && res.length && res[0].events ? res[0].events : res;
         x.seg = null;
+        x.importGen = Lens.IMPORT_GEN;
         analyze(x);
       });
       renderReview();
       $("#seg-status").textContent = T("seg_none");
     });
+    $("#reimport-go").addEventListener("click", () => reimport());
     $("#ai-run").addEventListener("click", async () => {
       const sid = state.current;
       const s = curS();
@@ -1762,6 +1766,53 @@ ${en.raw}`).join("\n\n\n");
       if (state.current === sid) btn.disabled = false;
     });
   }
+  async function reimport() {
+    const sid = state.current, s = curS();
+    if (!s) return;
+    let text = s.source_text;
+    if (!text) {
+      const source = await chooseDialog(T("reimport_pick"), [
+        { label: T("pick_source_claude"), value: "claude", primary: true },
+        { label: T("pick_source_codex"), value: "codex" },
+        { label: T("pick_source_other"), value: "other" }
+      ]);
+      if (source === null) return;
+      const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
+      if (!r || typeof r.text !== "string") return;
+      text = r.text;
+    }
+    const cfg = Lens.profile(s.profile);
+    const res = Lens.importAny(text, cfg);
+    const convs = Array.isArray(res) && res.length && res[0].events ? res.map((c) => c.events) : [res];
+    let events = null, match = -1;
+    for (const ev of convs) {
+      const m = Lens.transcriptMatch(s.events, ev);
+      if (ev.length && m > match) [events, match] = [ev, m];
+    }
+    if (!events) {
+      await alertDialog(T("no_events"));
+      return;
+    }
+    if (match < 0.8 && !await confirmDialog(T("reimport_other", { p: Math.round(match * 100) }))) return;
+    await needEngine(s.profile);
+    const keys = (x) => new Set([...x.findings || [], ...x.calibHidden || []].map(fkey).filter((k) => s.verdicts[k]));
+    const gen = state.gens[sid];
+    const trial = Object.assign({}, s, { events, seg: null, findings: s.findings.filter((f) => f.source === "ai") });
+    analyzeNow(trial);
+    state.gens[sid] = gen;
+    const after = keys(trial), lost = [...keys(s)].filter((k) => !after.has(k)).length;
+    if (lost && !await confirmDialog(T("reimport_lost", { n: lost }))) return;
+    await updateSession(sid, (x) => {
+      x.events = events;
+      x.seg = null;
+      x.seg_error = null;
+      x.seg_raw = null;
+      if (!x.source_text && text.length < 4e5) x.source_text = text;
+      x.importGen = Lens.IMPORT_GEN;
+      analyze(x, "import");
+    });
+    if (state.current === sid) renderReview();
+  }
   function renderReview() {
     const s = curS();
     $("#review-empty").hidden = !!s;
@@ -1779,6 +1830,7 @@ ${en.raw}`).join("\n\n\n");
       `${T("m_runs")} <b>${esc(m.runs)}</b>`,
       `${T("m_to_green")} <b>${esc(m.editsToGreen ?? "—")}</b>`
     ].map((x) => `<span>${x}</span>`).join("");
+    $("#reimport").hidden = !Lens.needsReimport(s);
     const toolCode = s.events.some((e) => e.file && e.new_content);
     $("#seg-hint").textContent = !s.seg && !toolCode && s.events.some((e) => e.kind === "message") ? T("seg_hint_chat") : "";
     $("#seg-status").textContent = s.seg ? segStatus(s) : s.seg_error ? T("seg_fallback", { msg: s.seg_error }) : T("seg_none");
