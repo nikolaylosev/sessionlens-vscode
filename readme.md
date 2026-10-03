@@ -518,16 +518,19 @@ Everything stays on your machine, in VS Code's storage for this extension (ID `n
   anywhere, and the panel itself has no network access.
 
 **What a model call sends.** The model is called only when you press one of these buttons. Each button shows the
-same list when you hover over it.
+same list when you hover over it. In everything sent, secrets are masked first: API keys and tokens (`sk-…`,
+`ghp_…`, `AKIA…`, `xox…-`, `AIza…`), JWTs, `Bearer` tokens, values assigned to names such as `api_key`, `token` or
+`secret`, and literal passwords become `[REDACTED]`. The masking works by pattern, so a secret of an unusual shape
+can still get through; keep secrets out of test code anyway.
 
 - **Semantic review (model)** and **Verify again:** the specification, the regex findings, the test code the agent
-  wrote (up to **Code limit in the prompt**, 40000 characters by default) and a shortened transcript. Secrets in that
-  code are **not** masked. Verification also sends the model's findings it checks.
-- **Segment with model:** the session's steps as numbered lines, up to the same limit. Nothing is masked.
+  wrote (up to **Code limit in the prompt**, 40000 characters by default) and a shortened transcript. Verification
+  also sends the model's findings it checks.
+- **Segment with model:** the session's steps as numbered lines, up to the same limit.
 - **Compress rules.md:** the rules you picked, each with one line of code from your sessions ("Not like this") and its
   evidence: session names, step numbers and your verdict notes. No whole files.
 - **Generate skill:** the same as Compress rules.md, plus the names of the example files. The examples themselves are
-  never sent: they are real files from your sessions, written to the folder you pick, with secrets masked.
+  never sent: they are real files from your sessions, written to the folder you pick, with the same masking.
 
 With a local server (see [Local servers](#local-servers)) on your own machine, none of this leaves it.
 

@@ -371,8 +371,9 @@ flowchart TD
   content; a deleted file becomes a `delete` event.
 - **claude.ai export and plain chat** carry code only inside messages; `diffMessageVersions` treats successive
   code blocks as versions of the same tests.
-- **Secrets** are masked on export and in examples (`Lens.redactSecrets`); a found secret is shown with its first
-  four characters only.
+- **Secrets** are masked on export, in examples and, since 0.1.116, in every prompt sent to a model
+  (`Lens.redactSecrets`, through `LensAI.maskSecrets` where each prompt is built and again in `callModel()`); a found
+  secret is shown with its first four characters only.
 
 ### 6.2 Profiles
 

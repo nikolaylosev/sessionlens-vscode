@@ -636,11 +636,11 @@
       cli_err_failed_codex: "Codex CLI failed: {msg}",
       cli_no_host_codex: "The Codex provider works only in the VS Code version of SessionLens.",
       // 0.1.116: what each model call sends, on its button (README, "Your data")
-      send_seg: "Sends to the model: the session's steps as numbered lines, up to the code limit in ⚙ Settings. Nothing is masked.",
+      send_seg: "Sends to the model: the session's steps as numbered lines, up to the code limit in ⚙ Settings, with secrets masked.",
       send_review:
-        "Sends to the model: the specification, the regex findings, the test code the agent wrote (up to the code limit in ⚙ Settings) and a shortened transcript. Secrets in the code are not masked. Verification sends the same plus the model's findings.",
+        "Sends to the model: the specification, the regex findings, the test code the agent wrote (up to the code limit in ⚙ Settings) and a shortened transcript, with secrets masked. Verification sends the same plus the model's findings.",
       send_compress:
-        "Sends to the model: the rules you picked, each with one line of code from your sessions and its evidence (session names, steps, your notes). No whole files.",
+        "Sends to the model: the rules you picked, each with one line of code from your sessions and its evidence (session names, steps, your notes), with secrets masked. No whole files.",
       send_skill:
         "Sends to the model: the same as Compress rules.md, plus the names of the example files. Their content is not sent: it is written to the folder you pick, with secrets masked.",
       gen_skill_examples_lbl: "Add examples/ with the real files from the sessions (secrets are masked)",
