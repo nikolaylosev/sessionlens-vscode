@@ -110,6 +110,7 @@ function t(message, ...args) {
 const COUNT_FORMS = {
   finding: { one: "{0} finding", other: "{0} findings" },
   verdict: { one: "{0} verdict", other: "{0} verdicts" },
+  hidden: { one: "{0} hidden by calibration", other: "{0} hidden by calibration" },
 };
 function countLabel(n, kind) {
   const forms = COUNT_FORMS[kind];
@@ -121,6 +122,8 @@ function describeSession(s) {
     done = s.verdictsCount || 0;
   const date = String(s.created || "").slice(0, 10);
   const bits = [s.profile, countLabel(n, "finding")];
+  // 0.1.116: a green session can still have findings an "off" check hides; the colour alone would say "nothing"
+  if (s.hiddenCount) bits.push(countLabel(s.hiddenCount, "hidden"));
   if (done) bits.push(countLabel(done, "verdict"));
   if (date) bits.push(date);
   return bits.filter(Boolean).join(" · ");

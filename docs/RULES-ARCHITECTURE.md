@@ -1063,10 +1063,14 @@ of the import, which can be weeks later. The effect of a rule moved to CLAUDE.md
 only when `started` is empty. It leaves out the demo session and the sessions of a profile that cannot report the
 check (`profileChecks()` in `src/webview/rules.js`, the same list the Rules filter uses); a session that could report
 it and did not counts as 0. The sources are counted together: the effect is about what the agent does. A summary
-of schema 2 is rebuilt once at `open()`, as for schema 1.
+of schema 2 is rebuilt once at `open()`, as for schema 1. Schema 3 also has `hiddenCount`, the number of findings
+calibration hides (`calibHidden`): the Sessions tree and **Open session…** add "N hidden by calibration" to the line
+under a session, so a green session with hidden findings does not look clean. Report .json has them as
+`hiddenByCalibration` (with the `precision` and `verdicts` of the pair that hid them, from `s.suppressed`), and the
+PR report lists the hidden high findings by name and counts the rest.
 
 `<name> = fileNameFor(id)`: the id itself if it matches `^[A-Za-z0-9_-]{1,64}$`, otherwise `h-` and the 32 hex characters of
-`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, verdictsCount,
+`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount,
 checkStats { check: { total, ok, fp } }, sourceStats { check: { source: { total, ok, fp } } }, confirmed [{ key, check, seq, message ≤90, snippet ≤140, note }]` — everything that
 Calibration, Rules, `effect()`, the profile drop-down and the Sessions tree used to take from full sessions. The summary
 is computed by the **host** from the session's content; only `analyzedGen` is taken from the message (its format is checked).

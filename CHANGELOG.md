@@ -3,6 +3,10 @@
 ## 0.1.116
 
 ### Changed
+- Findings that calibration hides are no longer missing from the reports. **Report .json** lists them under
+  `hiddenByCalibration`, with the precision that hid them; the **PR report** names the hidden high-severity ones and
+  counts the rest. The Sessions tree adds "N hidden by calibration" to a session's line, so a green session with
+  hidden findings does not look clean.
 - `hardcoded_secret` is no longer calibrated. Before, ten "False" verdicts could switch it off for good, and then
   a real token in a test went unreported. The Calibration table marks it **not calibrated** and says why. To stop it,
   untick it on the Rules tab. `hardcoded_base_url` is calibrated as before.
