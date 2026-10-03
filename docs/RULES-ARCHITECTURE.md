@@ -368,7 +368,9 @@ Walk-through:
   design — see the comment in `lens.js` at `qa-detox`: *"there is no regex
   fallback for those, same as raw_locator/positional_locator elsewhere"*.
 - **Calibration** (since v0.1.112 `Lens.calibrate()`, after the merge, §3). `calib` is
-  `calibStatsBySource()` (`src/webview/store.js`): the summaries' `sourceStats` (§15.1) added up per check
+  `calibStatsBySource()` (`src/webview/store.js`): the summaries' `sourceStats` (§15.1), plus the imported rows
+  that matched no session (`state.external`, under the source they name: a `verdicts.json` from another machine
+  carries its calibration; "external" when none, never calibrated), added up per check
   AND source, so `weak_assert` from ESLint and `weak_assert` from a regex have separate records and a poor
   engine never switches off the regex check, or the other way round. With ≥10 verdicts for that check and
   source and precision (`ok / (ok+fp)`) **< 30%** its findings are **hidden**: not shown, kept with the

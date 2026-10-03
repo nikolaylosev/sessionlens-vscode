@@ -699,7 +699,9 @@ export async function exportVerdicts() {
   await fetchSessions(
     metas().map((m) => m.id),
     (s) => {
-      for (const f of s.findings) {
+      // with the findings an "off" check hides (calibHidden): their verdicts are what keep the check off (0.1.116)
+      const hidden = new Set(s.calibHidden || []);
+      for (const f of [...s.findings, ...(s.calibHidden || [])]) {
         const vd = s.verdicts[fkey(f)];
         if (vd)
           rows.push({
@@ -716,6 +718,7 @@ export async function exportVerdicts() {
             verdict: vd.v,
             note: vd.note,
             at: vd.at,
+            ...(hidden.has(f) ? { hidden: true } : {}),
           });
       }
     },
@@ -737,7 +740,11 @@ export async function importVerdicts(text) {
     return;
   }
   let merged = 0,
-    ext = 0;
+    ext = 0,
+    dup = 0;
+  // an imported row already kept: the same file imported twice must not count its verdicts twice (0.1.116)
+  const extKey = (x) => [x.check, x.source || "external", x.session || "", String(x.message).slice(0, 40)].join("|");
+  const known = new Set(state.external.map(extKey));
   // sessions are found by name or task in the summaries and read once; the verdicts are then saved per session
   const read = {},
     ops = {},
@@ -747,8 +754,11 @@ export async function importVerdicts(text) {
     const m = all.find((x) => x.name === r.session || (r.task && x.task === r.task));
     if (m && !read[m.id]) read[m.id] = state.loaded[m.id] ? { session: state.loaded[m.id], rev: state.revs[m.id], meta: m } : await sessionStore.get(m.id);
     const s = m && read[m.id] ? read[m.id].session : null;
-    const f = s && s.findings.find((x) => x.check === r.check && x.message.slice(0, 40) === String(r.message).slice(0, 40));
-    const v = r.verdict && (r.verdict.v || r.verdict);
+    // a finding shown or hidden by an "off" check: both carry the session's verdicts
+    const same = (x) => x.check === r.check && String(x.message).slice(0, 40) === String(r.message).slice(0, 40);
+    const f = s && (s.findings.find(same) || (s.calibHidden || []).find(same));
+    const raw = r.verdict && (r.verdict.v || r.verdict);
+    const v = raw === "ok" || raw === "fp" ? raw : null; // what the panel gives; anything else counts as no verdict
     if (s && f && v) {
       const k = fkey(f);
       if (!s.verdicts[k]) {
@@ -757,14 +767,20 @@ export async function importVerdicts(text) {
         merged++;
       }
     } else if (!s || !f) {
-      state.external.push({
+      const row = {
         check: r.check,
         severity: r.severity || "medium",
         message: r.message,
         session: r.session,
         source: r.source || "external",
-        verdict: v || null,
-      });
+        verdict: v,
+      };
+      if (known.has(extKey(row))) {
+        dup++;
+        continue;
+      }
+      known.add(extKey(row));
+      state.external.push(row);
       ext++;
     }
   }
@@ -781,7 +797,7 @@ export async function importVerdicts(text) {
   await save();
   onGenChanged();
   renderCalib();
-  $("#import-status").textContent = T("imp_done", { m: merged, e: ext });
+  $("#import-status").textContent = T("imp_done", { m: merged, e: ext }) + (dup ? T("imp_dup", { n: dup }) : "");
 }
 
 export function download(name, text) {

@@ -8,6 +8,12 @@
   something on the Rules tab. Now an update analyzes every stored session again, in the background.
 - A verdict stays with its finding when a new version words the finding differently. Until now such a verdict stopped
   counting (as after 0.1.113, where the skip finding changed its text).
+- **Export verdicts.json** left out the verdicts of findings that calibration hides, which are what keep a check off;
+  moved to another machine, the check came back on. They are exported now, marked `"hidden": true`, and **Import
+  verdicts** puts them back on those findings.
+- Importing the same `verdicts.json` twice counted the rows that match no session twice in calibration. A row already
+  imported is now skipped, and the import says how many were. Only the verdicts "ok" and "fp" count, as everywhere
+  else.
 
 ## 0.1.115
 
