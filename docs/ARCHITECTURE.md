@@ -1,6 +1,6 @@
 # SessionLens for VS Code — architecture and functional blocks
 
-This document describes the whole extension as it stands at **v0.1.115**: what it is made of, how the parts talk
+This document describes the whole extension as it stands at **v0.1.117**: what it is made of, how the parts talk
 to each other, where data lives, and what each functional block does. It is written for developers who change the
 code and for reviewers who need to know where to look.
 
@@ -286,6 +286,7 @@ classDiagram
   }
   class Event {
     seq
+    ts
     kind
     file
     cmd
@@ -306,6 +307,10 @@ classDiagram
     kind
     rule
     line
+    evidence
+    code
+    model
+    verifier
     demoted
   }
   class Verdict {
@@ -316,7 +321,11 @@ classDiagram
     id
     name
     profile
+    created
+    started
     verdict
+    findingsCount
+    hiddenCount
     checkStats
     sourceStats
     confirmed
@@ -338,12 +347,19 @@ Key points:
   fragment only when the file was never seen whole: `fragment_only`). `prev_content` is the file as it was, kept for
   runner configs and test files so a first edit can be compared. `config_content` is the text of a runner config
   that is not code (`pytest.ini`, `pom.xml`, `build.gradle`, `.runsettings`…), kept away from the code checks.
+  `ts` is the step's time from the transcript (empty for a claude.ai export).
 - **Finding.** `check` is the one key of the rules system (RA §1). `source` says which track made it; calibration
-  is per check and source. `kind` is set on regex findings of the checks an engine may replace (RA §6.3).
-- **Verdict key** is `check@seq@first 40 characters of the message`. Renaming a check or changing a message text
-  detaches old verdicts: the CHANGELOG says so whenever it happens.
+  is per check and source. `kind` is set on regex findings of the checks an engine may replace (RA §6.3). A model
+  finding has `evidence`, and `model` / `verifier` (`provider/model`, since 0.1.115); an engine finding has `rule`,
+  `line` and `code` (the lines around it).
+- **Verdict key** is `check@seq@first 40 characters of the message`. Renaming a check detaches old verdicts: the
+  CHANGELOG says so whenever it happens. A message a new version words differently keeps its verdict since 0.1.116:
+  after each analysis `Lens.carryVerdicts` moves a verdict whose key matches no finding to the one finding of the
+  same check and step that has none.
 - **Summary** (`*.meta.json`) is what the sidebar, Calibration and Rules need without loading every session. The
-  host computes it from the session (RA §15.1).
+  host computes it from the session (RA §15.1). Schema 3 (0.1.116) added `started`, the time of the first step with
+  one, which the effect of a moved rule uses, and `hiddenCount`, the findings calibration hides, which the Sessions
+  tree shows. `open()` rebuilds a summary of an older schema once.
 
 ---
 
@@ -417,7 +433,9 @@ flowchart LR
 - The verdict of a session (Red, Yellow, Green) comes from the findings' severities (`Lens.verdict`).
 - If the lint engine is still loading, the analysis is marked pending and redone when it is ready (RA §7).
 - Re-analysis happens on import, on a spec change, after a rules change (debounced, open tabs first, the rest in a
-  background pass) and when an engine finishes loading.
+  background pass), when an engine finishes loading, and after an update: `Lens.analysisGen` hashes the rule
+  overrides, the ESLint switch, the calibration epoch and, since 0.1.116, `Lens.ANALYSIS_VERSION` (equal to the
+  version in `package.json`), so a new version re-analyzes every stored session in the background.
 
 ### 6.4 Checks
 
@@ -493,6 +511,9 @@ sequenceDiagram
   **verify** asks a second call to keep only findings it can support with evidence (on by default). Since 0.1.115
   each model finding records `model` and, once verified, `verifier` (`provider/model`, `LensAI.modelLabel()`); the
   report and `verdicts.json` export them, for precision per model later.
+- **What is sent:** each model button says it on hover (README, "Your data"). Since 0.1.116 every prompt has its
+  secrets masked (`LensAI.maskSecrets`, which is `Lens.redactSecrets`) where it is built, and `callModel()` masks
+  again; the verifier checks quotes against the masked text that was sent.
 - **Pacing:** a queue with a minimum gap between requests and retries on HTTP 429 (`sessionlens.minGapMs`).
 - **Model rules** tab: the prompts of each task are editable and exportable.
 - **CLI safety:** `claude -p` runs with no tools, no MCP, no slash commands, in an empty temp folder, without
@@ -502,12 +523,16 @@ sequenceDiagram
 ### 6.8 Review and verdicts
 
 A session's tab shows the header (verdict, profile, events, last result, metrics), the specification, the model
-buttons, the findings with filters (source, severity, without verdict) and, per finding, **Confirm**, **False** and a
-comment. Verdicts are stored in the session under the finding's key. The tab also has the raw timeline (every event
+buttons, the findings with filters (source, severity, without verdict) and, per finding, a tag of its source,
+**Confirm**, **False** and a comment. The tag (0.1.117) reads regex, gherkin, spec or model as the filter does; a
+`lint` finding names the engine of the session's profile (eslint, tree-sitter or robot), while the filter and the
+Calibration table say "lint". Verdicts are stored in the session under the finding's key. The tab also has the raw timeline (every event
 with its `seq`, linked from the findings) and the coverage matrix.
 
 Exports from the tab: **PR report (.md)** (only reviewed findings; high findings without a verdict block it) and
-**Report .json** (an open schema, `reportObj`).
+**Report .json** (an open schema, `reportObj`). Since 0.1.116 both include what calibration hides: Report .json as
+`hiddenByCalibration` (with the precision that hid each one), the PR report as a section naming the hidden high
+findings.
 
 ### 6.9 Calibration, rules and the Rules tab
 
@@ -526,7 +551,13 @@ flowchart TD
 ```
 
 - **Calibration tab:** the precision table per check and source, the proposed rules, export and import of
-  verdicts (`verdicts.json`), the calibration log (RA §5.2).
+  verdicts (`verdicts.json`, with the verdicts of hidden findings marked `hidden: true`; an import skips rows it
+  already has), the calibration log (RA §5.2).
+- **Never calibrated:** the model's findings, `no_spec` and `spec_uncovered`, imported findings, and a check the
+  registry marks `calibrate: false` (`hardcoded_secret`, since 0.1.116).
+- **Effect of a moved rule** (`effect()`): findings per session before and after the day the rule was marked
+  Moved. A session counts by when the agent ran it (`started`, else `created`), only sessions of the profiles that
+  can report the check count, and the demo never does (0.1.116).
 - **Rules tab:** the rule book — wording, severity and on/off of every check, grouped like the registry; changes
   re-analyze the sessions; the book exports and imports as a diff (`rules.json`, RA §4). **Show checks for** narrows
   the list to one profile's checks (a view only, since 0.1.114).
@@ -554,7 +585,7 @@ models per task, the keys, the local and Qwen addresses and the demo button. A c
 ### 6.12 Demo session
 
 `media/demo-session.js` is a made-up Claude Code transcript with its specification: an agent writes Playwright tests
-for a login page and makes the usual mistakes (11 findings in v0.1.113). It is imported like a file, its verdicts are
+for a login page and makes the usual mistakes (11 findings, the same since v0.1.113). It is imported like a file, its verdicts are
 left out of calibration, and `test/demo-session.test.js` pins its findings, so a check that changes them also
 signals that the README screenshots need retaking.
 
@@ -655,4 +686,6 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
   `delete` event appear only after the transcript is imported again (**Import again** in the session's tab, since
   0.1.114).
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
+- **Secret masking works by pattern** (`Lens.redactSecrets`): a secret of an unusual shape can still reach a
+  model or an export.
 - **English UI only** (decided in 0.1.110); Russian stays only in the recognition patterns.
