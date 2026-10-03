@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.116**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.117**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -165,6 +165,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `storage-migration.test.js` | The move of `globalState["sessions"]` into files: unchanged sessions, a second start, a failed migration resumed later, a tab restored during the migration, the `session:*` messages. |
 | `reanalyze-after-update.test.js` | An update analyzes the stored sessions again: `Lens.ANALYSIS_VERSION` equals `package.json`'s version and is in the generation; a session analyzed by 0.1.115 gets the new findings; `Lens.carryVerdicts` moves a verdict to a reworded finding of the same check and step, and only then. |
 | `report-hidden.test.js` | What calibration hides is in Report .json (`hiddenByCalibration`, with precision and verdicts), in the PR report (high ones by name, the rest counted) and in the Sessions tree's line ("N hidden by calibration"); nothing extra when it hides nothing. |
+| `source-tags.test.js` | Every finding shows one tag of its source (regex, eslint, gherkin, spec, model), as the filter names it; every `var(--…)` in `styles.css` is defined for the light and the dark theme (`--teal` never was, until 0.1.117). |
 | `rule-effect.test.js` | The effect of a rule moved to CLAUDE.md: the summary's `started` is the time of the first step with one; a session counts by when it ran, not when it was imported; the demo session and a profile that cannot report the check stay out. |
 | `verdicts-roundtrip.test.js` | verdicts.json: the export includes the verdicts of hidden findings (`hidden: true`), the import puts them back on those findings, the same file imported twice keeps its rows once, an unknown verdict counts as none. |
 | `vscode-integration.test.js` | `package.json` contributions and `package.nls.json`; English host strings whatever the VS Code language; the five settings in VS Code Settings (overlay, write, migration, outside changes); the Sessions tree and its commands; palette commands; the `page:ready` channel; the Output channel never logs transcript text or prompts. |

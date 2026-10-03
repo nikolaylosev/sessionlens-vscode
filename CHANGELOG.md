@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.117
+
+### Fixed
+- The **spec** tag on a finding could not be read in the dark theme, and in the light theme it had no background
+  either: its colour was never defined. Findings of the regex checks and the Gherkin checks had no tag at all. Every
+  finding now shows the tag of its source (regex, eslint, gherkin, spec or model), named as in the filter above the
+  findings, and specification findings get their teal stripe on the left.
+
 ## 0.1.116
 
 ### Added
