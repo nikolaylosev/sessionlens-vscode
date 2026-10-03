@@ -110,3 +110,23 @@ test("calibLevel(): ok and fp are read as counts; a record that is not a number 
   // and calibrate() then leaves the finding as it is
   assert.deepEqual(shown(Lens.calibrate([F("weak_assert", "formal")], { weak_assert: { formal: { ok: NaN, fp: 12 } } })), ["weak_assert/formal"]);
 });
+
+// 0.1.116, decided 03.10: a leaked token is worth a look every time, so hardcoded_secret is never calibrated
+test("hardcoded_secret: ten False verdicts neither hide nor demote it; unticked on the Rules tab it is still off", () => {
+  const LensRules = require(M("rules.js"));
+  assert.equal(Lens.isCalibrated("hardcoded_secret", "formal"), false);
+  assert.equal(Lens.isCalibrated("hardcoded_base_url", "formal"), true, "the base URL check is calibrated as before");
+  const calib = { hardcoded_secret: { formal: { ok: 0, fp: 10 } }, hardcoded_base_url: { formal: { ok: 0, fp: 10 } } };
+  const r = Lens.calibrate([F("hardcoded_secret", "formal"), F("hardcoded_base_url", "formal", "medium")], calib);
+  assert.deepEqual(
+    r.findings.map((f) => [f.check, f.severity, f.demoted]),
+    [["hardcoded_secret", "high", undefined]],
+  );
+  assert.deepEqual([hidden(r), r.suppressed.map((x) => x.check)], [["hardcoded_base_url/formal"], ["hardcoded_base_url"]]);
+  const demoted = Lens.calibrate([F("hardcoded_secret", "formal")], { hardcoded_secret: { formal: DEMOTED } });
+  assert.deepEqual(
+    demoted.findings.map((f) => [f.severity, f.demoted]),
+    [["high", undefined]],
+  );
+  assert.deepEqual(LensRules.apply(r.findings, { hardcoded_secret: { enabled: false } }), []);
+});

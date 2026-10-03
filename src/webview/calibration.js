@@ -350,7 +350,8 @@ export function renderCalib() {
           why = "";
         if (!Lens.isCalibrated(k, src)) {
           status = T("st_not_calibrated");
-          why = T(src === "ai" ? "st_why_ai" : src === "spec" ? "st_why_fact" : "st_why_external");
+          // a source calibrate() otherwise applies to: the registry keeps this check out (calibrate: false)
+          why = T(src === "ai" ? "st_why_ai" : src === "spec" ? "st_why_fact" : src === "external" ? "st_why_external" : "st_why_kept");
         } else if (level === "off" && (state.ruleOverrides[k] || {}).enabled === true) {
           status = T("st_by_hand");
           why = T("st_by_hand_hint", { p: Math.round(p * 100) });

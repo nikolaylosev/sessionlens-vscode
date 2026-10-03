@@ -39,7 +39,8 @@ GROUPS_ORDER = ["method", "process", "code", "api", "mobile", "gherkin", "robot"
 
 **Derived** from the registry: `GROUPS`, `DEFAULT_SEVERITY` and `GOOD` in `rules.js`,
 `RULE_KEYS` in `lens.js`, the list and order of groups in the Rules panel in `app.js`,
-the sort priority (`sortPriority`) and every check of an allowed severity
+the sort priority (`sortPriority`), whether calibration may touch the check (`calibrate: false` keeps it out,
+§5.2; since v0.1.116 only `hardcoded_secret`) and every check of an allowed severity
 (`SEVERITIES`). The order of keys in `CHECKS` = the order of rows in the Rules panel.
 
 The detectors themselves still write the name as a string literal — this is unavoidable:
@@ -383,13 +384,16 @@ Walk-through:
   session saved before 0.1.112, counts as one), the lint engines (`"lint"`), Gherkin, and the two heuristic
   spec checks `test_without_requirement` and `out_of_scope_tested`. **Never** `no_spec` and
   `spec_uncovered` (facts, not guesses) or the model's `ai_*` (their precision depends on the model and
-  the prompt, not on the check; the Calibration tab only shows it). The thresholds are the same for every
-  source. Imported findings count under their own source and are not calibrated.
+  the prompt, not on the check; the Calibration tab only shows it). **Never** a check the registry marks
+  `calibrate: false`, whatever its source: since v0.1.116 `hardcoded_secret` (decided 03.10.2026: ten "False"
+  verdicts must not hide a leaked token; unticking it on the Rules tab still switches it off). `hardcoded_base_url`
+  is calibrated as before. The thresholds are the same for every source. Imported findings count under their own
+  source and are not calibrated.
 - **A check ticked on by hand** on the Rules tab (`ruleOverrides[check].enabled === true`, which the
   checkbox writes) is never hidden by calibration. A check merely left at its default is.
 - **What the UI shows** (since v0.1.112): the Calibration table has one row per check and source, with the
   status `calibrate()` really applies (`Lens.isCalibrated(check, source)`; "not calibrated" with the reason
-  as a tooltip for the model, the facts of the spec and imported findings; "on by hand" for an off pair the
+  as a tooltip for the model, the facts of the spec, imported findings and a `calibrate: false` check; "on by hand" for an off pair the
   person ticked on). The Rules tab shows ⓘ for a demoted source and "on by hand" next to the checkbox. The
   line under a session's findings names the source of each disabled pair.
 - **The demo session** (`LensDemo.ID`, since v0.1.110) is left out of `calibStatsBySource()` and `profileVerdicts()`
