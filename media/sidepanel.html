@@ -46,10 +46,10 @@
       <div class="row actions"><label class="btn tiny ghost"><span data-i18n="spec_file"></span><input type="file" id="spec-file" hidden></label><button class="btn tiny" id="spec-save" data-i18n="spec_save"></button></div>
       <div id="coverage"></div>
     </details>
-    <div class="row actions"><button class="btn ghost" id="seg-run" data-i18n="seg_run"></button><span id="seg-status" class="muted"></span></div>
+    <div class="row actions"><button class="btn ghost" id="seg-run" data-i18n="seg_run" data-i18n-title="send_seg"></button><span id="seg-status" class="muted"></span></div>
     <div class="muted" id="seg-hint"></div>
     <div class="row actions" id="seg-extra" hidden><button class="btn tiny ghost" id="seg-spec" data-i18n="seg_use_spec"></button><button class="btn tiny ghost" id="seg-reset" data-i18n="seg_reset"></button></div>
-    <div class="row actions"><button class="btn" id="ai-run" data-i18n="ai_run"></button><button class="btn ghost" id="ai-verify-again" data-i18n="ai_verify_again" hidden></button><span id="ai-status" class="muted"></span></div>
+    <div class="row actions"><button class="btn" id="ai-run" data-i18n="ai_run" data-i18n-title="send_review"></button><button class="btn ghost" id="ai-verify-again" data-i18n="ai_verify_again" data-i18n-title="send_review" hidden></button><span id="ai-status" class="muted"></span></div>
     <div id="suppressed" class="muted"></div>
     <div id="lint-note" class="muted"></div>
     <details open><summary><span data-i18n="findings"></span> <span id="f-count"></span></summary><div class="filter" id="filter"></div><div id="findings"></div></details>
@@ -88,8 +88,8 @@
     <label class="muted" style="display:block;margin:6px 0"><input id="gen-skill-examples" type="checkbox" checked> <span data-i18n="gen_skill_examples_lbl"></span></label>
     <div class="row actions">
       <button class="btn" id="copy-rules" data-i18n="rules_copy"></button>
-      <button class="btn ghost" id="compress-rules" data-i18n="compress_run"></button>
-      <button class="btn ghost" id="gen-skill" data-i18n="gen_skill_run"></button>
+      <button class="btn ghost" id="compress-rules" data-i18n="compress_run" data-i18n-title="send_compress"></button>
+      <button class="btn ghost" id="gen-skill" data-i18n="gen_skill_run" data-i18n-title="send_skill"></button>
       <span id="compress-status" class="muted"></span>
       <span id="gen-skill-status" class="muted"></span>
       <button class="btn ghost" id="export-verdicts" data-i18n="c_export"></button>

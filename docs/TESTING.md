@@ -170,6 +170,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `vscode-integration.test.js` | `package.json` contributions and `package.nls.json`; English host strings whatever the VS Code language; the five settings in VS Code Settings (overlay, write, migration, outside changes); the Sessions tree and its commands; palette commands; the `page:ready` channel; the Output channel never logs transcript text or prompts. |
 | `bridge-timeout.test.js` | `vscode-bridge.js` gives up on a reply after a limit per message type and resolves with `bridge-timeout`; dialogs and local model servers have no limit; the limits match the host's. |
 | `ai-transport.test.js` | `ai.js` in the VS Code build: model requests go through the host transport, the payload carries no key, 429 retries, `no_key`, CLI providers never use HTTP. |
+| `model-send-hints.test.js` | Every button that calls a model says on hover what it sends (`data-i18n-title`), and the README names each of them under "What a model call sends". |
 | `model-in-findings.test.js` | A model finding records `model` from the review's route and `verifier` from the verification's (also on Verify again); `LensAI.modelLabel`; Report .json and verdicts.json carry both for model findings only. |
 
 ### 4.4 Repository and release
