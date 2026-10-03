@@ -2,6 +2,12 @@
 
 ## 0.1.116
 
+### Added
+- Every button that calls a model (**Semantic review**, **Verify again**, **Segment with model**, **Compress
+  rules.md**, **Generate skill**) says on hover what it sends, and the README has the same list under "Your data".
+  In short: the review sends the test code and a shortened transcript as they are, secrets included; Compress and
+  Generate skill send the picked rules with one line of code each, and never the example files.
+
 ### Changed
 - Findings that calibration hides are no longer missing from the reports. **Report .json** lists them under
   `hiddenByCalibration`, with the precision that hid them; the **PR report** names the hidden high-severity ones and

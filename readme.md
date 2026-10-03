@@ -517,6 +517,20 @@ Everything stays on your machine, in VS Code's storage for this extension (ID `n
   Codex as the provider they go through the `claude` or `codex` command on your machine. Nothing else is sent
   anywhere, and the panel itself has no network access.
 
+**What a model call sends.** The model is called only when you press one of these buttons. Each button shows the
+same list when you hover over it.
+
+- **Semantic review (model)** and **Verify again:** the specification, the regex findings, the test code the agent
+  wrote (up to **Code limit in the prompt**, 40000 characters by default) and a shortened transcript. Secrets in that
+  code are **not** masked. Verification also sends the model's findings it checks.
+- **Segment with model:** the session's steps as numbered lines, up to the same limit. Nothing is masked.
+- **Compress rules.md:** the rules you picked, each with one line of code from your sessions ("Not like this") and its
+  evidence: session names, step numbers and your verdict notes. No whole files.
+- **Generate skill:** the same as Compress rules.md, plus the names of the example files. The examples themselves are
+  never sent: they are real files from your sessions, written to the folder you pick, with secrets masked.
+
+With a local server (see [Local servers](#local-servers)) on your own machine, none of this leaves it.
+
 **To remove everything:** in **⚙ Settings**, press **Delete everything** (all sessions and the calibration history)
 and **Reset settings to defaults** (this also deletes the stored API keys), remove the `sessionlens.*` entries from
 your `settings.json`, then uninstall the extension. Deleting the folder `globalStorage/nikolaylosev.sessionlens-vscode/` removes any session files left behind.
