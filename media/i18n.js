@@ -220,8 +220,6 @@
       chip_undecided: "no verdict",
       src_gherkin: "gherkin",
       src_external: "imported",
-      tag_model: "model",
-      tag_spec: "spec",
       demoted: "demoted for precision",
       btn_ok: "Confirm",
       btn_fp: "False",

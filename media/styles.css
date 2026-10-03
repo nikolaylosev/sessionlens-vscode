@@ -1,5 +1,5 @@
-:root{--ink:#1E2A38;--muted:#6A7684;--rail:#D9DEE3;--soft:#F5F7F9;--red:#B23A3A;--amber:#B7791F;--green:#2F7D4F;--slate:#3B5B7A;--bg:#fff;--btn-fg:#fff}
-:root[data-theme="dark"]{--ink:#E7EBEF;--muted:#94A2AF;--rail:#36383A;--soft:#232425;--red:#E38080;--amber:#E3B75B;--green:#63C28B;--slate:#6E9CD6;--bg:#191A1B;--btn-fg:#0B0F14}
+:root{--ink:#1E2A38;--muted:#6A7684;--rail:#D9DEE3;--soft:#F5F7F9;--red:#B23A3A;--amber:#B7791F;--green:#2F7D4F;--slate:#3B5B7A;--teal:#22706C;--violet:#6A4FA3;--bg:#fff;--btn-fg:#fff}
+:root[data-theme="dark"]{--ink:#E7EBEF;--muted:#94A2AF;--rail:#36383A;--soft:#232425;--red:#E38080;--amber:#E3B75B;--green:#63C28B;--slate:#6E9CD6;--teal:#5CC4BC;--violet:#B39DE6;--bg:#191A1B;--btn-fg:#0B0F14}
 :root[data-theme="dark"] .s.reviewed{background:#13291C}
 :root[data-theme="dark"] .s.reviewed:hover{background:#183524}
 :root[data-theme="dark"] .tl li.flag{background:#332B12}
@@ -55,7 +55,9 @@ table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{text-align:left
 #rules-pick-row{gap:8px;align-items:center;margin:4px 0 0}
 pre{background:var(--soft);padding:8px;border-radius:4px;white-space:pre-wrap;font-size:12px}
 
-.f.ai{background:#F7F9FC;margin:0 -12px;padding-left:12px;padding-right:12px}.aitag{display:inline-block;font-size:10px;font-weight:600;text-transform:none;color:var(--btn-fg);background:var(--slate);border-radius:3px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.f.ai{background:#F7F9FC;margin:0 -12px;padding-left:12px;padding-right:12px}.srctag{display:inline-block;font-size:10px;font-weight:600;text-transform:none;color:var(--btn-fg);background:var(--muted);border-radius:3px;padding:0 5px;margin-left:4px;vertical-align:1px}
+/* the source of a finding, labelled as in the filter chips and the Calibration table (srcLabel); regex is the plain one */
+.srctag.lint{background:var(--green)}.srctag.gherkin{background:var(--violet)}.srctag.spec{background:var(--teal)}.srctag.ai{background:var(--slate)}
 .metrics{display:flex;gap:12px;flex-wrap:wrap;margin:-4px 0 10px;font-size:12px;color:var(--muted)}.metrics b{color:var(--ink)}
 .cov{margin-top:8px}.cov td.no{color:var(--red);font-weight:600}.cov td.yes{color:var(--green)}
 .f.spec{border-left:3px solid var(--teal);padding-left:8px}.f .demoted{color:var(--muted);font-size:11px}
