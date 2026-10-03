@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.116
+
+### Fixed
+- After an update, sessions you had already imported kept the findings of the version that analyzed them: the checks
+  added in 0.1.113 and 0.1.114 (`test_deleted`, `config_weakened` and others) did not show up in them until you changed
+  something on the Rules tab. Now an update analyzes every stored session again, in the background.
+- A verdict stays with its finding when a new version words the finding differently. Until now such a verdict stopped
+  counting (as after 0.1.113, where the skip finding changed its text).
+
 ## 0.1.115
 
 ### Added

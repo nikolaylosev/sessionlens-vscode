@@ -665,16 +665,24 @@ async function flushRules() {
 ```
 
 Which findings are stale is decided by `analysisGen = Lens.analysisGen({ ruleOverrides, lint, epoch })` (8 hex characters,
-FNV-1a of JSON with sorted keys). It includes exactly the inputs of `analyze()` whose change in 0.1.100
-recomputed all sessions: rule overrides, the ESLint switch and `analysisEpoch` (incremented when verdicts are
-imported). Each session's summary stores the `analyzedGen` its findings were computed with.
+FNV-1a of JSON with sorted keys). It includes the inputs of `analyze()` whose change in 0.1.100 recomputed all
+sessions: rule overrides, the ESLint switch and `analysisEpoch` (incremented when verdicts are imported), and since
+0.1.116 `Lens.ANALYSIS_VERSION`, the extension's version (a test keeps it equal to `package.json`). Each session's
+summary stores the `analyzedGen` its findings were computed with.
 
 - A session tab, on `{ scope: "keys" }`, compares its session's `analyzedGen` with the current `analysisGen` and, if they
   differ, recomputes only itself (`ensureFresh`), draws the result and saves it.
 - The sidebar starts a background pass (`startBackground`) 1 s after a change: stale sessions one at a time, from
   newest to oldest, with a 50 ms pause. The host skips a session open in a tab (`{ skipped: true }`). A new
   change of the rules restarts the pass; while the rules write waits for its debounce, the pass does not run.
-- The version of the check engine is not part of `analysisGen`: after an extension update old findings stay, as before.
+- **After an update** (since 0.1.116) every stored session is stale and the background pass analyzes it again; a
+  session tab does it when it opens. Until 0.1.116 the version was not part of `analysisGen`, as in 0.1.100: a session
+  kept the findings of the version that analyzed it, and the new checks of 0.1.113 and 0.1.114 did not show up in it
+  until a Rules edit.
+- **Verdicts across a rewording.** `analyzeNow()` ends with `Lens.carryVerdicts(s)`: a verdict whose key (`fkey`:
+  check, step, the first 40 characters of the message) no longer matches a finding moves to the finding of the same
+  check and step, if exactly one such finding has no verdict of its own (shown or in `calibHidden`). So a finding a new
+  version words differently keeps its verdict and its weight in calibration; a finding that is gone keeps nothing.
 
 **A known difference from 0.1.100.** Before, the loop recomputed all sessions in a row, and each next one saw calibration
 (`calibStats()`, now `calibStatsBySource()`) with the already recomputed findings of the previous ones. Now calibration is taken from the summaries at the moment
