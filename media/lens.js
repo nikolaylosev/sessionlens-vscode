@@ -2196,14 +2196,15 @@
     }
     return "";
   }
-  /* → { id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, verdictsCount,
+  /* → { id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount,
          checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
          confirmed: [{ key, check, seq, message, snippet, note }] }
      checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
      (calibHidden); sourceStats is the same split by the finding's source ("formal" when it has none: a regex
      finding of a session analyzed before 0.1.112), so an engine's bad record never counts against a regex check of
      the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order; started is
-     sessionStarted() (0.1.116), what a rule's effect compares with the day the rule was moved. */
+     sessionStarted() (0.1.116), what a rule's effect compares with the day the rule was moved; hiddenCount is how
+     many findings calibration hides (calibHidden, 0.1.116), so the Sessions tree can say a green session has some. */
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
       verdicts = s.verdicts && typeof s.verdicts === "object" ? s.verdicts : {};
@@ -2238,6 +2239,7 @@
       specN: (s.specParsed && s.specParsed.n) || 0,
       verdict: verdict(findings),
       findingsCount: findings.length,
+      hiddenCount: Array.isArray(s.calibHidden) ? s.calibHidden.length : 0,
       verdictsCount: Object.keys(verdicts).length,
       checkStats,
       sourceStats,

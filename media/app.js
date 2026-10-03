@@ -328,6 +328,7 @@
         T("md_undecided"),
         ...r.findings.filter((f) => !f.verdict).map((f) => `- ${sev[f.severity]} ${f.message}`),
         ``,
+        ...hiddenMd(r.hiddenByCalibration, sev),
         `_sessionlens · ${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}_`
       ].join("\n");
       navigator.clipboard.writeText(md).then(() => {
@@ -523,6 +524,34 @@
     });
   }
   var modelOf = (f) => Object.assign({}, f.model ? { model: f.model } : {}, f.verifier ? { verifier: f.verifier } : {});
+  function hiddenRows(s) {
+    const why = new Map((s.suppressed || []).map((x) => [x.check + "|" + x.source, x]));
+    return (s.calibHidden || []).map((f) => {
+      const src = f.source || "formal", w = why.get(f.check + "|" + src);
+      return {
+        check: f.check,
+        severity: f.severity,
+        seq: f.seq,
+        message: f.message,
+        source: src,
+        precision: w ? w.precision : null,
+        verdicts: w ? w.n : null,
+        verdict: s.verdicts[fkey(f)] || null
+      };
+    });
+  }
+  function hiddenMd(rows, sev) {
+    if (!rows.length) return [];
+    const high = rows.filter((f) => f.severity === "high"), rest = rows.length - high.length;
+    return [
+      T("md_hidden"),
+      ...high.map(
+        (f) => `- ${sev.high} ${f.message}${f.seq >= 0 ? ` _(seq ${f.seq})_` : ""} — ${f.check}, ${srcLabel(f.source)}${f.precision != null ? `: ${T("md_hidden_why", { p: Math.round(f.precision * 100), n: f.verdicts })}` : ""}`
+      ),
+      ...rest ? [T("md_hidden_rest", { n: rest })] : [],
+      ``
+    ];
+  }
   function reportObj(s) {
     return {
       schema: "sessionlens/finding@1",
@@ -543,6 +572,7 @@
         ...modelOf(f),
         verdict: s.verdicts[fkey(f)] || null
       })),
+      hiddenByCalibration: hiddenRows(s),
       dropped: s.dropped || []
     };
   }
