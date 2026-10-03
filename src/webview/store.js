@@ -198,8 +198,10 @@ export function onGenChanged() {
 // rules on the Calibration tab, which is what the demo shows.
 const isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
 /* The calibration stats per check AND source ({ check: { source: { total, ok, fp } } }), from the summaries'
-   sourceStats (phase 8): what Lens.calibrate(), the Calibration table and the Rules hints read. An imported finding
-   counts under its own source ("external" when it has none), which calibrate() never applies to. */
+   sourceStats (phase 8): what Lens.calibrate(), the Calibration table and the Rules hints read. An imported row that
+   matched no finding (state.external) counts under its own source: under "external" when it has none, which
+   calibrate() never applies to; under "formal" or "lint" when it names one, as a verdicts.json from another machine
+   does, and then it is part of that check's calibration here. Only "ok" and "fp" count, as in Lens.sessionSummary. */
 export function calibStatsBySource() {
   const st = {};
   const at = (check, src) => {
@@ -218,7 +220,7 @@ export function calibStatsBySource() {
   for (const f of state.external) {
     const x = at(f.check, f.source || "external");
     x.total++;
-    if (f.verdict) x[f.verdict]++;
+    if (f.verdict === "ok" || f.verdict === "fp") x[f.verdict]++;
   }
   return st;
 }

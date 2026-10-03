@@ -747,7 +747,8 @@ ${en.raw}`).join("\n\n\n");
     await fetchSessions(
       metas().map((m) => m.id),
       (s) => {
-        for (const f of s.findings) {
+        const hidden = new Set(s.calibHidden || []);
+        for (const f of [...s.findings, ...s.calibHidden || []]) {
           const vd = s.verdicts[fkey(f)];
           if (vd)
             rows.push({
@@ -763,7 +764,8 @@ ${en.raw}`).join("\n\n\n");
               ...modelOf(f),
               verdict: vd.v,
               note: vd.note,
-              at: vd.at
+              at: vd.at,
+              ...hidden.has(f) ? { hidden: true } : {}
             });
         }
       }
@@ -783,15 +785,19 @@ ${en.raw}`).join("\n\n\n");
       $("#import-status").textContent = T("imp_not_array");
       return;
     }
-    let merged = 0, ext = 0;
+    let merged = 0, ext = 0, dup = 0;
+    const extKey = (x) => [x.check, x.source || "external", x.session || "", String(x.message).slice(0, 40)].join("|");
+    const known = new Set(state.external.map(extKey));
     const read = {}, ops = {}, all = metas();
     for (const r of rows) {
       if (!r || !r.check || !r.message) continue;
       const m = all.find((x) => x.name === r.session || r.task && x.task === r.task);
       if (m && !read[m.id]) read[m.id] = state.loaded[m.id] ? { session: state.loaded[m.id], rev: state.revs[m.id], meta: m } : await sessionStore.get(m.id);
       const s = m && read[m.id] ? read[m.id].session : null;
-      const f = s && s.findings.find((x) => x.check === r.check && x.message.slice(0, 40) === String(r.message).slice(0, 40));
-      const v = r.verdict && (r.verdict.v || r.verdict);
+      const same = (x) => x.check === r.check && String(x.message).slice(0, 40) === String(r.message).slice(0, 40);
+      const f = s && (s.findings.find(same) || (s.calibHidden || []).find(same));
+      const raw = r.verdict && (r.verdict.v || r.verdict);
+      const v = raw === "ok" || raw === "fp" ? raw : null;
       if (s && f && v) {
         const k = fkey(f);
         if (!s.verdicts[k]) {
@@ -800,14 +806,20 @@ ${en.raw}`).join("\n\n\n");
           merged++;
         }
       } else if (!s || !f) {
-        state.external.push({
+        const row = {
           check: r.check,
           severity: r.severity || "medium",
           message: r.message,
           session: r.session,
           source: r.source || "external",
-          verdict: v || null
-        });
+          verdict: v
+        };
+        if (known.has(extKey(row))) {
+          dup++;
+          continue;
+        }
+        known.add(extKey(row));
+        state.external.push(row);
         ext++;
       }
     }
@@ -823,7 +835,7 @@ ${en.raw}`).join("\n\n\n");
     await save();
     onGenChanged();
     renderCalib();
-    $("#import-status").textContent = T("imp_done", { m: merged, e: ext });
+    $("#import-status").textContent = T("imp_done", { m: merged, e: ext }) + (dup ? T("imp_dup", { n: dup }) : "");
   }
   function download(name, text) {
     window.__slSaveFile(name, text);
@@ -2382,7 +2394,7 @@ ${s.seg_raw}` : s.seg && s.seg.raw;
     for (const f of state.external) {
       const x = at(f.check, f.source || "external");
       x.total++;
-      if (f.verdict) x[f.verdict]++;
+      if (f.verdict === "ok" || f.verdict === "fp") x[f.verdict]++;
     }
     return st;
   }

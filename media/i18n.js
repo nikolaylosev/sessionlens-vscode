@@ -339,6 +339,7 @@
       imp_not_json: "not JSON",
       imp_not_array: "expected an array of findings",
       imp_done: "verdicts merged: {m}, external findings added: {e}",
+      imp_dup: " · {n} {n|row|rows} already imported, skipped",
       saved: "saved",
       key_label: "API key — {p}",
       key_saved: "saved ✓",
