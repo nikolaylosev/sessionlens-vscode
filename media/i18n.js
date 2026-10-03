@@ -216,7 +216,7 @@
       chip_formal: "regex",
       chip_spec: "spec",
       chip_ai: "model",
-      chip_lint: "eslint",
+      chip_lint: "lint",
       chip_undecided: "no verdict",
       src_gherkin: "gherkin",
       src_external: "imported",

@@ -353,6 +353,12 @@ export function renderReview() {
       F.undecided = !F.undecided;
       renderReview();
     });
+  // 0.1.117: a lint finding is tagged with the engine that ran in this session's profile; the filter and the
+  // Calibration table say "lint", since there the sessions of all profiles meet
+  const engine = { eslint: "eslint", "eslint-cypress": "eslint", "eslint-detox": "eslint", "tree-sitter": "tree-sitter", "robot-parser": "robot" }[
+    Lens.profileInfo(s.profile, piDeps(s.profile)).engine.kind
+  ];
+  const tagLabel = (src) => (src === "lint" && engine ? engine : srcLabel(src));
   const fl = $("#findings");
   fl.innerHTML = visible.length
     ? visible
@@ -362,7 +368,7 @@ export function renderReview() {
           const ai = f.source === "ai",
             sp = f.source === "spec",
             src = f.source || "formal";
-          return `<div class="f ${esc(f.severity)} ${vd.v ? "done" : ""} ${ai ? "ai" : ""} ${sp ? "spec" : ""}" data-k="${esc(k)}"><div class="sev ${esc(f.severity)}">${esc(SEV[f.severity] || f.severity)} <span class="srctag ${esc(src)}">${esc(srcLabel(src))}</span>${f.demoted ? ` <span class="demoted">${T("demoted")}</span>` : ""}</div><div class="msg">${esc(f.message)}</div>${f.evidence ? `<div class="chk">«${esc(f.evidence)}»</div>` : ""}${f.code ? `<details class="snip-d"><summary>${T("code_toggle")}</summary><pre class="snip">${esc(f.code)}</pre></details>` : ""}<div class="chk">${ai ? esc(LABEL[f.check] || f.check) : esc(f.check)}${f.seq >= 0 ? ` · <a href="#e${esc(f.seq)}">seq ${esc(f.seq)}</a>` : ""}</div>
+          return `<div class="f ${esc(f.severity)} ${vd.v ? "done" : ""} ${ai ? "ai" : ""} ${sp ? "spec" : ""}" data-k="${esc(k)}"><div class="sev ${esc(f.severity)}">${esc(SEV[f.severity] || f.severity)} <span class="srctag ${esc(src)}">${esc(tagLabel(src))}</span>${f.demoted ? ` <span class="demoted">${T("demoted")}</span>` : ""}</div><div class="msg">${esc(f.message)}</div>${f.evidence ? `<div class="chk">«${esc(f.evidence)}»</div>` : ""}${f.code ? `<details class="snip-d"><summary>${T("code_toggle")}</summary><pre class="snip">${esc(f.code)}</pre></details>` : ""}<div class="chk">${ai ? esc(LABEL[f.check] || f.check) : esc(f.check)}${f.seq >= 0 ? ` · <a href="#e${esc(f.seq)}">seq ${esc(f.seq)}</a>` : ""}</div>
         <div class="vb"><button class="btn tiny ghost v-ok ${vd.v === "ok" ? "on" : ""}">${T("btn_ok")}</button><button class="btn tiny ghost v-fp ${vd.v === "fp" ? "on fp" : ""}">${T("btn_fp")}</button><input class="note" placeholder="${T("ph_note")}" value="${esc(vd.note || "")}"></div></div>`;
         })
         .join("")

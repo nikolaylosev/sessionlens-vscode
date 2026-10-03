@@ -73,8 +73,8 @@ test("the Calibration table: one row per check and source, with the status calib
   const status = Object.fromEntries(rows.map((r) => [`${r[0]}/${r[1]}`, r[6]]));
   assert.deepEqual(status, {
     "weak_assert/regex": "ok",
-    "weak_assert/eslint": "disabled",
-    "raw_locator/eslint": "on by hand",
+    "weak_assert/lint": "disabled",
+    "raw_locator/lint": "on by hand",
     "magic_number/regex": "demoted",
     "ai_fragility/model": "not calibrated",
     "spec_uncovered/spec": "not calibrated",
@@ -87,7 +87,7 @@ test("the Calibration table: one row per check and source, with the status calib
   assert.match(why("ai_fragility", "model"), /depends on the model and the prompt/);
   assert.match(why("spec_uncovered", "spec"), /A fact, not a guess/);
   assert.match(why("hardcoded_secret", "regex"), /Missing one costs more than a false alarm/);
-  assert.match(why("raw_locator", "eslint"), /you ticked it on/);
+  assert.match(why("raw_locator", "lint"), /you ticked it on/);
   assert.equal(why("weak_assert", "regex"), "", "no tooltip on an ordinary row");
   assert.deepEqual(sb.errors, []);
   sb.close();
@@ -101,7 +101,7 @@ test("the Rules tab: 'on by hand' next to a check calibration would switch off; 
   const row = (check) => sb.document.querySelector(`.rule-row[data-check="${check}"]`);
   const badge = row("raw_locator").querySelector(".r-by-hand");
   assert.ok(badge, "raw_locator: on by hand");
-  assert.match(badge.title, /eslint: precision 10%/);
+  assert.match(badge.title, /lint: precision 10%/);
   assert.equal(row("weak_assert").querySelector(".r-by-hand"), null, "off for one source but not ticked on by hand");
   assert.ok(row("magic_number").querySelector(".r-demoted"), "magic_number: demoted with a manual severity");
   assert.equal(row("raw_locator").querySelector(".r-demoted"), null);
@@ -113,7 +113,7 @@ test("a session's line of disabled checks names the source", async () => {
   const { host, s } = await panel();
   const tab = await openPage(host, { sessionId: s.id });
   await tab.ready();
-  assert.equal(tab.document.querySelector("#suppressed").textContent, "Disabled for low precision: weak_assert (eslint, 10% / 10)");
+  assert.equal(tab.document.querySelector("#suppressed").textContent, "Disabled for low precision: weak_assert (lint, 10% / 10)");
   assert.deepEqual(tab.errors, []);
   tab.close();
 });

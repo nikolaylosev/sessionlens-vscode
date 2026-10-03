@@ -7,6 +7,9 @@
   either: its colour was never defined. Findings of the regex checks and the Gherkin checks had no tag at all. Every
   finding now shows the tag of its source (regex, eslint, gherkin, spec or model), named as in the filter above the
   findings, and specification findings get their teal stripe on the left.
+- Static-analysis findings were labelled "eslint" everywhere, also in Python, Java, C# and Robot Framework sessions,
+  where tree-sitter or the Robot Framework parser found them. A finding's tag now names the engine of its session
+  (eslint, tree-sitter or robot); the filter, the Calibration table and the reports call the source "lint".
 
 ## 0.1.116
 
