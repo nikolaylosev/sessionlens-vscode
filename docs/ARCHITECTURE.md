@@ -350,8 +350,8 @@ Key points:
   `ts` is the step's time from the transcript (empty for a claude.ai export).
 - **Finding.** `check` is the one key of the rules system (RA §1). `source` says which track made it; calibration
   is per check and source. `kind` is set on regex findings of the checks an engine may replace (RA §6.3). A model
-  finding has `evidence`, and `model` / `verifier` (`provider/model`, since 0.1.115); an engine finding has `rule`
-  and `line`; a finding that points at a line carries `code`, the lines around it.
+  finding has `evidence`, and `model` / `verifier` (`provider/model`, since 0.1.115); an engine finding has `rule`,
+  `line` and `code` (the lines around it).
 - **Verdict key** is `check@seq@first 40 characters of the message`. Renaming a check detaches old verdicts: the
   CHANGELOG says so whenever it happens. A message a new version words differently keeps its verdict since 0.1.116:
   after each analysis `Lens.carryVerdicts` moves a verdict whose key matches no finding to the one finding of the
