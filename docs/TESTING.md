@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.115**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.116**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.115 `npm test` runs 259 tests in 38 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.116 `npm test` runs 262 tests in 39 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -163,6 +163,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `cli.test.js` | `cli.js`: how a `.cmd`/`.bat` CLI is started through `cmd.exe`, refusal of anything `cmd.exe` could read as more than text, the system prompt file. The real Windows run happens only on `windows-latest`. |
 | `store.test.js` | `store.js` on a real temporary folder: put, get, list, delete; conflicts by revision; summaries; schema rebuild; file names that never leave the folder; repair of an interrupted write; retries on `EPERM`/`EBUSY`; no interleaved writes. |
 | `storage-migration.test.js` | The move of `globalState["sessions"]` into files: unchanged sessions, a second start, a failed migration resumed later, a tab restored during the migration, the `session:*` messages. |
+| `reanalyze-after-update.test.js` | An update analyzes the stored sessions again: `Lens.ANALYSIS_VERSION` equals `package.json`'s version and is in the generation; a session analyzed by 0.1.115 gets the new findings; `Lens.carryVerdicts` moves a verdict to a reworded finding of the same check and step, and only then. |
 | `vscode-integration.test.js` | `package.json` contributions and `package.nls.json`; English host strings whatever the VS Code language; the five settings in VS Code Settings (overlay, write, migration, outside changes); the Sessions tree and its commands; palette commands; the `page:ready` channel; the Output channel never logs transcript text or prompts. |
 | `bridge-timeout.test.js` | `vscode-bridge.js` gives up on a reply after a limit per message type and resolves with `bridge-timeout`; dialogs and local model servers have no limit; the limits match the host's. |
 | `ai-transport.test.js` | `ai.js` in the VS Code build: model requests go through the host transport, the payload carries no key, 429 retries, `no_key`, CLI providers never use HTTP. |

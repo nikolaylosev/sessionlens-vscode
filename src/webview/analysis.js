@@ -45,6 +45,7 @@ export function analyzeNow(s) {
   s.specParsed = { n: spec.requirements.length, oos: spec.outOfScope.length, hasIds: spec.requirements.some((r) => !r.auto) };
   s.suppressed = cal.suppressed;
   s.calibHidden = cal.hidden; // what an "off" check found: counted for calibration, never shown
+  Lens.carryVerdicts(s); // a verdict on a finding the new version words differently stays with it (0.1.116)
   s.metrics = Lens.metrics(s.events);
   s.task = s.task || Lens.taskId(s.events);
   // which rules these findings were computed with; "" (not analyzed) while the lint engine was still loading, so

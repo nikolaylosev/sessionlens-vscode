@@ -2128,8 +2128,11 @@
     return (ev || f.message).replace(/\s+/g, " ").trim().slice(0, 140);
   }
   // Which inputs of analyze() a session's findings were computed with, as 8 hex characters (FNV-1a 32 over JSON
-  // with sorted keys). Only the inputs whose change re-ran analyze() on every session in 0.1.100: the rule
-  // overrides, the ESLint switch, and analysisEpoch (bumped where the calibration changed wholesale: verdict import).
+  // with sorted keys): the rule overrides, the ESLint switch, analysisEpoch (bumped where the calibration changed
+  // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
+  // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
+  // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
+  const ANALYSIS_VERSION = "0.1.116";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")
@@ -2145,13 +2148,37 @@
     return JSON.stringify(v === undefined ? null : v);
   }
   function analysisGen(o) {
-    const src = canon({ r: (o && o.ruleOverrides) || {}, l: !(o && o.lint === false), e: (o && o.epoch) || 0 });
+    const src = canon({ r: (o && o.ruleOverrides) || {}, l: !(o && o.lint === false), e: (o && o.epoch) || 0, v: ANALYSIS_VERSION });
     let h = 0x811c9dc5;
     for (let i = 0; i < src.length; i++) {
       h ^= src.charCodeAt(i);
       h = Math.imul(h, 0x01000193) >>> 0;
     }
     return ("0000000" + h.toString(16)).slice(-8);
+  }
+  /* A verdict is stored under fkey: check, step and the first 40 characters of the message. When a new version words a
+     finding differently (0.1.113: "skip / xfail / retry added" became "skip / retry added"), the analysis after the
+     update makes a finding with a new key, and the verdict would no longer count. carryVerdicts() moves such a verdict
+     to the finding of the same check and step, if there is exactly one without a verdict of its own; a finding that is
+     really gone keeps nothing. Runs after every analysis, over the findings shown and hidden. → how many moved */
+  function carryVerdicts(s) {
+    const verdicts = s && s.verdicts;
+    if (!verdicts || typeof verdicts !== "object") return 0;
+    const all = [...(Array.isArray(s.findings) ? s.findings : []), ...(Array.isArray(s.calibHidden) ? s.calibHidden : [])];
+    const now = new Set(all.map(fkey));
+    let moved = 0;
+    for (const k of Object.keys(verdicts)) {
+      if (now.has(k)) continue;
+      const [check, seq] = k.split("@");
+      const free = all.filter((f) => f.check === check && String(f.seq) === seq && !verdicts[fkey(f)]);
+      if (free.length !== 1) continue;
+      const nk = fkey(free[0]);
+      verdicts[nk] = verdicts[k];
+      delete verdicts[k];
+      now.add(nk);
+      moved++;
+    }
+    return moved;
   }
   /* → { id, name, task, profile, created, reviewed, specN, verdict, findingsCount, verdictsCount,
          checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
@@ -2324,8 +2351,10 @@
     compareAsserts,
     blocksByTest,
     fkey,
+    carryVerdicts,
     snippet,
     analysisGen,
+    ANALYSIS_VERSION,
     displayName,
     otherName,
     sessionSummary,
