@@ -1,6 +1,7 @@
 "use strict";
-/* 0.1.117: every finding carries a tag of its source (regex, eslint, gherkin, spec, model), labelled as the filter
-   chips and the Calibration table label it. The spec tag used var(--teal), which was never defined, so it had no
+/* 0.1.117: every finding carries a tag of its source (regex, lint, gherkin, spec, model), labelled as the filter
+   chips and the Calibration table label it; a lint finding names the engine of its session's profile (eslint,
+   tree-sitter, robot), since all of them report under the source "lint". The spec tag used var(--teal), which was never defined, so it had no
    background and could not be read in the dark theme; regex and Gherkin findings had no tag. The real panel. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -13,24 +14,27 @@ const { load, root } = require("./helpers");
 
 const { Lens } = load();
 
-test("every finding shows the tag of its source", async () => {
-  const F = (check, severity, seq, source) => Object.assign({ check, severity, seq, message: `${check} #${seq}` }, source ? { source } : {});
-  const findings = [
-    F("pass_claim_without_run", "high", 1, "formal"),
-    F("magic_number", "low", 2), // a regex finding saved before 0.1.112 has no source
-    F("weak_assert", "medium", 3, "lint"),
-    F("scenario_no_then", "medium", 4, "gherkin"),
-    F("no_spec", "high", 5, "spec"),
-    F("ai_fragility", "medium", 6, "ai"),
-  ];
-  const s = { id: "tags1", name: "tags", task: "", profile: "qa-ts", created: "2026-10-01T00:00:00.000Z", events: [], findings, verdicts: {}, spec: "" };
+const F = (check, severity, seq, source) => Object.assign({ check, severity, seq, message: `${check} #${seq}` }, source ? { source } : {});
+// opens a session of the profile with these findings in its own tab → { message: [tag text, tag class] }, the chips
+async function tagsOf(profile, findings) {
+  const s = {
+    id: "tags-" + profile.replace(/\W/g, ""),
+    name: "tags",
+    task: "",
+    profile,
+    created: "2026-10-01T00:00:00.000Z",
+    events: [],
+    findings,
+    verdicts: {},
+    spec: "",
+  };
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl-tags-"));
   const st = createStore({ dir: path.join(dir, "sessions") });
   await st.open();
   await st.put(s, { analyzedGen: Lens.analysisGen({ ruleOverrides: {}, lint: false, epoch: 0 }) });
   const h = bootHost({
     storageDir: dir,
-    globalState: { storageVersion: 2, settings: { profile: "qa-ts", lint: false, rulesTarget: "claude", modelPool: [], defaultModelId: null } },
+    globalState: { storageVersion: 2, settings: { profile, lint: false, rulesTarget: "claude", modelPool: [], defaultModelId: null } },
   });
   const p = await openPage(h, { sessionId: s.id });
   await p.ready();
@@ -41,6 +45,21 @@ test("every finding shows the tag of its source", async () => {
       return [d.querySelector(".msg").textContent, [t[0].textContent, t[0].className]];
     }),
   );
+  const chips = [...p.document.querySelectorAll("#filter .chip[data-src]")].map((c) => c.textContent.replace(/\s+\d+$/, ""));
+  assert.deepEqual(p.errors, []);
+  p.close();
+  return { tags, chips };
+}
+
+test("every finding shows the tag of its source", async () => {
+  const { tags } = await tagsOf("qa-ts", [
+    F("pass_claim_without_run", "high", 1, "formal"),
+    F("magic_number", "low", 2), // a regex finding saved before 0.1.112 has no source
+    F("weak_assert", "medium", 3, "lint"),
+    F("scenario_no_then", "medium", 4, "gherkin"),
+    F("no_spec", "high", 5, "spec"),
+    F("ai_fragility", "medium", 6, "ai"),
+  ]);
   assert.deepEqual(tags, {
     "pass_claim_without_run #1": ["regex", "srctag formal"],
     "magic_number #2": ["regex", "srctag formal"],
@@ -49,8 +68,15 @@ test("every finding shows the tag of its source", async () => {
     "no_spec #5": ["spec", "srctag spec"],
     "ai_fragility #6": ["model", "srctag ai"],
   });
-  assert.deepEqual(p.errors, []);
-  p.close();
+});
+
+test("a lint finding names the engine of its session's profile; the filter says lint", async () => {
+  const engines = { "qa-ts": "eslint", "qa-cypress": "eslint", "qa-python": "tree-sitter", "qa-java": "tree-sitter", "qa-robot": "robot" };
+  for (const [profile, engine] of Object.entries(engines)) {
+    const { tags, chips } = await tagsOf(profile, [F("weak_assert", "medium", 1, "lint"), F("pass_claim_without_run", "high", 2, "formal")]);
+    assert.deepEqual(tags["weak_assert #1"], [engine, "srctag lint"], profile);
+    assert.ok(chips.includes("lint") && !chips.includes("eslint"), `${profile}: ${chips}`);
+  }
 });
 
 test("every colour the stylesheet uses is defined, for the light and the dark theme", () => {

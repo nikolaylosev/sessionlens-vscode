@@ -81,7 +81,7 @@ test("the PR report names the hidden high findings and counts the rest; without 
   const { md } = await exported(session([hiddenHigh, hiddenLow], SUPPRESSED));
   assert.match(
     md,
-    /### Hidden by calibration \(low precision\)\n- 🔴 e2e\/a\.spec\.ts: weak assertion _\(seq 3\)_ — weak_assert, eslint: precision 10% over 10 verdicts\n- and 1 medium or low finding\n/,
+    /### Hidden by calibration \(low precision\)\n- 🔴 e2e\/a\.spec\.ts: weak assertion _\(seq 3\)_ — weak_assert, lint: precision 10% over 10 verdicts\n- and 1 medium or low finding\n/,
   );
   const none = await exported(session([], []));
   assert.doesNotMatch(none.md, /Hidden by calibration/);
