@@ -1052,8 +1052,17 @@ the hidden findings of an "off" check (`calibHidden`, §5.2) counted too. Per-so
 `checkStats` stays as it was, the sum over the sources. A summary of schema 1 is rebuilt from its session once, at
 `open()` (§15.3); 200 sessions of 1 MB take about 1.5 s the first time.
 
+Since v0.1.116 the summary is `schema: 3` and has `started`: the time of the session's first step that has one (`ts`
+of the event, as an ISO string), or `""` when the transcript has no times (a claude.ai export). `created` is the time
+of the import, which can be weeks later. The effect of a rule moved to CLAUDE.md (`effect()`,
+`src/webview/calibration.js`) puts a session before or after the day it was moved by `started`, and by `created`
+only when `started` is empty. It leaves out the demo session and the sessions of a profile that cannot report the
+check (`profileChecks()` in `src/webview/rules.js`, the same list the Rules filter uses); a session that could report
+it and did not counts as 0. The sources are counted together: the effect is about what the agent does. A summary
+of schema 2 is rebuilt once at `open()`, as for schema 1.
+
 `<name> = fileNameFor(id)`: the id itself if it matches `^[A-Za-z0-9_-]{1,64}$`, otherwise `h-` and the 32 hex characters of
-`sha256(id)`. The summary: `id, name, task, profile, created, reviewed, specN, verdict, findingsCount, verdictsCount,
+`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, verdictsCount,
 checkStats { check: { total, ok, fp } }, sourceStats { check: { source: { total, ok, fp } } }, confirmed [{ key, check, seq, message ≤90, snippet ≤140, note }]` — everything that
 Calibration, Rules, `effect()`, the profile drop-down and the Sessions tree used to take from full sessions. The summary
 is computed by the **host** from the session's content; only `analyzedGen` is taken from the message (its format is checked).
@@ -1071,7 +1080,7 @@ is retried 5 times (20…320 ms). Writes of one id in one host are queued.
 ### 15.3 Reconciliation at `open()`
 
 A summary is current if it was written no earlier than the session, stores its size (two `stat`s per session; `rev` from the tail
-of the file only when the times match) and has the current `schema` (2 since v0.1.112). Otherwise the summary is rebuilt from the
+of the file only when the times match) and has the current `schema` (3 since v0.1.116). Otherwise the summary is rebuilt from the
 session file, keeping its `order` and `analyzedGen`. A summary without a session is deleted,
 an unreadable session file is moved to `sessions/corrupt/`, leftover `*.tmp` files are deleted. Everything is written to the Output
 channel "SessionLens".

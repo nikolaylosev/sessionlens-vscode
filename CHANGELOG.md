@@ -14,6 +14,11 @@
 - Importing the same `verdicts.json` twice counted the rows that match no session twice in calibration. A row already
   imported is now skipped, and the import says how many were. Only the verdicts "ok" and "fp" count, as everywhere
   else.
+- The effect of a rule marked **Moved** put a session before or after that day by when you imported it, not by when
+  the agent ran it, so an old transcript imported later counted as "after". It also counted the demo session and the
+  sessions of profiles that never report that finding. A session now counts by the time of its first step (the
+  import time when the transcript has none), and only sessions of the profiles that can report the finding count.
+  The first start after the update rebuilds the session summaries once.
 
 ## 0.1.115
 

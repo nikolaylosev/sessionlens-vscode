@@ -2180,13 +2180,23 @@
     }
     return moved;
   }
-  /* → { id, name, task, profile, created, reviewed, specN, verdict, findingsCount, verdictsCount,
+  /* When the agent ran: the time of the session's first step that has one, as an ISO string; "" when the transcript
+     has no times (a claude.ai export). created is when the session was imported, which can be much later. */
+  function sessionStarted(events) {
+    for (const e of Array.isArray(events) ? events : []) {
+      const t = e && typeof e.ts === "string" && e.ts ? Date.parse(e.ts) : NaN;
+      if (!isNaN(t)) return new Date(t).toISOString();
+    }
+    return "";
+  }
+  /* → { id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, verdictsCount,
          checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
          confirmed: [{ key, check, seq, message, snippet, note }] }
      checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
      (calibHidden); sourceStats is the same split by the finding's source ("formal" when it has none: a regex
      finding of a session analyzed before 0.1.112), so an engine's bad record never counts against a regex check of
-     the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order. */
+     the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order; started is
+     sessionStarted() (0.1.116), what a rule's effect compares with the day the rule was moved. */
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
       verdicts = s.verdicts && typeof s.verdicts === "object" ? s.verdicts : {};
@@ -2215,6 +2225,7 @@
       task: s.task || "",
       profile: s.profile || "",
       created: s.created || "",
+      started: sessionStarted(s.events),
       reviewed: !!s.reviewed,
       nameSet: !!s.nameSet,
       specN: (s.specParsed && s.specParsed.n) || 0,

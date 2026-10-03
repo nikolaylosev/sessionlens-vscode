@@ -98,7 +98,7 @@ test("the summary splits the stats by source; a regex finding of an older sessio
     verdicts: { [Lens.fkey(old)]: { v: "ok" }, [Lens.fkey(formal)]: { v: "ok" }, [Lens.fkey(lint)]: { v: "fp" }, [Lens.fkey(hidden)]: { v: "fp" } },
   });
   const m = (await st.put(s)).meta;
-  assert.equal(m.schema, 2);
+  assert.equal(m.schema, 3);
   assert.deepEqual(m.checkStats, { weak_assert: { total: 4, ok: 2, fp: 2 } }, "unchanged: every source together");
   assert.deepEqual(m.sourceStats, {
     weak_assert: { formal: { total: 2, ok: 2, fp: 0 }, lint: { total: 2, ok: 0, fp: 2 } },
@@ -119,13 +119,42 @@ test("open(): a summary of schema 1 is rebuilt from its session once, keeping it
   fs.writeFileSync(mp, JSON.stringify(old));
   const r = await open(dir);
   const m = r.st.meta("a");
-  assert.equal(m.schema, 2);
+  assert.equal(m.schema, 3);
   assert.deepEqual(m.sourceStats, { weak_assert: { formal: { total: 1, ok: 0, fp: 0 } } });
   assert.deepEqual([m.order, m.analyzedGen, m.rev], [order, "0000abcd", 1]);
   assert.deepEqual(
     r.logs.filter((l) => /rebuilt the summary/.test(l)),
     ["rebuilt the summary of a"],
     "only the old one",
+  );
+  assert.deepEqual(
+    (await open(dir)).logs.filter((l) => /rebuilt/.test(l)),
+    [],
+    "once",
+  );
+});
+
+test("open(): a summary of schema 2 is rebuilt once and gets started, the time of the session's first step", async () => {
+  const dir = tmp();
+  const { st } = await open(dir);
+  const events = [
+    { seq: 1, ts: "", kind: "user", text: "hi" },
+    { seq: 2, ts: "2026-05-30T10:00:00.000Z", kind: "message", text: "ok" },
+  ];
+  await st.put(sess("a", { events }), { analyzedGen: "0000abcd" });
+  // a as 0.1.112-0.1.115 wrote it: schema 2, no started
+  const mp = path.join(dir, "a.meta.json");
+  const old = JSON.parse(fs.readFileSync(mp, "utf8"));
+  old.schema = 2;
+  delete old.started;
+  fs.writeFileSync(mp, JSON.stringify(old));
+  const r = await open(dir);
+  const m = r.st.meta("a");
+  assert.deepEqual([m.schema, m.started, m.created], [3, "2026-05-30T10:00:00.000Z", "2026-06-01T00:00:00.000Z"]);
+  assert.deepEqual([m.order, m.analyzedGen, m.rev], [old.order, "0000abcd", 1]);
+  assert.deepEqual(
+    r.logs.filter((l) => /rebuilt/.test(l)),
+    ["rebuilt the summary of a"],
   );
   assert.deepEqual(
     (await open(dir)).logs.filter((l) => /rebuilt/.test(l)),
