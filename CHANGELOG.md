@@ -5,10 +5,14 @@
 ### Added
 - Every button that calls a model (**Semantic review**, **Verify again**, **Segment with model**, **Compress
   rules.md**, **Generate skill**) says on hover what it sends, and the README has the same list under "Your data".
-  In short: the review sends the test code and a shortened transcript as they are, secrets included; Compress and
-  Generate skill send the picked rules with one line of code each, and never the example files.
+  In short: the review sends the test code and a shortened transcript; Compress and Generate skill send the picked
+  rules with one line of code each, and never the example files.
 
 ### Changed
+- Secrets are masked in everything sent to a model: the review, the verification, segmentation, Compress rules.md
+  and Generate skill. Until now only the example files of a generated skill were masked, and a token the agent had
+  put in a test went to the provider as it was. Keys, tokens, JWTs and passwords become `[REDACTED]`; the model
+  still sees that a secret is there.
 - Findings that calibration hides are no longer missing from the reports. **Report .json** lists them under
   `hiddenByCalibration`, with the precision that hid them; the **PR report** names the hidden high-severity ones and
   counts the rest. The Sessions tree adds "N hidden by calibration" to a session's line, so a green session with

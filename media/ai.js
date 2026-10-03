@@ -10,6 +10,12 @@
   const I = () => (typeof I18N !== "undefined" ? I18N : require("./i18n.js"));
   const T = (k, v) => I().t(k, v);
   const LANG_NAME = () => ({ en: "English", ru: "Russian" })[I().get()] || "English";
+  /* 0.1.116: secrets are masked in everything sent to a model (Lens.redactSecrets, as in a skill's examples/). Each
+     prompt is masked where it is built, so the request shown under "Debug model" and the materials the verifier
+     checks quotes against are the text that was sent; callModel() masks again in case a prompt was missed. Masking
+     twice changes nothing: "[REDACTED]" is a placeholder redactSecrets leaves alone. */
+  const Ls = () => (typeof Lens !== "undefined" ? Lens : require("./lens.js"));
+  const maskSecrets = (text) => Ls().redactSecrets(text).text;
 
   const SYSTEM_TPL = `You review automated tests written by an AI agent. You are given: a specification (may be absent),
 the test code, and a compressed transcript of the agent's session. Regex checks have already found the formal issues
@@ -118,7 +124,7 @@ If you find nothing, reply exactly: []`;
       `# Test code\n${code.text}`,
       `# Transcript (compressed)\n${compact(session.events, o.maxTranscript)}`,
     ];
-    return { system: local ? LOCAL_SYSTEM : SYSTEM(), user: parts.join("\n\n"), truncated: code.truncated };
+    return { system: local ? LOCAL_SYSTEM : SYSTEM(), user: maskSecrets(parts.join("\n\n")), truncated: code.truncated };
   }
 
   /* Lenient extraction for JSON the model broke with raw quotes inside strings: split into {...} objects,
@@ -572,6 +578,7 @@ If you find nothing, reply exactly: []`;
               cliPath: (settings.cliPaths || {})[settings.provider] || (settings.provider === "claudecli" ? settings.cliPath : "") || "",
             },
             args,
+            { user: maskSecrets(args.user) },
           );
           // an injected fetchImpl (tests) always wins; otherwise an HTTP provider goes through the host, never from here
           if (!p.cli && !fetchImpl) {
@@ -676,7 +683,7 @@ with real newline characters>"}. No prose outside the JSON, no code fences aroun
     const reqText = `${T("req_compress", used(settings))}\n--- system ---\n${system}\n\n--- user ---\n${md}`;
     let text;
     try {
-      text = await callModel(settings, { system, user: md, maxTokens: 2500, schema: COMPRESS_SCHEMA }, fetchImpl);
+      text = await callModel(settings, { system, user: maskSecrets(md), maxTokens: 2500, schema: COMPRESS_SCHEMA }, fetchImpl);
     } catch (e) {
       e.raw = reqText + "\n\n" + T("resp") + "\n" + T("call_error", { msg: e.message });
       throw e;
@@ -763,7 +770,7 @@ with real newline characters.`;
     const reqText = `${T("req_generate_skill", used(settings))}\n--- system ---\n${system}\n\n--- user ---\n${md}`;
     let text;
     try {
-      text = await callModel(settings, { system, user: md, maxTokens: 8000, schema: GENERATE_SKILL_SCHEMA }, fetchImpl);
+      text = await callModel(settings, { system, user: maskSecrets(md), maxTokens: 8000, schema: GENERATE_SKILL_SCHEMA }, fetchImpl);
     } catch (e) {
       e.raw = reqText + "\n\n" + T("resp") + "\n" + T("call_error", { msg: e.message });
       throw e;
@@ -803,7 +810,7 @@ with real newline characters.`;
       .filter((n) => byFile[n])
       .map((n) => `### ${n}\n${byFile[n].slice(0, 20000)}`)
       .join("\n\n");
-    const user = `# Findings\n${list}\n\n${p.user}${extra ? `\n\n# Cited files\n${extra}` : ""}`;
+    const user = maskSecrets(`# Findings\n${list}\n\n${p.user}${extra ? `\n\n# Cited files\n${extra}` : ""}`);
     const reqText = `${T("req_verify", used(settings))}\n--- system ---\n${VERIFY_SYSTEM()}\n\n--- user ---\n${user}`;
     let text;
     try {
@@ -868,7 +875,7 @@ with real newline characters.`;
     const out = [],
       exchanges = [];
     for (const [name, code] of files) {
-      const user = `${spec}# File: ${name}\n${code.slice(0, settings.maxCode || 12000)}`;
+      const user = maskSecrets(`${spec}# File: ${name}\n${code.slice(0, settings.maxCode || 12000)}`);
       try {
         const raw = await callModel(settings, { system: pick("review_local", LOCAL_FILE_SYSTEM), user, maxTokens: 1500, schema: FINDING_SCHEMA }, fetchImpl);
         exchanges.push(`--- ${name} ---\n${raw}`);
@@ -930,6 +937,7 @@ with real newline characters.`;
   }
 
   return {
+    maskSecrets,
     keyless,
     used,
     modelLabel,

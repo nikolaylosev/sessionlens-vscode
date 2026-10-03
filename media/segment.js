@@ -152,12 +152,14 @@ Ranges must not overlap and must use line numbers that exist. If the whole messa
       if (!lines.some((l) => l.trim())) {
         continue;
       }
-      const user =
+      // secrets masked as in every model prompt (LensAI.maskSecrets); the segments map back to the original lines
+      const user = maskSecrets(
         `# Message (seq ${e.seq}, ${e.kind === "user" ? "USER" : "AGENT"})\n` +
-        lines
-          .map((l, i) => `${i + 1}\t${l}`)
-          .join("\n")
-          .slice(0, settings.maxCode || 12000);
+          lines
+            .map((l, i) => `${i + 1}\t${l}`)
+            .join("\n")
+            .slice(0, settings.maxCode || 12000),
+      );
       let raw = null;
       try {
         raw = await callModel(settings, { system: sys("segment_local", LOCAL_SYSTEM), user, maxTokens: 2000, schema: SCHEMA }, fetchImpl);
@@ -195,11 +197,15 @@ Ranges must not overlap and must use line numbers that exist. If the whole messa
     const A = typeof LensAI !== "undefined" ? LensAI : typeof require === "function" ? require("./ai.js") : null;
     return A && A.used ? A.used(settings) : {};
   };
+  const maskSecrets = (text) => {
+    const A = typeof LensAI !== "undefined" ? LensAI : typeof require === "function" ? require("./ai.js") : null;
+    return A && A.maskSecrets ? A.maskSecrets(text) : text;
+  };
   async function segment(session, settings, callModel, parseArray, fetchImpl) {
     settings = routeSeg(settings);
     const n = numbered(session.events);
     if (!n.total) throw new Error(T("seg_nothing"));
-    const user = `# Session (numbered lines)\n${n.text.slice(0, settings.maxCode || 40000)}`;
+    const user = maskSecrets(`# Session (numbered lines)\n${n.text.slice(0, settings.maxCode || 40000)}`);
     const request = `${T("req_segment", usedSeg(settings))}\n--- system ---\n${sys("segment", SYSTEM)}\n\n--- user ---\n${user}`;
     // every failure carries the full request and whatever came back, so the panel can show it
     const fail = (e, raw) =>

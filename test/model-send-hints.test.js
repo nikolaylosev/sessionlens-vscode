@@ -26,7 +26,7 @@ test("each model button says what it sends", async () => {
     assert.equal(title, I18N.t(key), id);
     assert.match(title, /^Sends to the model: /, id);
   }
-  assert.match(p.document.getElementById("ai-run").title, /not masked/);
+  for (const id of ["ai-run", "seg-run", "compress-rules"]) assert.match(p.document.getElementById(id).title, /with secrets masked/, id);
   assert.match(p.document.getElementById("gen-skill").title, /content is not sent/);
   assert.deepEqual(p.errors, []);
   p.close();
