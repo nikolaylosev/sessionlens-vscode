@@ -448,7 +448,7 @@
       delete: "Delete",
       c_prec: "Check precision",
       c_prec_sub:
-        "From reviewer verdicts, per check and source. ≥10 verdicts and precision <50% — the check is demoted to low; <30% — disabled. Never disabled: the model's findings, a missing specification and uncovered requirements, and a check you tick on by hand on the Rules tab.",
+        "From reviewer verdicts, per check and source. ≥10 verdicts and precision <50% — the check is demoted to low; <30% — disabled. Never disabled: the model's findings, a missing specification and uncovered requirements, hardcoded secrets, and a check you tick on by hand on the Rules tab.",
       c_rules: "Rules for {f}",
       c_rules_sub1: "From confirmed findings repeated ≥",
       c_rules_sub2: "times. Mark “moved” and the tool shows whether the finding's frequency dropped afterwards.",
