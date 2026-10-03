@@ -196,7 +196,7 @@ export function onGenChanged() {
 // the demo session (LensDemo) is made up: its verdicts say nothing about how precise a check is on the person's own
 // sessions, so they count neither here nor for a profile's validation below. Its confirmed findings still propose
 // rules on the Calibration tab, which is what the demo shows.
-const isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
+export const isDemo = (m) => typeof LensDemo !== "undefined" && m.id === LensDemo.ID;
 /* The calibration stats per check AND source ({ check: { source: { total, ok, fp } } }), from the summaries'
    sourceStats (phase 8): what Lens.calibrate(), the Calibration table and the Rules hints read. An imported row that
    matched no finding (state.external) counts under its own source: under "external" when it has none, which

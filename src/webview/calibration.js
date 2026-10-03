@@ -2,9 +2,10 @@
 /* SessionLens panel — export of verdicts and the Calibration tab. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
 import { $, SEV, T, VLABEL, esc, fkey, genId, rulesTargetLabel, save, srcLabel, state } from "./common.js";
-import { calibStatsBySource, curS, fetchSessions, metas, onGenChanged, sessionStore, updateSession } from "./store.js";
+import { calibStatsBySource, curS, fetchSessions, isDemo, metas, onGenChanged, sessionStore, updateSession } from "./store.js";
 import { readFile, renderList, show } from "./sessions.js";
 import { renderReview } from "./review.js";
+import { profileChecks } from "./rules.js";
 
 // set in initCalibration(), in the order the single app.js ran its statements
 export let CAL_LOG_KEEP, CAL_LOG_MAX_CHARS, EXAMPLE_FILES_PER_RULE, EXAMPLE_MAX_CHARS, skillStubPath, stubText;
@@ -458,10 +459,23 @@ export function pickedRulesMd() {
   return parts.join("\n");
 }
 
+/* How often the agent made the finding per session before and after the rule was moved to the target file (since).
+   0.1.116: a session counts when the agent ran it (Lens.sessionSummary's started; created, the time of the import,
+   when the transcript has no times); only sessions of the profiles that can report the check, a session without the
+   finding as 0; the demo session never. Every source together: the effect is about what the agent does, and a
+   finding an engine started to report is not the rule's failure. */
 export function effect(check, since) {
   const before = [],
-    after = [];
-  for (const m of metas()) (m.created < since ? before : after).push(((m.checkStats || {})[check] || { total: 0 }).total);
+    after = [],
+    at = Date.parse(since),
+    can = new Map(); // profile → can it report the check
+  for (const m of metas()) {
+    if (isDemo(m)) continue;
+    if (!can.has(m.profile)) can.set(m.profile, profileChecks(m.profile).has(check));
+    if (!can.get(m.profile)) continue;
+    // a session without a readable time goes before, as it did when created was compared as text
+    (Date.parse(m.started || m.created) >= at ? after : before).push(((m.checkStats || {})[check] || { total: 0 }).total);
+  }
   const avgNum = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
   const avg = (a) => {
     const v = avgNum(a);

@@ -16,8 +16,9 @@ const crypto = require("crypto");
 
 const PLAIN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const META = ".meta.json";
-// 2 (0.1.112): the summary has sourceStats. open() rebuilds a summary of an older schema from its session, once.
-const META_SCHEMA = 2;
+// 2 (0.1.112): the summary has sourceStats. 3 (0.1.116): it has started, the time of the session's first step.
+// open() rebuilds a summary of an older schema from its session, once.
+const META_SCHEMA = 3;
 const RETRY_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
 const RETRY_MS = [20, 40, 80, 160, 320];
 
