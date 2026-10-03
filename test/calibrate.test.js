@@ -78,3 +78,35 @@ test("a regex finding an engine supersedes does not come back when the engine's 
   const r = Lens.calibrate(base, { sleep_or_skip_added: { lint: OFF, formal: GOOD } });
   assert.deepEqual([shown(r), hidden(r)], [[], ["sleep_or_skip_added/lint"]]);
 });
+
+// 0.1.116: the edges of the thresholds, which the external review of calibration asked to pin down
+test("precision of exactly 30% demotes and does not hide; exactly 50% changes nothing", () => {
+  assert.deepEqual(Lens.calibLevel({ ok: 3, fp: 7 }), { n: 10, p: 0.3, level: "demoted" });
+  assert.deepEqual(Lens.calibLevel({ ok: 6, fp: 14 }), { n: 20, p: 0.3, level: "demoted" });
+  assert.deepEqual(Lens.calibLevel({ ok: 10, fp: 10 }), { n: 20, p: 0.5, level: "ok" });
+  const at30 = Lens.calibrate([F("weak_assert", "formal")], { weak_assert: { formal: { ok: 3, fp: 7 } } });
+  assert.deepEqual([hidden(at30), at30.findings.map((f) => [f.severity, f.demoted])], [[], [["low", true]]]);
+  const at50 = Lens.calibrate([F("weak_assert", "formal")], { weak_assert: { formal: { ok: 5, fp: 5 } } });
+  assert.deepEqual([hidden(at50), at50.findings.map((f) => [f.severity, f.demoted])], [[], [["high", undefined]]]);
+});
+
+test("a finding calibration demoted stays low after LensRules.apply(), even with a severity set by hand", () => {
+  const LensRules = require(M("rules.js"));
+  const cal = Lens.calibrate([F("weak_assert", "formal"), F("magic_number", "formal", "low")], { weak_assert: { formal: DEMOTED } });
+  const out = LensRules.apply(cal.findings, { weak_assert: { severity: "high" }, magic_number: { severity: "high" } });
+  assert.deepEqual(
+    out.map((f) => [f.check, f.severity, f.demoted]),
+    [
+      ["weak_assert", "low", true],
+      ["magic_number", "high", undefined],
+    ],
+  );
+});
+
+test("calibLevel(): ok and fp are read as counts; a record that is not a number is no record", () => {
+  assert.deepEqual(Lens.calibLevel({ ok: "1", fp: "9" }), { n: 10, p: 0.1, level: "off" });
+  for (const st of [{ ok: NaN, fp: 12 }, { total: 12 }, { ok: "many", fp: 12 }, { ok: null, fp: 12 }, { ok: -3, fp: 13 }, { ok: 1, fp: Infinity }])
+    assert.deepEqual(Lens.calibLevel(st), { n: 0, p: null, level: "need" }, JSON.stringify(st));
+  // and calibrate() then leaves the finding as it is
+  assert.deepEqual(shown(Lens.calibrate([F("weak_assert", "formal")], { weak_assert: { formal: { ok: NaN, fp: 12 } } })), ["weak_assert/formal"]);
+});

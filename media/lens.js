@@ -2019,10 +2019,15 @@
   }
   /* Calibration verdict for one check and source from its reviewer stats {ok, fp}: with ≥10 verdicts, precision < 30%
      switches it off, < 50% demotes its findings to low. The one place this threshold lives: calibrate(), the Rules
-     panel's "demoted" hint and the Calibration table all read it. */
+     panel's "demoted" hint and the Calibration table all read it. ok and fp are read as counts (a number, or a string
+     of digits); anything else, such as a hand-edited summary, is no record at all ("need"), not a good one. */
+  const asCount = (x) => (typeof x === "number" ? x : typeof x === "string" && /^\s*\d+\s*$/.test(x) ? Number(x) : NaN);
   function calibLevel(st) {
-    const n = st ? st.ok + st.fp : 0;
-    const p = n ? st.ok / n : null;
+    const ok = st ? asCount(st.ok) : 0,
+      fp = st ? asCount(st.fp) : 0;
+    if (!(ok >= 0 && fp >= 0 && Number.isFinite(ok + fp))) return { n: 0, p: null, level: "need" };
+    const n = ok + fp;
+    const p = n ? ok / n : null;
     const level = n >= 10 && p < 0.3 ? "off" : n >= 10 && p < 0.5 ? "demoted" : n < 10 ? "need" : "ok";
     return { n, p, level };
   }
