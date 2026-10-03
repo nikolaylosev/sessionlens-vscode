@@ -14,6 +14,9 @@
      sources       which tracks emit it: "regex" (lens.js checks), "lint" (a *_RULE_MAP in lint.js),
                    "gherkin" (Lens.gherkinChecks), "spec" (spec.js), "ai" (model review)
      sortPriority  optional; lower sorts first in the findings list, above severity. Default 0.
+     calibrate     optional; false: calibration never hides or demotes its findings, whatever their precision
+                   (Lens.calibrate). A missed one costs more than a false alarm. Unticking it on the Rules tab still
+                   switches it off. Default true.
 
    Order matters: the Rules panel lists checks in key order within each group. Append new checks to the end of
    their group.
@@ -259,7 +262,15 @@
       good: "keep the failing test and triage it: product bug / test bug / spec defect",
       sources: ["regex"],
     },
-    hardcoded_secret: { group: "code", severity: "high", ruleKey: "r_secret", good: "token = os.environ['API_TOKEN']", sources: ["regex"] },
+    // never calibrated (decided 03.10): ten "False" verdicts must not hide a leaked token
+    hardcoded_secret: {
+      group: "code",
+      severity: "high",
+      ruleKey: "r_secret",
+      good: "token = os.environ['API_TOKEN']",
+      sources: ["regex"],
+      calibrate: false,
+    },
     hardcoded_base_url: {
       group: "code",
       severity: "medium",

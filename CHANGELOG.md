@@ -2,6 +2,11 @@
 
 ## 0.1.116
 
+### Changed
+- `hardcoded_secret` is no longer calibrated. Before, ten "False" verdicts could switch it off for good, and then
+  a real token in a test went unreported. The Calibration table marks it **not calibrated** and says why. To stop it,
+  untick it on the Rules tab. `hardcoded_base_url` is calibrated as before.
+
 ### Fixed
 - After an update, sessions you had already imported kept the findings of the version that analyzed them: the checks
   added in 0.1.113 and 0.1.114 (`test_deleted`, `config_weakened` and others) did not show up in them until you changed

@@ -2042,9 +2042,11 @@
   }
   /* What calibration may hide or demote (phase 8, decided 01.10): the deterministic sources (regex "formal", the lint
      engines, Gherkin) and the two heuristic spec checks. Never no_spec and spec_uncovered (facts) or the model's ai_*
-     (their precision depends on the model and the prompt; the Calibration tab only shows it). */
+     (their precision depends on the model and the prompt; the Calibration tab only shows it). Never a check the
+     registry marks calibrate: false (hardcoded_secret, decided 03.10). */
   const CALIBRATED_SPEC = new Set(["test_without_requirement", "out_of_scope_tested"]);
   function calibrated(f) {
+    if ((C().CHECKS[f.check] || {}).calibrate === false) return false;
     const src = f.source || "formal";
     return src === "formal" || src === "lint" || src === "gherkin" || (src === "spec" && CALIBRATED_SPEC.has(f.check));
   }

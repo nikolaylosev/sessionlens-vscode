@@ -102,6 +102,7 @@ test("every entry is well-formed", () => {
     assert.ok(v.good === null || (typeof v.good === "string" && v.good), `${check}: good must be null or non-empty`);
     assert.ok(Array.isArray(v.sources) && v.sources.length, `${check}: sources`);
     if ("sortPriority" in v) assert.equal(typeof v.sortPriority, "number", `${check}: sortPriority`);
+    if ("calibrate" in v) assert.equal(v.calibrate, false, `${check}: calibrate is only ever false (true is the default)`);
   }
 });
 

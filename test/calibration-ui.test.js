@@ -33,6 +33,7 @@ async function panel() {
     block("ai_fragility", "ai", 10, 1), // the model: never calibrated
     block("spec_uncovered", "spec", 10, 1), // a fact: never calibrated
     block("test_without_requirement", "spec", 3, 1), // calibrated, too few verdicts
+    block("hardcoded_secret", "formal", 10, 0), // never calibrated (0.1.116), however poor its record
   ];
   const ruleOverrides = { raw_locator: { enabled: true }, magic_number: { severity: "high" } };
   const s = {
@@ -78,12 +79,14 @@ test("the Calibration table: one row per check and source, with the status calib
     "ai_fragility/model": "not calibrated",
     "spec_uncovered/spec": "not calibrated",
     "test_without_requirement/spec": "need 7 more",
+    "hardcoded_secret/regex": "not calibrated",
   });
   const why = (check, src) =>
     [...sb.document.querySelectorAll("#precision tr")].find((tr) => tr.children[0].textContent === check && tr.children[1].textContent === src).lastElementChild
       .title;
   assert.match(why("ai_fragility", "model"), /depends on the model and the prompt/);
   assert.match(why("spec_uncovered", "spec"), /A fact, not a guess/);
+  assert.match(why("hardcoded_secret", "regex"), /Missing one costs more than a false alarm/);
   assert.match(why("raw_locator", "eslint"), /you ticked it on/);
   assert.equal(why("weak_assert", "regex"), "", "no tooltip on an ordinary row");
   assert.deepEqual(sb.errors, []);

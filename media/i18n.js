@@ -284,6 +284,8 @@
         "The model's precision depends on the model and the prompt, not on the check, so calibration never switches it off. Untick the category on the Rules tab if you need to.",
       st_why_fact: "A fact, not a guess: calibration never switches it off.",
       st_why_external: "Imported findings are not calibrated.",
+      st_why_kept:
+        "Missing one costs more than a false alarm, so calibration never switches this check off or demotes it. Untick it on the Rules tab if you need to.",
       st_by_hand: "on by hand",
       st_by_hand_hint: "Calibration would switch it off (precision {p}%), but you ticked it on on the Rules tab, so it stays on.",
       rule_hdr: "{k} — {n} confirmed in {s} {s|session|sessions}",
@@ -443,7 +445,7 @@
       delete: "Delete",
       c_prec: "Check precision",
       c_prec_sub:
-        "From reviewer verdicts, per check and source. ≥10 verdicts and precision <50% — the check is demoted to low; <30% — disabled. Never disabled: the model's findings, a missing specification and uncovered requirements, and a check you tick on by hand on the Rules tab.",
+        "From reviewer verdicts, per check and source. ≥10 verdicts and precision <50% — the check is demoted to low; <30% — disabled. Never disabled: the model's findings, a missing specification and uncovered requirements, hardcoded secrets, and a check you tick on by hand on the Rules tab.",
       c_rules: "Rules for {f}",
       c_rules_sub1: "From confirmed findings repeated ≥",
       c_rules_sub2: "times. Mark “moved” and the tool shows whether the finding's frequency dropped afterwards.",
