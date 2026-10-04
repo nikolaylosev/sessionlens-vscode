@@ -5,7 +5,7 @@ part, stays in [`TESTING.md`](TESTING.md). When a pull request gives a check its
 from the tables below, so the tables always list what is still missing.
 
 Every check name in `media/checks.js` appears in at least one test file, and `rules-consistency.test.js` fails when a
-new name does not (since v0.1.118). That gate only looks for the name. The 26 checks below are named somewhere, but no
+new name does not (since v0.1.118). That gate only looks for the name. The 24 checks below, and the engine rules of `weak_assert`, are named somewhere, but no
 test runs their detector on a transcript and states both what must be reported, with severity and message, and what
 must not.
 
@@ -13,17 +13,10 @@ must not.
 session. It does not compare the severity or the message, and it has no case that must not be reported. "Synthetic"
 means that a test builds the finding by hand and never runs the detector.
 
-## First: the checks the product is about
+## First: the other method and process checks
 
-The product exists to catch an agent that claims tests pass without proof, or that weakens the tests it wrote. These
-checks say that, and their detectors are the least tested.
-
-| Check | Where it is covered now |
-|---|---|
-| `assert_weakened` | Demo count only |
-| `weak_assert` | One must-not case (`pom.xml`) in `config-weakened.test.js`; synthetic everywhere else. No test requires a finding. |
-
-## Second: the other method and process checks
+The checks the product is about (`tests_never_run`, `pass_claim_without_run`, `assert_weakened` and the regex side of
+`weak_assert`) have their own files since v0.1.119. These are the rest of the method and process checks.
 
 | Check | Where it is covered now |
 |---|---|
@@ -34,7 +27,7 @@ checks say that, and their detectors are the least tested.
 | `stop_markers_missing` | Expected in one list in `reanalyze-after-update.test.js` |
 | `hardcoded_coordinates` | None. The header of `mobile-checks.test.js` says that `rule-mapping.test.js` has its cases, but it does not; fix that header in the same pull request. |
 
-## Third: the specification checks that calibration can hide
+## Second: the specification checks that calibration can hide
 
 Calibration can hide or demote these two checks, so a wrong detector changes what the reviewer sees. Today no test
 requires either of them; `spec-extract.test.js` runs the specification checks but compares check names only, and
@@ -51,6 +44,7 @@ These checks have some real cases, but no single file says what counts and what 
 
 | Check | Where it is covered now |
 |---|---|
+| `weak_assert` (engine rules) | None: the regex side has `weak-assert.test.js`; the Playwright and Cypress rules mapped to it (`valid-expect`, `no-useless-not`, `no-standalone-expect`, `assertion-before-screenshot`) have no case |
 | `sleep_or_skip_added` | `supersedes.test.js` (which engine replaces the regex), `rule-mapping.test.js`, the lint snapshot, demo count |
 | `fragile_wait` | `supersedes.test.js`, `rule-mapping.test.js`, the lint snapshot |
 | `expected_failure` | Two cases in `rule-mapping.test.js`, one must-not case in `config-weakened.test.js` |
