@@ -7,6 +7,13 @@
   bypassing the cache" ("passing") or "Нужно проходить авторизацию" ("проходит"). A claim phrase now counts only as
   whole words. An English one may still end in -es, -ed or -ing, so "All tests passed" is still a claim. Stored
   sessions are analyzed again after the update.
+- **Weak assertion** (`weak_assert`, high):
+  - it was raised by a commented-out line such as `// expect(ok).toBeTruthy()`; comment lines are skipped now, as for
+    `hardcoded_date` in 0.1.118;
+  - in Cypress, `.should('exist')` was missed in a file that has no `expect` or `assert` in it, which is most Cypress
+    tests; it is reported now;
+  - in Python, a predicate such as `assert cart.is_empty()`, `assert user.is_active` or `assert path.exists()` counted
+    as weak, although it checks a value; it no longer does. A bare `assert result` or `assert resp.json()` still counts.
 
 ## 0.1.118
 
