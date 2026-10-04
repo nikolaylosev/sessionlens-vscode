@@ -7,7 +7,6 @@ code and need to know which tests guard the part they touch.
 The overview of the whole extension is [`ARCHITECTURE.md`](ARCHITECTURE.md); its section 8 shows where the tests sit
 in the build and release flow. The check registry, the lint engines, calibration, storage and the trust boundary are
 described in depth in [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md); its §12 is the checklist for adding a check.
-What to write next, and what to skip, is in [`TEST-PRIORITIES.md`](TEST-PRIORITIES.md).
 
 Contents
 
@@ -48,13 +47,13 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.119 `npm test` runs 332 tests in 58 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.119 `npm test` runs 351 tests in 60 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
-for the integration run, and Node's own `node:test` and `node:assert/strict`. Detector tests pin every check name in
-`media/checks.js`: a regex or Gherkin check has must-report and must-not cases, an engine-only check runs the real
-engine, and the model categories go through `LensAI.parseFindings`.
+for the integration run, and Node's own `node:test` and `node:assert/strict`. Detector tests give most checks in
+`media/checks.js` must-report and must-not cases on a transcript, run the real engine for an engine-only check, and pass
+the model categories through `LensAI.parseFindings`. The checks without a file of their own are listed in section 10.1.
 
 ---
 
@@ -138,14 +137,16 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `pass-claim-without-run.test.js` | `pass_claim_without_run`: the agent says tests pass with no run with a result in the 6 steps before (the boundary on both sides), or while the last run was red, in English and Russian, also as "passed" or "passing". A green last run, the user's message, a message without a claim and a claim phrase inside another word ("bypassing", "проходить", 0.1.119) do not count. |
 | `assert-weakened.test.js` | `assert_weakened`: an assertion made weaker or a test with fewer assertions between two versions (two writes, a write and an edit, two messages) in TypeScript, Python and Java, at the later version. A first version, a stronger or equally strong assertion, weak before and after, an added assertion, a renamed test and a change in another test do not count. |
 | `weak-assert.test.js` | `weak_assert`, the regex side: toBeDefined, toBeTruthy, `expect(true).toBe(true)`, Python `assert True`, a bare `assert x`, `is not None`, Java `assertNotNull`, `assertTrue(true)`; Cypress `.should('exist')` also in a file without `expect`; one finding per line, once across versions. Assertions on a value, commented-out lines and Python predicates (`is_*`, `has_*`, `exists()`) do not count (0.1.119). |
+| `process-checks.test.js` | `fix_after_fail_without_triage`, `peeked_at_src_before_plan`, `assumption_instead_of_question`, `scope_creep`, `stop_markers_missing`, each with must-not cases next to the trigger: triage first, the user speaking, after the approval, a planned file, an approved plan. |
+| `spec-checks.test.js` | `test_without_requirement` and `out_of_scope_tested` from `LensSpec.checks`, in English and Russian. An ID in the title or a comment above, a specification without IDs and no out-of-scope section do not count. |
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
 | `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |
 | `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, and TypeScript do not count. |
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. |
-| `mobile-checks.test.js` | `mobile_raw_locator` and `no_driver_teardown` on qa-mobile; accessibility id and `quit()` / `afterEach` do not count. |
+| `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; accessibility id, `quit()` / `afterEach`, a tap on an element and single-digit arguments do not count. |
 | `gherkin-checks.test.js` | `outline_no_examples`, `bloated_background`, `duplicate_step_text`; `scenario_no_then` stays in `finding-pipeline.test.js`. |
-| `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`, with severity and message. |
+| `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`, `lint_valid_title`, and the Playwright and Cypress rules mapped to `weak_assert`, with severity and message. |
 | `ai-categories.test.js` | `parseFindings` maps every review category to `ai_<name>` and an unknown name to `ai_other`. |
 | `spec-extract.test.js` | Which tests the specification coverage finds, for every visible profile and every file extension it declares: Kotlin names in backticks, Robot documentation links, comments above a test, `describe` and hooks that are not tests, `test.skip` after a test. |
 | `profile-info.test.js` | `Lens.profileInfo()` for every profile (snapshot), its agreement with the structures it comes from, and the "What this profile checks" block in the panel. |
@@ -329,6 +330,11 @@ A failing run is a `["bash", "npx playwright test", "2 passed, 1 failed"]` step.
 
 - **A regression test must fail without the fix.** Run it against the code before the fix and see it fail, then
   apply the fix.
+- **A detector test has must-not cases next to the trigger,** not only far from it (`jest.mock('./utils')` next to a
+  mocked HTTP client). For a check an engine reports, run the real engine and compare severity and message too: the
+  verdict key includes the start of the message. Behaviour that looks wrong is not pinned; the file's header names it
+  and it gets its own fix.
+- No coverage reporter: line coverage does not show that a detector is wrong on a transcript. Detector tests do.
 - Test names describe the behavior in plain words ("a check switched off by calibration stays off…"). A comment at the
   top of the file says what is checked and what must not count.
 - Use `node:test` and `node:assert/strict`. No new test dependencies without a written reason.
@@ -364,3 +370,24 @@ request.
 - **Integration tests from VS Code's terminal** fail to start unless `ELECTRON_RUN_AS_NODE` is unset.
 - **Windows-only behavior** (`cmd.exe` quoting, antivirus `EPERM`/`EBUSY` on rename, paths with spaces and non-ASCII
   names) is tested for real only on the Windows CI job. On macOS and Linux those cases are either simulated or skipped.
+
+### 10.1 Detectors without a file of their own
+
+Every check name appears in some test file, and `rules-consistency.test.js` fails when a new one does not. The checks
+below have no test file of their own that says in one place what counts and what does not; most have real cases in
+other files, and `magic_number` has none. A pull request that gives one of them its own file removes its row.
+
+| Check | Where it is covered now |
+|---|---|
+| `sleep_or_skip_added` | `supersedes.test.js` (which engine replaces the regex), `rule-mapping.test.js`, the lint snapshot, demo count |
+| `fragile_wait` | `supersedes.test.js`, `rule-mapping.test.js`, the lint snapshot |
+| `expected_failure` | Two cases in `rule-mapping.test.js`, one must-not case in `config-weakened.test.js` |
+| `focused_test`, `debug_leftover` | `supersedes.test.js`, `rule-mapping.test.js` |
+| `magic_number` | None on a transcript: every test that names it builds the finding by hand |
+| `conditional_logic` | `supersedes.test.js`, the lint snapshot, `calibration-loop.test.js` |
+| `duplicate_assert` | `calibration-loop.test.js` only |
+| `raw_locator`, `no_assertion_after_action` | The lint snapshot, `rule-mapping.test.js`; `raw_locator` also demo count |
+| `empty_test_case` | One Robot case in `finding-pipeline.test.js`, the lint snapshot |
+| `cypress_async_test` | One case in `rule-mapping.test.js` |
+| `scenario_no_then` | One case in `finding-pipeline.test.js` |
+| `no_spec`, `spec_uncovered` | `no_spec`: one case in `finding-pipeline.test.js`. `spec_uncovered`: `spec-extract.test.js` (names only), demo count. Both are facts that calibration never hides, so they come last. |
