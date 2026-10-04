@@ -48,6 +48,15 @@ test("mocked_service: nock / jest.mock of an HTTP client", () => {
     ),
     [],
   );
+  assert.deepEqual(
+    found(
+      "tests/orders.spec.ts",
+      "jest.mock('./utils');\nit('lists', async () => {\n  const r = await request.get('/orders');\n  expect(r.body).toEqual([]);\n});\n",
+      "mocked_service",
+    ),
+    [],
+    "a mocked local module is not a mocked HTTP client",
+  );
 });
 
 test("no_negative_cases: two happy-path tests and no error status", () => {
@@ -93,4 +102,9 @@ test("response_time_assert: elapsed / lessThan on an assertion line", () => {
     "low: tests/orders.spec.ts: is fast — asserts response time (expect(r.elapsed).toBeLessThan(200);); this fails on a slow CI runner",
   ]);
   assert.deepEqual(found("tests/orders.spec.ts", "it('creates', async () => {\n  expect(r.status).toBe(201);\n});\n", "response_time_assert"), []);
+  assert.deepEqual(
+    found("tests/orders.spec.ts", "it('creates', async () => {\n  console.log(r.elapsed);\n  expect(r.body.id).toBeTruthy();\n});\n", "response_time_assert"),
+    [],
+    "the time is logged, not asserted",
+  );
 });

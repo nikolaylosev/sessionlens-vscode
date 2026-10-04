@@ -1,6 +1,6 @@
 "use strict";
-/* hardcoded_date: a calendar date on an assertion line. What must not count: a date in a comment or a helper, an
-   assertion without a date. */
+/* hardcoded_date: a calendar date on an assertion line. What must not count: a date in a variable outside the
+   assertion, an assertion without a date. A commented-out assertion with a date is still reported (not decided). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");

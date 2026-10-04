@@ -5,6 +5,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const path = require("path");
 const { load, M } = require("./helpers");
 
 load();
@@ -64,6 +65,18 @@ test("every registry entry still has a detector, and its sources are accurate", 
     assert.ok(found.has(check), `${check}: in checks.js but nothing emits it`);
     assert.deepEqual([...v.sources].sort(), [...found.get(check)].sort(), `${check}: sources`);
   }
+});
+
+/* A detector nobody tests can change what it reports, or stop reporting, without a red build. Until 0.1.117, 23
+   checks were named in no test at all. */
+test("every registry entry is named in another test file", () => {
+  const tests = fs
+    .readdirSync(__dirname)
+    .filter((f) => f.endsWith(".test.js") && f !== path.basename(__filename))
+    .map((f) => fs.readFileSync(path.join(__dirname, f), "utf8"))
+    .join("\n");
+  const untested = Object.keys(CHECKS).filter((c) => !new RegExp(`\\b${c}\\b`).test(tests));
+  assert.deepEqual(untested, [], "add a test/<check>.test.js with must-report and must-not cases (docs/TESTING.md)");
 });
 
 /* Checks that both a regex and an engine emit, where the regex findings stay even when the engine ran: the two find
