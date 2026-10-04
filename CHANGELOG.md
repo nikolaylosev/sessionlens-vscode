@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.118
+
+### Fixed
+- `hardcoded_date` reported a date in a commented-out assertion, such as `// expect(text).toHaveText("2026-03-15")`,
+  although a comment never runs. Lines that are comments (`//`, `#`, `/*`, or `*` inside a block comment) are skipped
+  now. Stored sessions are analyzed again after the update, so such findings disappear from them too.
+
 ## 0.1.117
 
 ### Fixed
