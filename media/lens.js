@@ -1227,13 +1227,24 @@
         .filter((e) => ["read", "search"].includes(e.kind) && inDirs(e.file, cfg.src_dirs) && e.seq < cut)
         .map((e) => F("peeked_at_src_before_plan", "high", e.seq, T("peeked", { file: e.file })));
     },
+    /* A claim phrase counts as whole words (0.1.119): "bypassing" is not "passing", "проходить" is not "проходит".
+       An English phrase may end in -es, -ed or -ing ("tests passed", "all passes"). */
     pass_claim_without_run(ev, cfg) {
       const out = [],
-        pats = cfg.pass_claim_patterns.map((p) => p.toLowerCase());
+        pats = cfg.pass_claim_patterns.map(
+          (p) =>
+            new RegExp(
+              "(?<![\\p{L}\\p{N}_])" +
+                p.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+                (/^[\x20-\x7e]+$/.test(p) ? "(?:es|ed|ing)?" : "") +
+                "(?![\\p{L}\\p{N}_])",
+              "u",
+            ),
+        );
       for (const e of ev) {
         if (e.kind !== "message") continue;
         const t = e.text.toLowerCase();
-        if (!pats.some((p) => t.includes(p))) continue;
+        if (!pats.some((rx) => rx.test(t))) continue;
         const runs = ev.filter((x) => x.seq >= e.seq - cfg.pass_claim_lookback && x.seq < e.seq && x.kind === "run_tests" && x.tests);
         if (!runs.length) out.push(F("pass_claim_without_run", "high", e.seq, T("pass_no_run")));
         else {
@@ -2140,7 +2151,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.118";
+  const ANALYSIS_VERSION = "0.1.119";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")

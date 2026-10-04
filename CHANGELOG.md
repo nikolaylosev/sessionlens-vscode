@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.119
+
+### Fixed
+- **Claims tests pass** (`pass_claim_without_run`, high) was raised by words that only contain a claim phrase: "I am
+  bypassing the cache" ("passing") or "Нужно проходить авторизацию" ("проходит"). A claim phrase now counts only as
+  whole words. An English one may still end in -es, -ed or -ing, so "All tests passed" is still a claim. Stored
+  sessions are analyzed again after the update.
+
 ## 0.1.118
 
 ### Fixed

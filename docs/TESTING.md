@@ -48,7 +48,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.118 `npm test` runs 319 tests in 56 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.119 `npm test` runs 320 tests in 56 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -135,7 +135,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `config-weakened.test.js` | `config_weakened`: retries raised, timeouts made longer, tests excluded, failures ignored, compared with the previous version of the config: JS/TS configs, pytest, Maven, Gradle, `.runsettings`. Shorter timeouts, fewer retries, unrelated edits and the excludes of other Maven plugins or Gradle blocks do not count. |
 | `secrets-in-tests.test.js` | `hardcoded_secret` and `hardcoded_base_url` in the web and mobile profiles; runner configs, relative URLs, typed values, environment variables and placeholders do not count; Java, C# and Python unchanged. |
 | `tests-never-run.test.js` | `tests_never_run`: tests written in a file or shown in a message, and no run of the profile's runner, at the last step that wrote tests; a command that is not the runner is not a run. A red run, a run with output nothing could parse, code without a test and a session that wrote nothing do not count. |
-| `pass-claim-without-run.test.js` | `pass_claim_without_run`: the agent says tests pass with no run with a result in the 6 steps before (the boundary on both sides), or while the last run was red, in English and Russian. A green last run, the user's message and a message without a claim do not count. |
+| `pass-claim-without-run.test.js` | `pass_claim_without_run`: the agent says tests pass with no run with a result in the 6 steps before (the boundary on both sides), or while the last run was red, in English and Russian, also as "passed" or "passing". A green last run, the user's message, a message without a claim and a claim phrase inside another word ("bypassing", "проходить", 0.1.119) do not count. |
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
 | `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |
