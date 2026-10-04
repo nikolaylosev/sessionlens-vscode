@@ -7,6 +7,7 @@ code and need to know which tests guard the part they touch.
 The overview of the whole extension is [`ARCHITECTURE.md`](ARCHITECTURE.md); its section 8 shows where the tests sit
 in the build and release flow. The check registry, the lint engines, calibration, storage and the trust boundary are
 described in depth in [`RULES-ARCHITECTURE.md`](RULES-ARCHITECTURE.md); its §12 is the checklist for adding a check.
+What to write next, and what to skip, is in [`TEST-PRIORITIES.md`](TEST-PRIORITIES.md).
 
 Contents
 
