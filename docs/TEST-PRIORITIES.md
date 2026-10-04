@@ -5,7 +5,7 @@ part, stays in [`TESTING.md`](TESTING.md). When a pull request gives a check its
 from the tables below, so the tables always list what is still missing.
 
 Every check name in `media/checks.js` appears in at least one test file, and `rules-consistency.test.js` fails when a
-new name does not (since v0.1.118). That gate only looks for the name. The 28 checks below are named somewhere, but no
+new name does not (since v0.1.118). That gate only looks for the name. The 26 checks below are named somewhere, but no
 test runs their detector on a transcript and states both what must be reported, with severity and message, and what
 must not.
 
@@ -20,12 +20,8 @@ checks say that, and their detectors are the least tested.
 
 | Check | Where it is covered now |
 |---|---|
-| `tests_never_run` | Expected in one list in `reanalyze-after-update.test.js`; synthetic in `finding-pipeline.test.js` |
-| `pass_claim_without_run` | Demo count, and the demo's message must contain "1 passed / 1 failed"; used as an input in `reimport.test.js` and `report-hidden.test.js` |
 | `assert_weakened` | Demo count only |
 | `weak_assert` | One must-not case (`pom.xml`) in `config-weakened.test.js`; synthetic everywhere else. No test requires a finding. |
-
-If only one task gets done, write `tests_never_run` and `pass_claim_without_run`.
 
 ## Second: the other method and process checks
 
