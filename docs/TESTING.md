@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.117 `npm test` runs 310 tests in 54 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.118 `npm test` runs 311 tests in 54 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -135,7 +135,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `secrets-in-tests.test.js` | `hardcoded_secret` and `hardcoded_base_url` in the web and mobile profiles; runner configs, relative URLs, typed values, environment variables and placeholders do not count; Java, C# and Python unchanged. |
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
-| `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion does not count. A commented-out assertion with a date is still reported (not decided). |
+| `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |
 | `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, and TypeScript do not count. |
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. |
 | `mobile-checks.test.js` | `mobile_raw_locator` and `no_driver_teardown` on qa-mobile; accessibility id and `quit()` / `afterEach` do not count. |

@@ -1614,6 +1614,7 @@
       if (ev.some((e) => e.kind === "run_tests")) return [];
       return [F("tests_never_run", "high", code[code.length - 1].seq, T("never_run", { n: code.length }))];
     },
+    // a commented-out assertion never runs: a line that is a comment (//, #, /* or * inside a block) is skipped (0.1.118)
     hardcoded_date(ev) {
       const RX =
         /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\b20\d{2}-\d{2}-\d{2}\b|\b(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр)\w*\s+\d{4}/i;
@@ -1621,7 +1622,7 @@
       for (const e of ev) {
         if (!e.new_content) continue;
         for (const ln of e.new_content.split("\n"))
-          if (/expect|assert|toHaveText|getByText/.test(ln) && RX.test(ln))
+          if (!/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && /expect|assert|toHaveText|getByText/.test(ln) && RX.test(ln))
             out.push(F("hardcoded_date", "medium", e.seq, T("hard_date", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })));
       }
       return out;
@@ -2139,7 +2140,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.117";
+  const ANALYSIS_VERSION = "0.1.118";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")
