@@ -47,11 +47,13 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.116 `npm test` runs 265 tests in 40 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.117 `npm test` runs 309 tests in 54 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
-for the integration run, and Node's own `node:test` and `node:assert/strict`.
+for the integration run, and Node's own `node:test` and `node:assert/strict`. Detector tests pin every check name in
+`media/checks.js`: a regex or Gherkin check has must-report and must-not cases, an engine-only check runs the real
+engine, and the model categories go through `LensAI.parseFindings`.
 
 ---
 
@@ -131,6 +133,15 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `snapshot-overwritten.test.js` | `snapshot_overwritten`: an update flag on a test run, or a snapshot or approval file written by hand. `git push -u` and plain runs do not count. |
 | `config-weakened.test.js` | `config_weakened`: retries raised, timeouts made longer, tests excluded, failures ignored, compared with the previous version of the config: JS/TS configs, pytest, Maven, Gradle, `.runsettings`. Shorter timeouts, fewer retries, unrelated edits and the excludes of other Maven plugins or Gradle blocks do not count. |
 | `secrets-in-tests.test.js` | `hardcoded_secret` and `hardcoded_base_url` in the web and mobile profiles; runner configs, relative URLs, typed values, environment variables and placeholders do not count; Java, C# and Python unchanged. |
+| `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
+| `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
+| `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion does not count. |
+| `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, and TypeScript do not count. |
+| `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each. |
+| `mobile-checks.test.js` | `mobile_raw_locator` and `no_driver_teardown` on qa-mobile; accessibility id and `quit()` / `afterEach` do not count. |
+| `gherkin-checks.test.js` | `outline_no_examples`, `bloated_background`, `duplicate_step_text`; `scenario_no_then` stays in `finding-pipeline.test.js`. |
+| `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`. |
+| `ai-categories.test.js` | `parseFindings` maps every review category to `ai_<name>` and an unknown name to `ai_other`. |
 | `spec-extract.test.js` | Which tests the specification coverage finds, for every visible profile and every file extension it declares: Kotlin names in backticks, Robot documentation links, comments above a test, `describe` and hooks that are not tests, `test.skip` after a test. |
 | `profile-info.test.js` | `Lens.profileInfo()` for every profile (snapshot), its agreement with the structures it comes from, and the "What this profile checks" block in the panel. |
 | `book-snapshot.test.js` | `LensRules.book({})`, the rule book, against its snapshot. |

@@ -1,0 +1,27 @@
+"use strict";
+/* hardcoded_date: a calendar date on an assertion line. What must not count: a date in a comment or a helper, an
+   assertion without a date. */
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { load } = require("./helpers");
+
+const { Lens } = load();
+
+const found = (file, content) =>
+  Lens.runChecks([{ seq: 1, kind: "write", file, new_content: content }], Lens.profile("qa-ts"))
+    .filter((f) => f.check === "hardcoded_date")
+    .map((f) => `${f.severity}: ${f.message}`);
+
+test("a date in an assertion is reported", () => {
+  assert.deepEqual(found("e2e/deadline.spec.ts", "expect(text).toHaveText('Deadline March 15, 2026');\n"), [
+    "medium: e2e/deadline.spec.ts: date in an assertion “expect(text).toHaveText('Deadline March 15, 2026');” — will go red when content changes",
+  ]);
+  assert.deepEqual(found("e2e/deadline.spec.ts", "await expect(page.getByText('2026-03-15')).toBeVisible();\n"), [
+    "medium: e2e/deadline.spec.ts: date in an assertion “await expect(page.getByText('2026-03-15')).toBeVisible();” — will go red when content changes",
+  ]);
+});
+
+test("not reported: a date outside an assertion, or an assertion without a date", () => {
+  assert.deepEqual(found("e2e/deadline.spec.ts", "const deadline = '2026-03-15';\nexpect(text).toMatch(/Deadline/);\n"), []);
+  assert.deepEqual(found("e2e/deadline.spec.ts", "expect(page.getByRole('heading', { name: 'Paid' })).toBeVisible();\n"), []);
+});
