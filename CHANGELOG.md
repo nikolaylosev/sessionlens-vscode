@@ -14,6 +14,24 @@
     tests; it is reported now;
   - in Python, a predicate such as `assert cart.is_empty()`, `assert user.is_active` or `assert path.exists()` counted
     as weak, although it checks a value; it no longer does. A bare `assert result` or `assert resp.json()` still counts.
+- **Read product code before the plan** (`peeked_at_src_before_plan`, high) missed a `src` folder deeper in the path,
+  as when Claude Code is started in a parent folder (`shop/src/cart.ts`). It is reported now, but not for test-side
+  code or a dependency under such a folder (`shop/tests/lib/…`, `node_modules/…/lib/…`).
+- **Edited a file not in the plan** (`scope_creep`) reported a planned file written with another prefix
+  (`./tests/cart.spec.ts`, `shop/tests/cart.spec.ts`), and did not see a plan that names only `e2e/` or `cypress/`
+  files. Both work now.
+- A plan was recognised in any upper-case word that contains PLAN or ПЛАН, such as "EXPLANATION" or "PLANNED". PLAN and
+  ПЛАН now count as a word; a requirement table still marks a plan. This affects the three plan checks
+  (`stop_markers_missing`, `peeked_at_src_before_plan`, `scope_creep`).
+
+### Changed
+- **Literal screen coordinate** (`hardcoded_coordinates`, qa-mobile) no longer counts any call whose name starts with
+  tap or click (`page.clickRow(15, 30)`), only the gesture calls themselves. It now also finds the x/y form of a
+  gesture: `touchAction({ action: 'tap', x: 120, y: 340 })`, `tap(x=100, y=200)`, a `pointerMove`, `mobile:
+  clickGesture`.
+- **Out-of-scope item tested** (`out_of_scope_tested`) is stricter: an item's keywords skip common words ("через",
+  "between") and words that a requirement uses, and they must start a word (`#overflows` is not "Refund flows"). One
+  keyword in a test's name is enough; in its body all of them must appear.
 
 ## 0.1.118
 

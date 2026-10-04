@@ -1,11 +1,10 @@
 "use strict";
 /* The method and process checks that only the demo session counted: fix_after_fail_without_triage,
    peeked_at_src_before_plan, assumption_instead_of_question, scope_creep, stop_markers_missing. Paths are relative to
-   the session's folder, as the import makes them. What must not count is next to each case. Not pinned here, still
-   open: a src folder deeper in the path (Claude Code started in a parent folder) is not seen by
-   peeked_at_src_before_plan, and scope_creep compares the path with the plan's exactly ("./tests/a.spec.ts" or
-   "shop/tests/a.spec.ts" is out of the plan; a plan that names only e2e/ files is not seen); an upper-case word that
-   contains PLAN ("EXPLANATION") counts as a plan. */
+   the session's folder, as the import makes them. What must not count is next to each case. Until 0.1.119 a src
+   folder deeper in the path was not seen by peeked_at_src_before_plan, scope_creep compared paths with the plan's
+   exactly and did not see a plan that named only e2e/ files, and an upper-case word that contains PLAN counted as a
+   plan. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -128,4 +127,32 @@ test("stop_markers_missing, not reported: an approved plan (also in Russian), no
   assert.deepEqual(found([TASK, PLAN, APPROVED, WRITE], "stop_markers_missing"), []);
   assert.deepEqual(found([TASK, ["say", "ПЛАН\n| Требование | Тест |\n| R1 | tests/cart.spec.ts |"], ["user", "Ок"], WRITE], "stop_markers_missing"), []);
   assert.deepEqual(found([TASK, ["say", "Here is what I found."]], "stop_markers_missing"), []);
+});
+
+test("peeked_at_src_before_plan: a src folder deeper in the path (Claude Code started in a parent folder)", () => {
+  const peeked = (file) => `high: Read ${file} before the plan was approved — product code is off-limits during generation`;
+  assert.deepEqual(found([TASK, ["read", "shop/src/cart.ts"], PLAN, APPROVED], "peeked_at_src_before_plan"), [peeked("shop/src/cart.ts")]);
+  assert.deepEqual(found([TASK, ["grep", "shop/src"], PLAN, APPROVED], "peeked_at_src_before_plan"), [peeked("shop/src")]);
+  assert.deepEqual(found([TASK, ["read", "shop/tests/lib/cart-helpers.ts"], PLAN, APPROVED], "peeked_at_src_before_plan"), [], "test-side code under lib/");
+  assert.deepEqual(found([TASK, ["read", "node_modules/zod/lib/index.js"], PLAN, APPROVED], "peeked_at_src_before_plan"), [], "a dependency");
+});
+
+test("scope_creep: a planned file under another prefix is in the plan; a plan that names only e2e/ or cypress/ files counts", () => {
+  assert.deepEqual(found([TASK, PLAN, APPROVED, ["write", "./tests/cart.spec.ts", "test('a', () => {});\n"]], "scope_creep"), []);
+  assert.deepEqual(found([TASK, PLAN, APPROVED, ["write", "shop/tests/cart.spec.ts", "test('a', () => {});\n"]], "scope_creep"), []);
+  const e2ePlan = ["say", "PLAN\n| Requirement | Test |\n|---|---|\n| R1 | e2e/cart.spec.ts |"];
+  assert.deepEqual(
+    found(
+      [TASK, e2ePlan, APPROVED, ["write", "e2e/cart.spec.ts", "test('a', () => {});\n"], ["write", "e2e/checkout.spec.ts", "test('b', () => {});\n"]],
+      "scope_creep",
+    ),
+    ["medium: Edited e2e/checkout.spec.ts, which is not in the plan"],
+  );
+});
+
+test("a plan is marked by PLAN or ПЛАН as a word, not inside another word; a requirement table still marks one", () => {
+  for (const text of ["EXPLANATION: the cart needs tests", "The PLANNED work: cart tests", "ПЛАНИРОВАНИЕ тестов"])
+    assert.deepEqual(found([TASK, ["say", text], APPROVED, WRITE], "stop_markers_missing"), ["medium: Code written without a plan"], text);
+  for (const text of ["PLAN: cover the cart total", "## ПЛАН\nпокрыть сумму", "| Requirements | Test |\n| R1 | tests/cart.spec.ts |"])
+    assert.deepEqual(found([TASK, ["say", text], APPROVED, WRITE], "stop_markers_missing"), [], text);
 });

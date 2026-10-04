@@ -3,9 +3,10 @@
    when the specification has explicit IDs) and out_of_scope_tested (a test that touches an item of the "Out of scope"
    section). Both medium, at the last step that wrote code, source "spec". What must not count: tests that name their
    requirement in the title or in a comment above, a specification without IDs, no out-of-scope section, tests that
-   never touch an out-of-scope item. Not pinned here, still open: out_of_scope_tested looks for the first two words
-   longer than four letters of an item anywhere in a test, as substrings, so "#overflows" matches "Refund flows" and a
-   test that checks the text "Payment" matches "Payment by PayPal". */
+   never touch an out-of-scope item. Since 0.1.119 out_of_scope_tested takes an item's first two words longer than
+   four letters that are not common words and do not appear in a requirement, and finds them as words (at a word's
+   start): one in the test's name is enough, its body needs all of them. Until then any of them anywhere, as a
+   substring, counted: "#overflows" matched "Refund flows". */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -60,4 +61,27 @@ test("out_of_scope_tested: a test of an out-of-scope item, in English or Russian
 test("out_of_scope_tested, not reported: tests that stay in scope, no out-of-scope section", () => {
   assert.deepEqual(found(SPEC, t("R1 total") + t("R2 empty hint"), "out_of_scope_tested"), []);
   assert.deepEqual(found("## Requirements\nR1. The cart shows the total\n", t("R1 total"), "out_of_scope_tested"), []);
+});
+
+test("out_of_scope_tested, not reported: a keyword inside another word, one keyword in a body, a keyword the requirements use", () => {
+  const body = (name, line) => `test("${name}", async () => {\n  ${line}\n});\n`;
+  const oos = "## Requirements\nR1. The cart shows the total\n\n## Out of scope\n- Refund flows\n- Payment by PayPal\n";
+  assert.deepEqual(found(oos, body("R1 total", 'await page.click("#overflows");'), "out_of_scope_tested"), [], '"flows" inside "overflows"');
+  assert.deepEqual(
+    found(oos, body("R1 total", 'await expect(page.getByText("Payment")).toBeVisible();'), "out_of_scope_tested"),
+    [],
+    "one of two keywords in the body",
+  );
+  assert.deepEqual(
+    found(oos, body("R1 total", 'await page.getByText("Payment").click(); // PayPal button'), "out_of_scope_tested"),
+    ["medium: There is a test for something explicitly out of scope: “Payment by PayPal”"],
+    "both keywords in the body",
+  );
+  const inScope = "## Requirements\nR1. The payment total is shown\n\n## Out of scope\n- Payment by PayPal\n";
+  assert.deepEqual(found(inScope, t("R1 payment total"), "out_of_scope_tested"), [], '"payment" is a word of R1');
+  assert.deepEqual(found(inScope, t("R1 pays with PayPal"), "out_of_scope_tested"), [
+    "medium: There is a test for something explicitly out of scope: “Payment by PayPal”",
+  ]);
+  const ru = "## Требования\nR1. Корзина показывает сумму\n\n## Вне scope\n- Доставка через курьера\n";
+  assert.deepEqual(found(ru, t("R1 сумма через минуту"), "out_of_scope_tested"), [], '"через" is a common word, not a keyword');
 });

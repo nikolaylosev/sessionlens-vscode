@@ -198,6 +198,9 @@
     if (Array.isArray(x)) return x.flatMap((one) => extract(code, one));
     return extract(code, x);
   }
+  // words longer than four letters that say nothing about a feature, so they are no keyword of an out-of-scope item
+  const COMMON =
+    /^(?:about|above|after|again|along|among|before|being|below|between|could|every|other|their|there|these|those|through|under|until|where|which|while|within|without|would|should|через|между|после|перед|также|кроме|только|более|менее|когда|чтобы|потом|который|которая|которые|всегда|никогда)$/i;
   const REF_RE = /\b(?:[A-Z]{2,10}-\d+\/)?([RS]\d{1,3})\b/g;
   function refs(text) {
     const s = new Set();
@@ -239,12 +242,16 @@
       out.push(F("spec_uncovered", "high", lastCode.seq, T("uncovered", { id, text: r.text.slice(0, 90) })));
     }
     if (cov.hasIds) for (const t of cov.unlinked) out.push(F("test_without_requirement", "medium", lastCode.seq, T("unlinked", { name: t.name })));
+    /* An out-of-scope item's keywords: its first two words longer than four letters that are not common words and that
+       no requirement uses ("payment" in "Payment by PayPal" when R1 is about the payment total). A test touches the
+       item when one keyword starts a word of its name, or all of them start words of its body; until 0.1.119 any
+       keyword anywhere counted, inside other words too ("#overflows" for "Refund flows"). */
+    const reqWords = new Set(spec.requirements.flatMap((r) => r.text.toLowerCase().match(/[\p{L}\p{N}]+/gu) || []));
     for (const o of spec.outOfScope) {
-      const kw = o
-        .split(/\s+/)
-        .filter((w) => w.length > 4)
-        .slice(0, 2);
-      if (kw.length && cov.tests.some((t) => kw.some((w) => new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(t.name + t.body))))
+      const kw = (o.match(/[\p{L}\p{N}]+/gu) || []).filter((w) => w.length > 4 && !COMMON.test(w) && !reqWords.has(w.toLowerCase())).slice(0, 2);
+      if (!kw.length) continue;
+      const rxs = kw.map((w) => new RegExp("(?<![\\p{L}\\p{N}_])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "iu"));
+      if (cov.tests.some((t) => rxs.some((rx) => rx.test(t.name)) || rxs.every((rx) => rx.test(t.body))))
         out.push(F("out_of_scope_tested", "medium", lastCode.seq, T("oos", { text: o.slice(0, 80) })));
     }
     return { findings: out, coverage: cov };

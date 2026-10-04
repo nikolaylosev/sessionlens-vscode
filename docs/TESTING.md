@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.119 `npm test` runs 351 tests in 60 files. One test is always skipped: `test/cli.test.js` has one case for
+At v0.1.119 `npm test` runs 357 tests in 60 files. One test is always skipped: `test/cli.test.js` has one case for
 Windows only and one for every other OS.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
@@ -137,14 +137,14 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `pass-claim-without-run.test.js` | `pass_claim_without_run`: the agent says tests pass with no run with a result in the 6 steps before (the boundary on both sides), or while the last run was red, in English and Russian, also as "passed" or "passing". A green last run, the user's message, a message without a claim and a claim phrase inside another word ("bypassing", "проходить", 0.1.119) do not count. |
 | `assert-weakened.test.js` | `assert_weakened`: an assertion made weaker or a test with fewer assertions between two versions (two writes, a write and an edit, two messages) in TypeScript, Python and Java, at the later version. A first version, a stronger or equally strong assertion, weak before and after, an added assertion, a renamed test and a change in another test do not count. |
 | `weak-assert.test.js` | `weak_assert`, the regex side: toBeDefined, toBeTruthy, `expect(true).toBe(true)`, Python `assert True`, a bare `assert x`, `is not None`, Java `assertNotNull`, `assertTrue(true)`; Cypress `.should('exist')` also in a file without `expect`; one finding per line, once across versions. Assertions on a value, commented-out lines and Python predicates (`is_*`, `has_*`, `exists()`) do not count (0.1.119). |
-| `process-checks.test.js` | `fix_after_fail_without_triage`, `peeked_at_src_before_plan`, `assumption_instead_of_question`, `scope_creep`, `stop_markers_missing`, each with must-not cases next to the trigger: triage first, the user speaking, after the approval, a planned file, an approved plan. |
-| `spec-checks.test.js` | `test_without_requirement` and `out_of_scope_tested` from `LensSpec.checks`, in English and Russian. An ID in the title or a comment above, a specification without IDs and no out-of-scope section do not count. |
+| `process-checks.test.js` | `fix_after_fail_without_triage`, `peeked_at_src_before_plan`, `assumption_instead_of_question`, `scope_creep`, `stop_markers_missing`, each with must-not cases next to the trigger: triage first, the user speaking, after the approval, a planned file, an approved plan. Since 0.1.119: a `src` folder deeper in the path (not test-side code or `node_modules`), a planned file under another prefix, a plan of `e2e/` files, PLAN only as a word. |
+| `spec-checks.test.js` | `test_without_requirement` and `out_of_scope_tested` from `LensSpec.checks`, in English and Russian. An ID in the title or a comment above, a specification without IDs and no out-of-scope section do not count; nor, since 0.1.119, a keyword inside another word, one keyword in a body, a word a requirement uses, a common word. |
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
 | `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |
 | `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, and TypeScript do not count. |
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. |
-| `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; accessibility id, `quit()` / `afterEach`, a tap on an element and single-digit arguments do not count. |
+| `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; the x/y form of a gesture in each client (0.1.119); accessibility id, `quit()` / `afterEach`, a tap on an element, single-digit arguments, `clickRow(15, 30)` and x/y outside a gesture do not count. |
 | `gherkin-checks.test.js` | `outline_no_examples`, `bloated_background`, `duplicate_step_text`; `scenario_no_then` stays in `finding-pipeline.test.js`. |
 | `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`, `lint_valid_title`, and the Playwright and Cypress rules mapped to `weak_assert`, with severity and message. |
 | `ai-categories.test.js` | `parseFindings` maps every review category to `ai_<name>` and an unknown name to `ai_other`. |
