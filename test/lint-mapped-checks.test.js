@@ -1,7 +1,8 @@
 "use strict";
 /* Engine-mapped checks with no regex fallback: positional_locator, no_app_reset, unannotated_test_method,
-   swallowed_exception, assert_args_reversed. Real engines, same as supersedes.test.js. Severity and
-   message are pinned too: the verdict key includes the start of the message. */
+   swallowed_exception, assert_args_reversed, lint_valid_title; and the engine rules mapped to weak_assert (its regex
+   side is in weak-assert.test.js). Real engines, same as supersedes.test.js. Severity and message are pinned too: the
+   verdict key includes the start of the message. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -155,4 +156,85 @@ test("assert_args_reversed: literal in the actual slot", async () => {
   assert.deepEqual(await lintFound("qa-python", "tests/test_cart.py", "def test_add(self):\n    self.assertEqual(cart.size(), 1)\n", "assert_args_reversed"), [
     "assert_args_reversed/lint medium: tests/test_cart.py:2 — assertEqual(cart.size(), 1) — the literal usually goes first (expected), the value under test second (actual); this reads reversed [python/assert-args-reversed]",
   ]);
+});
+
+const PW = 'import { test, expect } from "@playwright/test";\n';
+
+test("lint_valid_title: an empty title or a duplicate prefix (Playwright)", async () => {
+  assert.deepEqual(
+    await lintFound("qa-ts", "e2e/cart.spec.ts", PW + 'test("", async ({ page }) => {\n  await expect(page).toHaveTitle("Shop");\n});\n', "lint_valid_title"),
+    ["lint_valid_title/lint low: e2e/cart.spec.ts:2 — test should not have an empty title [playwright/valid-title]"],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'test("test shows the title", async ({ page }) => {\n  await expect(page).toHaveTitle("Shop");\n});\n',
+      "lint_valid_title",
+    ),
+    ["lint_valid_title/lint low: e2e/cart.spec.ts:2 — should not have duplicate prefix [playwright/valid-title]"],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'test("shows the title", async ({ page }) => {\n  await expect(page).toHaveTitle("Shop");\n});\n',
+      "lint_valid_title",
+    ),
+    [],
+  );
+});
+
+test("weak_assert from the engines: a useless .not, an expect with no matcher, an expect outside a test, a screenshot before any assertion", async () => {
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'test("hidden", async ({ page }) => {\n  await expect(page.getByText("x")).not.toBeVisible();\n});\n',
+      "weak_assert",
+    ),
+    ["weak_assert/lint low: e2e/cart.spec.ts:3 — Unexpected usage of not.toBeVisible(). Use toBeHidden() instead [playwright/no-useless-not]"],
+  );
+  assert.deepEqual(await lintFound("qa-ts", "e2e/cart.spec.ts", PW + 'test("x", async ({ page }) => {\n  expect(page.getByText("x"));\n});\n', "weak_assert"), [
+    "weak_assert/lint medium: e2e/cart.spec.ts:3 — Expect must have a corresponding matcher call [playwright/valid-expect]",
+  ]);
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'expect(1).toBe(1);\ntest("x", async ({ page }) => {\n  await expect(page).toHaveTitle("Shop");\n});\n',
+      "weak_assert",
+    ),
+    ["weak_assert/lint medium: e2e/cart.spec.ts:2 — Expect must be inside of a test block [playwright/no-standalone-expect]"],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-cypress",
+      "cypress/e2e/cart.cy.ts",
+      'describe("cart", () => {\n  it("shot", () => {\n    cy.visit("/");\n    cy.screenshot();\n  });\n});\n',
+      "weak_assert",
+    ),
+    ["weak_assert/lint low: cypress/e2e/cart.cy.ts:4 — Make an assertion on the page state before taking a screenshot [cypress/assertion-before-screenshot]"],
+  );
+});
+
+test("weak_assert from the engines, not reported: toBeHidden(), an awaited matcher inside a test, a screenshot after an assertion", async () => {
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'test("hidden", async ({ page }) => {\n  await expect(page.getByText("x")).toBeHidden();\n});\n',
+      "weak_assert",
+    ),
+    [],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-cypress",
+      "cypress/e2e/cart.cy.ts",
+      'describe("cart", () => {\n  it("shot", () => {\n    cy.visit("/");\n    cy.get("h1").should("have.text", "Shop");\n    cy.screenshot();\n  });\n});\n',
+      "weak_assert",
+    ),
+    [],
+  );
 });

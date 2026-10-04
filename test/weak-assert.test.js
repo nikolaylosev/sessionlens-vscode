@@ -3,8 +3,8 @@
    weak_assert_patterns. High, one finding per weak line; the same line in a later version of the file is not reported
    again. What must not count: an assertion on a value, a commented-out line, a Python predicate such as
    `assert cart.is_empty()` (both reported until 0.1.119). In qa-cypress `.should('exist')` counts in a file with no
-   "expect" or "assert" (missed until 0.1.119). The engine rules mapped to weak_assert have no test yet
-   (docs/TEST-PRIORITIES.md). */
+   "expect" or "assert" (missed until 0.1.119). The engine rules mapped to weak_assert are in
+   lint-mapped-checks.test.js. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");

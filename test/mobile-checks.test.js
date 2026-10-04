@@ -1,6 +1,7 @@
 "use strict";
-/* qa-mobile regex: mobile_raw_locator and no_driver_teardown. hardcoded_coordinates already has cases in
-   rule-mapping; these two did not. */
+/* qa-mobile regex: mobile_raw_locator, no_driver_teardown and hardcoded_coordinates. Not pinned here, still open: any
+   call whose name starts with tap, swipe, longPress or click counts, so `page.clickRow(15, 30)` is reported, and the
+   object form `touchAction({ action: 'tap', x: 120, y: 340 })` is not. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -39,5 +40,29 @@ test("no_driver_teardown: new AppiumDriver without quit", () => {
       "no_driver_teardown",
     ),
     [],
+  );
+});
+
+test("hardcoded_coordinates: tap or swipe at literal screen coordinates, the first such line per file", () => {
+  assert.deepEqual(
+    found("tests/cart.spec.ts", "it('opens', async () => {\n  await driver.tap(120, 340);\n  await driver.tap(10, 20);\n});\n", "hardcoded_coordinates"),
+    ["medium: tests/cart.spec.ts: tap/swipe at a literal screen coordinate — await driver.tap(120, 340);"],
+  );
+  assert.deepEqual(found("tests/test_cart.py", "def test_scroll(driver):\n    driver.swipe(100, 800, 100, 200)\n", "hardcoded_coordinates"), [
+    "medium: tests/test_cart.py: tap/swipe at a literal screen coordinate — driver.swipe(100, 800, 100, 200)",
+  ]);
+});
+
+test("hardcoded_coordinates, not reported: a tap on an element, single-digit arguments, another profile", () => {
+  assert.deepEqual(found("tests/cart.spec.ts", "it('opens', async () => {\n  await (await $('~cart')).click();\n});\n", "hardcoded_coordinates"), []);
+  assert.deepEqual(found("tests/cart.spec.ts", "it('opens', async () => {\n  await driver.tap(1, 2);\n});\n", "hardcoded_coordinates"), []);
+  const ts = Lens.runChecks(
+    [{ seq: 1, kind: "write", file: "tests/cart.spec.ts", new_content: "it('opens', async () => {\n  await driver.tap(120, 340);\n});\n" }],
+    Lens.profile("qa-ts"),
+  );
+  assert.deepEqual(
+    ts.filter((f) => f.check === "hardcoded_coordinates"),
+    [],
+    "a qa-mobile check",
   );
 });
