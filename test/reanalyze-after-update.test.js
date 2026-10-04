@@ -91,15 +91,13 @@ test("a session analyzed by 0.1.115 is analyzed again: the new checks show up an
   });
   const sb = await openPage(host);
   await sb.ready();
-  const disk = async () => {
-    const b = createStore({ dir: path.join(dir, "sessions") });
-    await b.open();
-    return b.get(s.id);
-  };
-  // the sidebar's background pass
-  for (let t = Date.now(); (await disk()).meta.analyzedGen !== Lens.analysisGen({ lint: false }); await new Promise((r) => setTimeout(r, 50)))
+  /* the sidebar's background pass. Watched with refreshIfChanged(), which only reads: open() in the loop acted as a
+     second window starting up, removed the host's unfinished write (*.tmp) or rebuilt the summary between the
+     session and its summary, and the pass, which does not retry, left the old generation on disk (CI, PR #65). */
+  const gen = () => st.refreshIfChanged().then(() => st.meta(s.id).analyzedGen);
+  for (let t = Date.now(); (await gen()) !== Lens.analysisGen({ lint: false }); await new Promise((r) => setTimeout(r, 50)))
     if (Date.now() - t > 8000) throw new Error("not analyzed again");
-  const r = await disk();
+  const r = await st.get(s.id);
   const checks = r.session.findings.map((f) => f.check).sort();
   assert.deepEqual(checks, ["no_spec", "sleep_or_skip_added", "stop_markers_missing", "tests_never_run"]);
   assert.deepEqual(r.session.verdicts, { [Lens.fkey(now)]: { v: "fp", note: "seen", at } }, "the verdict moved to the new wording");
