@@ -1,8 +1,8 @@
 "use strict";
 /* pass_claim_without_run: the agent says the tests pass, and in the 6 steps before that message there is no test run
    with a result, or the last one was red. What must not count: a claim after a green last run, a user who asks for
-   passing tests, a message without a claim. The claim phrases are matched as substrings, so "bypassing" and
-   "проходить" are reported too; that is a known false finding, not pinned here. */
+   passing tests, a message without a claim, a claim phrase inside another word ("bypassing", "проходить"; reported
+   until 0.1.119). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -70,4 +70,12 @@ test("not reported: a claim after a green last run, a user asking for it, no cla
   assert.deepEqual(found([RED, GREEN, ["say", "Fixed, tests pass."]]), [], "red, then green: the last run decides");
   assert.deepEqual(found([["user", "Make sure all tests pass."]]), [], "the user's message is not the agent's claim");
   assert.deepEqual(found([SPEC, ["say", "I wrote the test, now I will run it."]]), []);
+});
+
+test("a claim phrase counts only as whole words; an English one may end in -es, -ed or -ing", () => {
+  assert.deepEqual(found([["say", "I am bypassing the cache in the fixture."]]), [], '"passing" inside "bypassing"');
+  assert.deepEqual(found([["say", "Overall passengers see the banner."]]), [], '"all pass" inside "overall passengers"');
+  assert.deepEqual(found([["say", "Нужно проходить авторизацию в каждом тесте."]]), [], '"проходит" inside "проходить"');
+  for (const claim of ["All tests passed.", "The suite passes, all green.", "Tests are passing.", "Тест проходит.", "Все тесты проходят!"])
+    assert.deepEqual(found([["say", claim]]), [NO_RUN], claim);
 });
