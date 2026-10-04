@@ -1265,15 +1265,21 @@
       }
       return out;
     },
+    /* 0.1.119: a line that is a comment is skipped; Cypress's .should( is an assertion too (a file with only those was
+       never looked at); a bare Python assert on a predicate (cart.is_empty(), user.is_active, path.exists()) checks a
+       value, unlike `assert resp.json()`. */
     weak_assert(ev, cfg) {
       const out = [];
+      const PREDICATE = /^assert\s[\w.]*\b(?:(?:is|has|can|should|was|were|does|did)_\w+(?:\(\))?|is[a-z]+\(\)|exists\(\))\s*$/;
       for (const e of ev) {
         const code = e.new_content;
-        if (!code || !/assert|expect/.test(code)) continue;
+        if (!code || !/assert|expect|\.should\s*\(/.test(code)) continue;
         for (const rx of cfg.weak_assert_patterns) {
           rx.lastIndex = 0;
-          for (const m of code.matchAll(rx))
+          for (const m of code.matchAll(rx)) {
+            if (/^\s*(?:\/\/|#|\/\*|\*)/.test(code.slice(code.lastIndexOf("\n", m.index) + 1, m.index)) || PREDICATE.test(m[0].trim())) continue;
             out.push(F("weak_assert", "high", e.seq, T("weak_assert", { file: e.file || inMsg(), line: m[0].trim().slice(0, 80) })));
+          }
         }
       }
       return out;
