@@ -1118,8 +1118,11 @@
   }
 
   // ---------- timeline helpers ----------
+  /* A plan is marked by a requirement table ("| Requirement") or by PLAN / ПЛАН as a word: since 0.1.119 "EXPLANATION"
+     and "PLANNED" are not plans. */
   const planSeq = (ev, cfg) => {
-    const e = ev.find((x) => x.kind === "message" && cfg.plan_markers.some((m) => x.text.includes(m)));
+    const marks = cfg.plan_markers.map((m) => (/^\p{L}+$/u.test(m) ? new RegExp("(?<!\\p{L})" + m + "(?!\\p{L})", "u") : m));
+    const e = ev.find((x) => x.kind === "message" && marks.some((m) => (typeof m === "string" ? x.text.includes(m) : m.test(x.text))));
     return e ? e.seq : null;
   };
   const approvalSeq = (ev, p) => {
@@ -1127,11 +1130,43 @@
     const e = ev.find((x) => x.seq > p && x.kind === "user");
     return e ? e.seq : null;
   };
-  const plannedFiles = (ev, p) => (p == null ? new Set() : new Set([...ev[p].text.matchAll(/(?:tests?|specs?|src|app)\/[\w/.\-]+\.\w+/g)].map((m) => m[0])));
+  /* The files the plan names: a path with a folder and an extension, one of whose folders is a test or source folder
+     (the usual ones and the profile's, so e2e/ and cypress/ too since 0.1.119). */
+  const plannedFiles = (ev, p, cfg) => {
+    if (p == null) return new Set();
+    const dirs = new Set(["tests", "test", "specs", "spec", "src", "app", ...[...cfg.test_dirs, ...cfg.src_dirs].flatMap((d) => d.split("/"))]);
+    const paths = (ev[p].text.match(/[\w.-]+(?:\/[\w.-]+)+\.\w+/g) || []).map((x) => x.replace(/^\.\//, ""));
+    return new Set(
+      paths.filter((x) =>
+        x
+          .split("/")
+          .slice(0, -1)
+          .some((d) => dirs.has(d)),
+      ),
+    );
+  };
+  // a file the plan names, also when one of the two paths has a prefix the other lacks (./, shop/, an absolute path)
+  const inPlan = (f, planned) => {
+    const g = f.replace(/^\.\//, "");
+    return [...planned].some((x) => g === x || g.endsWith("/" + x) || x.endsWith("/" + g));
+  };
   const inDirs = (path, dirs) => {
     const p = (path || "").replace(/^\.?\//, "");
     return dirs.some((d) => p === d || p.startsWith(d + "/"));
   };
+  // a dir anywhere in the path: Claude Code started in a parent folder writes "shop/src/cart.ts", or an absolute path
+  const underDir = (path, dirs) => {
+    const p = "/" + (path || "").replace(/^\.?\//, "") + "/";
+    return dirs.some((d) => p.includes("/" + d + "/"));
+  };
+  // product code: a source folder at the start of the path, or deeper in it if the file is not test-side code or a dependency
+  const productPath = (f, cfg) =>
+    inDirs(f, cfg.src_dirs) ||
+    (underDir(f, cfg.src_dirs) &&
+      !underDir(f, cfg.test_dirs) &&
+      !TEST_FILE_RX.test(f || "") &&
+      !TEST_SIDE_RX.test(f || "") &&
+      !/(?:^|\/)node_modules\//.test(f || ""));
   // the last test run before seq, if it was red; null if it was green or there was none
   const redRunBefore = (ev, seq) => {
     const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
@@ -1219,12 +1254,13 @@
   }
   const F = (check, severity, seq, message) => ({ check, severity, seq, message });
   const checks = {
+    // since 0.1.119 also a src folder deeper in the path, but not test-side code or a dependency under it
     peeked_at_src_before_plan(ev, cfg) {
       const p = planSeq(ev, cfg),
         a = approvalSeq(ev, p);
       const cut = a ?? p ?? 1e9;
       return ev
-        .filter((e) => ["read", "search"].includes(e.kind) && inDirs(e.file, cfg.src_dirs) && e.seq < cut)
+        .filter((e) => ["read", "search"].includes(e.kind) && productPath(e.file, cfg) && e.seq < cut)
         .map((e) => F("peeked_at_src_before_plan", "high", e.seq, T("peeked", { file: e.file })));
     },
     /* A claim phrase counts as whole words (0.1.119): "bypassing" is not "passing", "проходить" is not "проходит".
@@ -1314,10 +1350,10 @@
       return out;
     },
     scope_creep(ev, cfg) {
-      const pl = plannedFiles(ev, planSeq(ev, cfg));
+      const pl = plannedFiles(ev, planSeq(ev, cfg), cfg);
       if (!pl.size) return [];
       return ev
-        .filter((e) => ["edit", "write"].includes(e.kind) && e.file && !pl.has(e.file) && !e.file.endsWith("README.md"))
+        .filter((e) => ["edit", "write"].includes(e.kind) && e.file && !inPlan(e.file, pl) && !e.file.endsWith("README.md"))
         .map((e) => F("scope_creep", "medium", e.seq, T("scope", { file: e.file })));
     },
     edit_churn(ev, cfg) {
@@ -1433,17 +1469,15 @@
        a runner config); a file the approved plan names is not reported. High right after a red run. */
     product_code_edited(ev, cfg) {
       const p = planSeq(ev, cfg);
-      const planned = approvalSeq(ev, p) != null ? [...plannedFiles(ev, p)] : [];
-      // a src dir anywhere in the path: Claude Code started in a parent folder writes "shop/src/cart.ts", or an absolute path
-      const under = (f, dirs) => dirs.some((d) => ("/" + f).includes("/" + d + "/"));
+      const planned = approvalSeq(ev, p) != null ? plannedFiles(ev, p, cfg) : new Set();
       const product = (f) =>
         isCode(f, cfg) &&
-        under(f, cfg.src_dirs) &&
-        !under(f, cfg.test_dirs) &&
+        underDir(f, cfg.src_dirs) &&
+        !underDir(f, cfg.test_dirs) &&
         !TEST_FILE_RX.test(f) &&
         !TEST_SIDE_RX.test(f) &&
         !RUNNER_CONFIG_RX.test(f) &&
-        !planned.some((x) => f === x || f.endsWith("/" + x));
+        !inPlan(f, planned);
       const byFile = {};
       for (const e of ev) if (["write", "edit"].includes(e.kind) && e.file && product(e.file)) (byFile[e.file] = byFile[e.file] || []).push(e);
       // one finding per file: its first edit right after a red run if there is one, else its first edit
@@ -1809,12 +1843,17 @@
       }
       return out;
     },
+    /* Since 0.1.119: a gesture call whose first two arguments are numbers (not clickRow(15, 30)), or x and y numbers on a
+       line about a gesture: touchAction({ action: 'tap', x: 120, y: 340 }), tap(x=100, y=200), a pointerMove. */
     hardcoded_coordinates(ev) {
-      const RX = /\b(?:tap|swipe|longPress|click)\w*\s*\([^)]*?(-?\d{2,})\s*,\s*(-?\d{2,})/i;
+      const CALL =
+        /\b(?:tap|swipe|longPress|long_press|press|doubleTap|double_tap|click|moveTo|move_to|move_to_location|move_by_offset|point|withCoordinates)\s*\(\s*[[(]*\s*-?\d{2,}\s*,\s*-?\d{2,}/i;
+      const XY = /\bx\s*[:=]\s*-?\d{2,}\s*,\s*y\s*[:=]\s*-?\d{2,}/;
+      const GESTURE = /tap|swipe|press|touch|pointer|gesture|click|scroll|drag|move/i;
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        const ln = e.new_content.split("\n").find((l) => RX.test(l));
+        const ln = e.new_content.split("\n").find((l) => CALL.test(l) || (XY.test(l) && GESTURE.test(l)));
         if (ln)
           out.push(F("hardcoded_coordinates", "medium", e.seq, T("hardcoded_coordinates_msg", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
       }
