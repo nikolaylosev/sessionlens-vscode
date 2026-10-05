@@ -10,6 +10,9 @@ import { renderCalLog } from "./calibration.js";
 // set in initSettings(), in the order the single app.js ran its statements
 export let ROUTE_TASKS, SETTINGS_DEFAULTS;
 
+// the strings of a CLI provider: cli_note for Claude Code, cli_note_codex, cli_note_cursor
+const cliSuffix = (p) => (p.cliKind === "claude" ? "" : "_" + p.cliKind);
+
 export function initSettings() {
   $("#s-add-provider").addEventListener("change", (e) => renderAddForm(e.target.value));
   $("#s-add-key-del").addEventListener("click", async () => {
@@ -37,15 +40,15 @@ export function initSettings() {
   $("#s-add-cli-check").addEventListener("click", async () => {
     const prov = $("#s-add-provider").value,
       p = LensAI.PROVIDERS[prov],
-      suf = p.cliKind === "codex" ? "_codex" : "";
-    const check = p.cliKind === "codex" ? window.__slCodexCheck : window.__slClaudeCheck;
+      suf = cliSuffix(p);
+    const check = { claude: window.__slClaudeCheck, codex: window.__slCodexCheck, cursor: window.__slCursorCheck }[p.cliKind];
     const st = $("#s-add-cli-status");
     st.className = "muted";
     st.textContent = T("cli_checking");
     const r = await check({});
     if (!r || !r.installed) {
       st.className = "err";
-      st.textContent = T("cli_err_notfound" + suf, { cmd: (r && r.cmd) || (p.cliKind === "codex" ? "codex" : "claude") });
+      st.textContent = T("cli_err_notfound" + suf, { cmd: (r && r.cmd) || { claude: "claude", codex: "codex", cursor: "cursor-agent" }[p.cliKind] });
       return;
     }
     if (!r.loggedIn) {
@@ -354,7 +357,7 @@ export function renderAddForm(prov) {
   keyRow.style.display = p.local || p.noKey ? "none" : "block";
   $("#s-add-cli-row").style.display = p.cli ? "block" : "none";
   if (p.cli) {
-    const suf = p.cliKind === "codex" ? "_codex" : "";
+    const suf = cliSuffix(p);
     $("#s-add-model-hint").textContent = T("model_hint_cli" + suf);
     $("#s-add-cli-note").textContent = T("cli_note" + suf);
     $("#s-add-cli-path-label").textContent = T("s_cli_path" + suf);

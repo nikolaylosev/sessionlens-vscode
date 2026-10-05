@@ -107,7 +107,7 @@ test("set with an empty key deletes it; set/get for local, a CLI or an unknown p
   await secrets.set("openai", "o");
   await secrets.set("openai", "   ");
   assert.equal(storage.map.size, 0);
-  for (const p of ["local", "claudecli", "codexcli", "nope"]) {
+  for (const p of ["local", "claudecli", "codexcli", "cursorcli", "nope"]) {
     await assert.rejects(() => secrets.set(p, "k"));
     await assert.rejects(() => secrets.get(p));
   }

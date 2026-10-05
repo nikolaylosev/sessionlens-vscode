@@ -2,7 +2,7 @@
   "name": "sessionlens-vscode",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.120",
+  "version": "0.1.121",
   "license": "MIT",
   "publisher": "nikolaylosev",
   "engines": {
@@ -112,6 +112,13 @@
           "scope": "machine",
           "markdownDescription": "%config.codexCliPath%",
           "order": 11
+        },
+        "sessionlens.cursorCliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "%config.cursorCliPath%",
+          "order": 12
         },
         "sessionlens.minGapMs": {
           "type": "integer",

@@ -47,7 +47,7 @@ flowchart LR
 ```
 
 Everything runs locally. The only network traffic is the optional model review, sent to a provider the user chose
-with the user's own key, or through the user's own Claude Code or Codex CLI.
+with the user's own key, or through the user's own Claude Code, Codex or Cursor CLI.
 
 ---
 
@@ -78,6 +78,7 @@ flowchart TB
     TR[(Transcripts<br/>~/.claude/projects<br/>~/.codex/sessions)]
     CC[claude CLI]
     CX[codex CLI]
+    CU[cursor agent CLI]
   end
   API[(Model provider APIs<br/>Anthropic · Google · OpenAI · xAI<br/>DeepSeek · Qwen · local server)]
 
@@ -87,7 +88,7 @@ flowchart TB
   EXT --> SEC --> KEY
   EXT --> GS
   EXT --> PROV --> API
-  EXT --> CLI --> CC & CX
+  EXT --> CLI --> CC & CX & CU
   EXT -->|open dialog| TR
   EXT --> TREE
 ```
@@ -112,7 +113,7 @@ store.js              host: sessions on disk (two files per session, atomic writ
 validate.js           host: the check every webview message passes first
 secrets.js            host: API keys in SecretStorage, migration out of settings
 providers.js          host: HTTP transport to model providers (node:http/https)
-cli.js                host: runs the user's claude / codex CLI with no tools, in an empty temp folder
+cli.js                host: runs the user's claude / codex / cursor agent CLI with no tools, in an empty temp folder
 package.json          manifest: views, commands, settings (package.nls.json holds the strings)
 
 media/                everything the webview loads (also required by Node tests)
@@ -257,7 +258,7 @@ Message types (validated by `VALIDATORS` in `validate.js`):
 | Sessions | `session:list`, `session:get`, `session:put`, `session:delete`, `session:clear`, `session:open` |
 | Files and OS | `open:transcript`, `save:file`, `clipboard:write`, `settings:open` |
 | Keys and addresses | `secret:set`, `secret:delete`, `secret:status`, `baseurl:set` |
-| Model | `ai:call`, `claude:check`, `claude:run`, `codex:check`, `codex:run` |
+| Model | `ai:call`, `claude:check`, `claude:run`, `codex:check`, `codex:run`, `cursor:check`, `cursor:run` |
 
 When one page saves something, the host broadcasts a refresh (`broadcastRefresh`) to the other open pages, so the
 sidebar and every session tab stay in step (RA §16.1).
@@ -498,14 +499,14 @@ sequenceDiagram
   P->>P: build prompt (task, Model rules, code limit)
   P->>H: ai:call {provider, model, system, user}
   H->>K: key for the provider
-  H->>M: HTTPS request (or claude -p / codex exec)
+  H->>M: HTTPS request (or claude -p / codex exec / agent -p)
   M-->>H: answer
   H-->>P: text (key redacted from any error)
   P->>P: parse JSON findings, verify call, merge as source "ai"
 ```
 
 - **Providers** (`LensAI.PROVIDERS`): Anthropic, Google, OpenAI, xAI, DeepSeek, Qwen, a local OpenAI-compatible
-  server, and the user's **Claude Code** or **Codex** subscription through their CLI.
+  server, and the user's **Claude Code**, **Codex** or **Cursor** subscription through their CLI.
 - **Tasks** (`TASKS`): `segment`, `review`, `verify`, `compress`, `skill`; each may use its own model.
 - **Review** sends the session (chunked when large) and asks for findings in the same schema as the checks;
   **verify** asks a second call to keep only findings it can support with evidence (on by default). Since 0.1.115
@@ -578,7 +579,7 @@ VS Code configuration, sessions from `globalState` into files, keys into SecretS
 
 ### 6.11 Settings
 
-`sessionlens.claudeCliPath`, `sessionlens.codexCliPath`, `sessionlens.minGapMs`, `sessionlens.maxCode`,
+`sessionlens.claudeCliPath`, `sessionlens.codexCliPath`, `sessionlens.cursorCliPath`, `sessionlens.minGapMs`, `sessionlens.maxCode`,
 `sessionlens.verify`, `sessionlens.lint`, `sessionlens.rulesTarget`. The ⚙ tab edits the same values plus the
 models per task, the keys, the local and Qwen addresses and the demo button. A change in `settings.json` reaches every open page.
 

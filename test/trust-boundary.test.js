@@ -23,19 +23,22 @@ async function boot(opts = {}) {
 const refused = (r) => assert.ok(r && typeof r.error === "string" && r.error.startsWith("SessionLens:"), JSON.stringify(r));
 
 // ---------- 3.1 CLI path ----------
-test("package.json: both CLI paths are machine-scoped settings", () => {
+test("package.json: the CLI paths are machine-scoped settings", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   const props = pkg.contributes.configuration.properties;
-  for (const k of ["sessionlens.claudeCliPath", "sessionlens.codexCliPath"]) {
+  for (const k of ["sessionlens.claudeCliPath", "sessionlens.codexCliPath", "sessionlens.cursorCliPath"]) {
     assert.equal(props[k].type, "string");
     assert.equal(props[k].scope, "machine", k);
   }
 });
 
-test("claude/codex run and check use the configured path, never the payload's", async () => {
+test("claude/codex/cursor run and check use the configured path, never the payload's", async () => {
   const cfgClaude = path.join(os.tmpdir(), "sl-no-such-dir", "claude-from-settings");
   const cfgCodex = path.join(os.tmpdir(), "sl-no-such-dir", "codex-from-settings");
-  const { wv } = await boot({ config: { global: { "sessionlens.claudeCliPath": cfgClaude, "sessionlens.codexCliPath": cfgCodex } } });
+  const cfgCursor = path.join(os.tmpdir(), "sl-no-such-dir", "cursor-from-settings");
+  const { wv } = await boot({
+    config: { global: { "sessionlens.claudeCliPath": cfgClaude, "sessionlens.codexCliPath": cfgCodex, "sessionlens.cursorCliPath": cfgCursor } },
+  });
   let r = await wv.send("claude:check", { cliPath: "/tmp/evil" });
   assert.deepEqual(r, { installed: false, cmd: cfgClaude });
   r = await wv.send("codex:check", { cliPath: "/tmp/evil" });
@@ -46,6 +49,11 @@ test("claude/codex run and check use the configured path, never the payload's", 
   r = await wv.send("codex:run", { user: "u", cliPath: "/tmp/evil" });
   assert.equal(r.error.code, "notfound");
   assert.equal(r.error.message, cfgCodex);
+  r = await wv.send("cursor:check", { cliPath: "/tmp/evil" });
+  assert.deepEqual(r, { installed: false, cmd: cfgCursor });
+  r = await wv.send("cursor:run", { user: "u", cliPath: "/tmp/evil" });
+  assert.equal(r.error.code, "notfound");
+  assert.equal(r.error.message, cfgCursor);
 });
 
 test("a workspace value of the CLI path is ignored (machine scope)", async () => {

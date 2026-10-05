@@ -15,6 +15,7 @@
   "cmd.treeDelete": "Delete",
   "config.title": "SessionLens",
   "config.claudeCliPath": "Full path to the Claude Code CLI (`claude`). Leave empty to find it automatically. Machine setting: a workspace cannot change it.",
+  "config.cursorCliPath": "Full path to the Cursor Agent CLI (`agent`). Leave empty to find it automatically in `~/.local/bin`. Machine setting: a workspace cannot change it.",
   "config.codexCliPath": "Full path to the Codex CLI (`codex`). Leave empty to find it automatically (including the copy bundled with the Codex VS Code extension). Machine setting: a workspace cannot change it.",
   "config.minGapMs": "Minimum pause between two model requests, in milliseconds (request pacing). While this is not set, a local server gets no pause and every other provider 6500 ms. Same as ⚙ Settings in the panel.",
   "config.maxCode": "How many characters of the agent's code go into a model request. While this is not set, a local server gets 12000 and every other provider 40000. Same as ⚙ Settings in the panel.",

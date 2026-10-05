@@ -387,29 +387,29 @@ If you find nothing, reply exactly: []`;
     return String(text);
   }
 
-  /* Claude or Codex through the user's own CLI, so a subscription works without an API key. The VS Code host
-     runs `claude -p` or `codex exec -` (see cli.js); `fetchImpl` is where a test injects a fake host. Errors
-     come back as {error: {code}} and are worded here, per CLI, in the interface language. */
+  /* Claude, Codex or Cursor through the user's own CLI, so a subscription works without an API key. The VS Code
+     host runs `claude -p`, `codex exec -` or `agent -p` (see cli.js); `fetchImpl` is where a test injects a fake
+     host. Errors come back as {error: {code}} and are worded here, per CLI, in the interface language. */
+  const CLI_HOST = { claude: "__slClaudeRun", codex: "__slCodexRun", cursor: "__slCursorRun" };
+  const CLI_CMD = { claude: "claude", codex: "codex", cursor: "cursor-agent" };
   async function callCliProvider(kind, { model, system, user, cliPath }, hostImpl) {
-    const host = hostImpl || (typeof window !== "undefined" && window[kind === "codex" ? "__slCodexRun" : "__slClaudeRun"]);
-    const suf = kind === "codex" ? "_codex" : "";
+    const host = hostImpl || (typeof window !== "undefined" && window[CLI_HOST[kind]]);
+    const suf = kind === "claude" ? "" : "_" + kind;
     if (!host) throw new Error(T("cli_no_host" + suf));
     const r = await host({ model, system, user, cliPath, timeoutMs: 300000 });
     if (r && r.error) {
       const e = r.error,
         msg = String(e.message || "").replace(/rate.?limit/gi, "limit"); // keep the generic 429 retry loop out of a plan limit
-      throw Object.assign(
-        new Error(
-          T("cli_err_" + e.code + suf, { msg, model: model || "", cmd: e.message || cliPath || (kind === "codex" ? "codex" : "claude"), s: e.message }),
-        ),
-        { cliCode: e.code },
-      );
+      throw Object.assign(new Error(T("cli_err_" + e.code + suf, { msg, model: model || "", cmd: e.message || cliPath || CLI_CMD[kind], s: e.message })), {
+        cliCode: e.code,
+      });
     }
     if (!r || typeof r.text !== "string" || !r.text.trim()) throw new Error(T("cli_err_failed" + suf, { msg: "empty answer" }));
     return r.text;
   }
   const callClaudeCli = (a, f) => callCliProvider("claude", a, f);
   const callCodexCli = (a, f) => callCliProvider("codex", a, f);
+  const callCursorCli = (a, f) => callCliProvider("cursor", a, f);
 
   const PROVIDERS = {
     anthropic: { label: "Anthropic (Claude)", defaultModel: "claude-sonnet-5", call: (a, f) => callAnthropic(a, f), keyHint: "sk-ant-…" },
@@ -432,6 +432,16 @@ If you find nothing, reply exactly: []`;
       cli: true,
       cliKind: "codex",
       call: (a, f) => callCodexCli(a, f),
+    },
+    cursorcli: {
+      label: "Cursor (subscription)",
+      defaultModel: "",
+      keyHint: "",
+      noKey: true,
+      noGap: true,
+      cli: true,
+      cliKind: "cursor",
+      call: (a, f) => callCursorCli(a, f),
     },
     google: { label: "Google (Gemini)", defaultModel: "gemini-3.1-flash-lite", call: (a, f) => callGoogle(a, f), keyHint: "AIza…" },
     // GPT-5-class models on the OpenAI API reject max_tokens (they want max_completion_tokens) and any temperature
@@ -950,6 +960,7 @@ with real newline characters.`;
     TASKS,
     callClaudeCli,
     callCodexCli,
+    callCursorCli,
     setPrompts,
     DEFAULTS: { review: SYSTEM_TPL, verify: VERIFY_TPL, review_local: LOCAL_FILE_SYSTEM, compress: COMPRESS_TPL, generate_skill: GENERATE_SKILL_TPL },
     buildPrompt,
