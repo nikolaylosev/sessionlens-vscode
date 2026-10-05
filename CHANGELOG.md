@@ -13,6 +13,13 @@
   that moment. Only temporary files older than a minute are deleted now. The second window could also overwrite the
   summary the first one had just written with an older copy, so the session was analyzed again for no reason; it
   now keeps the newer summary.
+- A commented-out assertion still counted as an assertion in TypeScript, JavaScript, Cypress, Java and C# (Python was
+  right). So **Assertion weakened** (`assert_weakened`, high) missed an agent commenting out an assertion, as in
+  `// expect(items).toHaveLength(3)`, although it reported the same assertion deleted; it now reports "fewer
+  assertions". A line that starts with `//`, `#`, `/*` or `*` is not an assertion any more in the other checks that
+  count assertions either: `assertion_roulette` and `duplicate_assert` no longer count commented-out lines, and on
+  qa-api a commented-out body check no longer hides `status_only_assert`, nor does a commented-out error status count
+  as a negative case for `no_negative_cases`.
 
 ## 0.1.119
 

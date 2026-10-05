@@ -908,6 +908,13 @@ Status at v0.1.98. Closed items are kept for the record.
 16. ~~Host strings: the `t("…")` keys and the Russian bundle, `package.json` and two `package.nls*.json` are two
     lists each~~ — **gone in v0.1.110**: the host translation was removed (§16.5); one `package.nls.json` is left,
     and `test/vscode-integration.test.js` checks its keys against `package.json`.
+17. **A commented-out line is not code.** A line that starts with `//`, `#`, `/*` or `*` never runs, so it is never
+    an assertion, a date or a weak assertion. `hardcoded_date` (0.1.118) and `weak_assert` (0.1.119) skip such lines.
+    Since 0.1.120 every check that counts the profile's assertion lines goes through `isAssertLine()` in `lens.js`:
+    `assert_weakened` (`compareAsserts`, so an assertion commented out is "fewer assertions"), `assertion_roulette`,
+    `duplicate_assert`, `status_only_assert`, `no_negative_cases`. `magic_number` has its own test, because a comment
+    at the end of a line explains its number; there a `#` or `//` inside a string is not a comment (0.1.120). A line in
+    the middle of a block comment that does not start with `*` is still read as code.
 
 ## 12. How to add a new check safely (a practical checklist)
 

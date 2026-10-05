@@ -1,6 +1,6 @@
 "use strict";
 /* assertion_roulette: Python and Java only, three or more assertions in one test with no messages. What must not
-   count: two assertions, messages on the asserts, TypeScript. */
+   count: two assertions, messages on the asserts, TypeScript, and commented-out asserts (counted until 0.1.120). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -43,5 +43,25 @@ test("not reported: two asserts, a message on each, or TypeScript", () => {
   assert.deepEqual(
     found("qa-ts", "e2e/cart.spec.ts", "test('total', async () => {\n  expect(a).toBe(1);\n  expect(b).toBe(2);\n  expect(c).toBe(3);\n});\n"),
     [],
+  );
+});
+
+test("commented-out asserts do not count (0.1.120)", () => {
+  const java = (b) => `class CartTest {\n  @Test\n  void total() {\n${b}\n  }\n}\n`;
+  assert.deepEqual(
+    found(
+      "qa-java",
+      "src/test/java/CartTest.java",
+      java("    assertEquals(1, cart.a());\n    assertEquals(2, cart.b());\n    // assertEquals(3, cart.c());\n    // assertTrue(cart.d());"),
+    ),
+    [],
+  );
+  assert.deepEqual(
+    found(
+      "qa-java",
+      "src/test/java/CartTest.java",
+      java("    assertEquals(1, cart.a());\n    assertEquals(2, cart.b());\n    assertTrue(cart.c());\n    /* assertTrue(cart.d()); */"),
+    ),
+    ["low: src/test/java/CartTest.java: total — 3 assertions without messages: on failure you can't tell which one (Assertion Roulette)"],
   );
 });

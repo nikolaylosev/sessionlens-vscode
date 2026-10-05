@@ -93,6 +93,77 @@ test("Python and Java", () => {
   );
 });
 
+test("an assertion commented out counts as removed: TypeScript, Java, C#, Cypress (0.1.120)", () => {
+  const removed = (file, test) => [`high: ${file}: ${test} — fewer assertions (2 → 1)`];
+  const two = ts("  expect(a).toBe(1);\n  expect(b).toBe(2);");
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, two],
+      ["write", F, ts("  expect(a).toBe(1);\n  // expect(b).toBe(2);")],
+    ]),
+    removed(F, "total"),
+  );
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, two],
+      ["edit", F, "  expect(b)", "  // expect(b)"],
+    ]),
+    removed(F, "total"),
+    "by an Edit",
+  );
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, two],
+      ["write", F, ts("  expect(a).toBe(1);\n  /* expect(b).toBe(2); */")],
+    ]),
+    removed(F, "total"),
+  );
+  const J = "src/test/java/CartTest.java";
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", J, java("    assertEquals(1, cart.a());\n    assertEquals(2, cart.b());")],
+      ["write", J, java("    assertEquals(1, cart.a());\n    // assertEquals(2, cart.b());")],
+    ]),
+    removed(J, "total"),
+  );
+  const C = "Tests/CartTests.cs";
+  const cs = (b) => `public class CartTests {\n  [Test]\n  public void Total() {\n${b}\n  }\n}\n`;
+  assert.deepEqual(
+    found("qa-c#", [
+      ["write", C, cs("    Assert.AreEqual(1, cart.A);\n    Assert.AreEqual(2, cart.B);")],
+      ["write", C, cs("    Assert.AreEqual(1, cart.A);\n    // Assert.AreEqual(2, cart.B);")],
+    ]),
+    removed(C, "Total"),
+  );
+  const Y = "cypress/e2e/cart.cy.js";
+  const cy = (b) => `it('total', () => {\n${b}\n});\n`;
+  assert.deepEqual(
+    found("qa-cypress", [
+      ["write", Y, cy("  cy.get('.total').should('have.text', '3');\n  cy.get('tr').should('have.length', 2);")],
+      ["write", Y, cy("  cy.get('.total').should('have.text', '3');\n  // cy.get('tr').should('have.length', 2);")],
+    ]),
+    removed(Y, "total"),
+  );
+});
+
+test("not reported: an assertion commented out in both versions, or one brought back from a comment (0.1.120)", () => {
+  const was = ts("  expect(a).toBe(1);\n  // expect(b).toBe(2);");
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, was],
+      ["write", F, ts("  expect(a).toBe(3);\n  // expect(b).toBe(2);")],
+    ]),
+    [],
+  );
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, was],
+      ["write", F, ts("  expect(a).toBe(1);\n  expect(b).toBe(2);")],
+    ]),
+    [],
+  );
+});
+
 test("the same test shown twice in messages (a chat session)", () => {
   assert.deepEqual(
     found("qa-ts", [
