@@ -2,12 +2,11 @@
 /* sleep_or_skip_added (regex side; the lint engines replace it where they run, see supersedes.test.js): a fixed delay,
    a skipped test or a retry in written code, high, with the kind LensLint.merge() compares ("sleep", "skip", "retry").
    What must not count: a delay under 100 ms, a Cypress wait on a route alias, retries in a runner config (that is
-   config_weakened), retries: 0, and the same sleep again in a later version of the file.
+   config_weakened), retries: 0, and the same sleep again in a later version of the file. Commented-out code: see
+   commented-out-code.test.js (fixed in 0.1.121).
 
    Detector bugs found while writing this file (5 Oct 2026), not pinned here, to be fixed in a PR of their own after the
    owner decides:
-   - commented-out code counts: `// await page.waitForTimeout(2000)`, `/* test.skip *\/` and Python `# time.sleep(2)`
-     each give a high finding (the same mistake duplicate_assert and weak_assert had before 0.1.120);
    - product code counts as a test: src/debounce.ts with `setTimeout(fn, 1000)` gives "fixed delay (sleep) in a test";
    - qa-python's `\breruns\b` matches the word in a docstring ("No reruns here.") and gives a high "retry".
    Open question, not a bug: `page.waitForTimeout(DELAY)` with a named constant is not reported (the pattern wants a
