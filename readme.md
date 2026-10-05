@@ -479,7 +479,7 @@ SessionLens finds `agent` in `~/.local/bin`, where the installer puts it. Set a 
 - Your login is never read, copied or sent anywhere by SessionLens. The `agent` command signs itself in.
 - Cursor's CLI has no switch that turns its tools off: in `-p` mode it can read files, write files and run commands. So every request runs in Cursor's read-only `ask` mode, in an empty temporary folder that also holds a `.cursor/cli.json` denying every shell command, file read, file write, web fetch and MCP tool. A deny there wins over anything your own Cursor settings allow. Checked on CLI 2026.10.01: with the ask mode alone, a request could still read a file outside the folder by its full path and list another folder; with the deny list, both were refused.
 - The prompt goes through standard input, not the command line.
-- Cursor keeps a copy of every request, including the full prompt, under `~/.cursor/chats/` and `~/.cursor/projects/`, and has no switch against it. After each answer SessionLens deletes the copy of that one request: the folders named after its own temporary folder, and nothing else in `~/.cursor`. If it cannot, the **SessionLens** Output channel says so.
+- Cursor keeps a copy of every request, including the full prompt, under `~/.cursor/chats/` and `~/.cursor/projects/`, and has no switch against it. After each answer SessionLens deletes the copy of that one request: the folders named after its own temporary folder (including the one Cursor names with a hash when the path is long), and nothing else in `~/.cursor`. If it cannot, the **SessionLens** Output channel says so.
 
 **What to know**
 

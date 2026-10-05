@@ -3,7 +3,7 @@ const vscode = require("vscode");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { runClaude, checkClaude, runCodex, checkCodex, runCursor, checkCursor, PATH_RX } = require("./cli.js");
+const { runClaude, checkClaude, runCodex, checkCodex, runCursor, checkCursor, cursorProjectSlug, PATH_RX } = require("./cli.js");
 const { cursorOutputs } = require("./cursor-db.js");
 const Lens = require("./media/lens.js"); // shared with the webview: verdict(), same rules for the same data
 const LensAI = require("./media/ai.js"); // shared too: the provider table and each provider's request shape
@@ -316,17 +316,8 @@ function isDir(p) {
   }
 }
 
-/* Cursor's folder for a workspace, named the way its CLI 2026.10.01 names it (workspace-paths.js in the CLI's bundle):
-   every character that is not a Latin letter or a digit becomes "-", a run of them one "-", and none is kept at either
-   end, so /Users/me/my_app is Users-me-my-app. The IDE's folders on macOS follow the same rule. Windows is not checked. */
-const cursorProjectSlug = (p) =>
-  p
-    .replace(/[^a-zA-Z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
 // ~/.cursor/projects/<workspace>/agent-transcripts for the first workspace folder that has one (by its path or, for a
-// symlink, its real path, which Cursor's CLI uses); otherwise ~/.cursor/projects
+// symlink, its real path, which Cursor's CLI uses; the name: cursorProjectSlug in cli.js); otherwise ~/.cursor/projects
 function cursorTranscriptsDir(home) {
   const projects = path.join(home, ".cursor", "projects");
   for (const f of vscode.workspace.workspaceFolders || []) {

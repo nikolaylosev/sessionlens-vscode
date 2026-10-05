@@ -476,6 +476,23 @@ async function checkCodex({ cliPath } = {}) {
    - Cursor keeps every chat and has no flag against it, so its copy is removed after the run (removeCursorTraces). */
 const CURSOR_PERMISSIONS = { permissions: { allow: [], deny: ["Shell(*)", "Write(**)", "Read(**)", "WebFetch(*)", "Mcp(*:*)"] } };
 
+/* Cursor's folder for a workspace, named the way its CLI 2026.10.01 names it (workspace-paths.js in the CLI's bundle):
+   every character that is not a Latin letter or a digit becomes "-", a run of them one "-", and none is kept at either
+   end, so /Users/me/my_app is Users-me-my-app. The IDE's folders on macOS follow the same rule. Windows is not checked. */
+const cursorProjectSlug = (p) =>
+  p
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+/* The folder each run's worker-server keeps its socket in (CLI 2026.10.01, paths.js): <projects>/<slug>, but a path
+   longer than 92 characters is cut to 84 and gets "-" and the first 7 hex digits of the sha256 of the whole path (the
+   rule was checked against a folder Cursor made). The worker empties it when it exits but leaves the folder. Only the
+   case of a projects folder no longer than 84 characters, the usual ~/.cursor/projects, is followed. */
+function cursorSocketDir(projects, p) {
+  const full = path.join(projects, cursorProjectSlug(p));
+  return full.length > 92 ? full.slice(0, 84) + "-" + crypto.createHash("sha256").update(full).digest("hex").slice(0, 7) : full;
+}
+
 /* Where Cursor keeps a chat (CLI 2026.10.01): the full prompt under ~/.cursor/projects/<the workspace path as a
    slug>/agent-transcripts/, the chat under ~/.cursor/chats/<md5 of the workspace path>/<chat id>/. The workspace is
    this run's own temp folder with a random name, so both are found by that folder alone and removed whole; nothing
@@ -525,6 +542,9 @@ function removeCursorTraces(dir, home = os.homedir()) {
     /* no projects folder */
   }
   for (const n of names) if (n.endsWith(tail)) rm(path.join(base, "projects", n));
+  // the worker's socket folder, by the name Cursor gives a long path (it does not end with the folder's name)
+  const sockets = new Set([...paths].map((p) => path.basename(cursorSocketDir(path.join(base, "projects"), p))));
+  for (const n of names) if (sockets.has(n) && !n.endsWith(tail)) rm(path.join(base, "projects", n));
   return failed ? "failed" : removed ? "removed" : "none";
 }
 
@@ -649,6 +669,8 @@ module.exports = {
   runCursor,
   checkCursor,
   removeCursorTraces,
+  cursorProjectSlug,
+  cursorSocketDir,
   resolveCli,
   resolveCodexCli,
   resolveCursorCli,
