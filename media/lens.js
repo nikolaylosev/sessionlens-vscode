@@ -2316,9 +2316,10 @@
     },
     /* test.fail() keeps the suite green while the bug it documents is still open in production. Defensible,
        but it must be a decision someone made, not a detail buried in a spec file. A test that does not run at all
-       (@Disabled, t.Skip) is a skip: sleep_or_skip_added, not this (0.1.113). */
+       (@Disabled, t.Skip) is a skip: sleep_or_skip_added, not this (0.1.113). Since 0.1.121: Jest's it.failing /
+       test.failing, and pytest's xfail only as the marker or the call (the word in a docstring or a string is not one). */
     expected_failure(ev, cfg) {
-      const RX = /\btest\.fail\s*\(|\bxfail\b/;
+      const RX = /\btest\.fail\s*\(|\b(?:it|test)\.failing\b|\bmark\.xfail\b|\bpytest\.xfail\s*\(/;
       const out = [];
       for (const e of ev) {
         if (!e.new_content || !RX.test(codeOf(e))) continue;
