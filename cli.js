@@ -628,7 +628,7 @@ async function checkCursor({ cliPath } = {}) {
   if (v.missing || (v.code !== 0 && !v.out.trim())) return { installed: false, cmd: bin };
   const version = (v.out.match(/\d+\.\d+\.\d+/) || [""])[0];
   const a = await capture(bin, ["status"], 20000);
-  const text = String(a.out + "\n" + a.err).replace(/\x1b\[[0-9;]*m/g, ""); // eslint-disable-line no-control-regex
+  const text = String(a.out + "\n" + a.err).replace(/\x1b\[[0-9;]*m/g, "");
   const m = /\blogged in as\s+(\S+)/i.exec(text);
   return {
     installed: true,
