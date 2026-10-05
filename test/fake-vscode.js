@@ -30,6 +30,7 @@ function fakeVscode(opts = {}) {
     opts.machineScoped || [
       "sessionlens.claudeCliPath",
       "sessionlens.codexCliPath",
+      "sessionlens.cursorCliPath",
       "sessionlens.minGapMs",
       "sessionlens.maxCode",
       "sessionlens.verify",

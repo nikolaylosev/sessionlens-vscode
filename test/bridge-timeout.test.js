@@ -40,6 +40,8 @@ test("the limit per message type", () => {
   assert.equal(f("ai:call", { provider: "openai" }), CLOUD_TIMEOUT_MS + 10000);
   assert.equal(f("claude:run", { timeoutMs: 120000 }), 130000);
   assert.equal(f("codex:run", {}), 300000 + 10000);
+  assert.equal(f("cursor:run", {}), 300000 + 10000);
+  assert.equal(f("cursor:check", {}), 90000);
   assert.equal(f("claude:check", {}), 90000);
   for (const t of ["storage:get", "session:get", "session:put", "secret:status", "session:open"]) assert.equal(f(t, {}), 300000, t);
   assert.equal(f("storage:set", {}), 60000);

@@ -78,11 +78,11 @@
       const p = typeof window.LensAI !== "undefined" && window.LensAI.PROVIDERS ? window.LensAI.PROVIDERS[payload && payload.provider] : null;
       return p && p.local ? 0 : CLOUD_TIMEOUT_MS + MARGIN_MS;
     }
-    if (type === "claude:run" || type === "codex:run") {
+    if (type === "claude:run" || type === "codex:run" || type === "cursor:run") {
       const t = payload && Number(payload.timeoutMs);
       return (Number.isFinite(t) && t > 0 ? t : CLI_DEFAULT_MS) + MARGIN_MS;
     }
-    if (type === "claude:check" || type === "codex:check") return 90000;
+    if (type === "claude:check" || type === "codex:check" || type === "cursor:check") return 90000;
     if (WAITS_FOR_HOST.test(type) || type === "session:open") return 300000;
     return 60000;
   }
@@ -134,6 +134,8 @@
   window.__slClaudeCheck = (payload) => call("claude:check", payload);
   window.__slCodexRun = (payload) => call("codex:run", payload);
   window.__slCodexCheck = (payload) => call("codex:check", payload);
+  window.__slCursorRun = (payload) => call("cursor:run", payload);
+  window.__slCursorCheck = (payload) => call("cursor:check", payload);
   // The CLI paths are VS Code settings (a page cannot set them); this only opens the Settings editor at them.
   window.__slOpenSettings = () => call("settings:open", {});
   // The address of a local server or of Qwen is kept by the host; a new one is used only after the person confirms

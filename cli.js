@@ -19,6 +19,7 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 
 const IS_WIN = process.platform === "win32";
 const MODEL_RX = /^[A-Za-z0-9][A-Za-z0-9._:\-\[\]]{0,80}$/; // alias (sonnet) or full name (claude-sonnet-5)
@@ -108,6 +109,27 @@ function resolveCodexCli(cliPath) {
   }
   return "codex";
 }
+/* The Cursor Agent CLI: its installer (curl https://cursor.com/install) puts `agent` and `cursor-agent` into
+   ~/.local/bin. The Windows location is the installer's documented folder, not checked on a real machine. The PATH
+   fallback is the specific name: another program called `agent` must never get the prompt. */
+function cursorCandidates() {
+  const home = os.homedir();
+  const exe = IS_WIN ? ["agent.cmd", "agent.exe", "cursor-agent.cmd", "cursor-agent.exe"] : ["agent", "cursor-agent"];
+  const dirs = IS_WIN ? [path.join(process.env.LOCALAPPDATA || "", "cursor-agent"), path.join(home, ".local", "bin")] : [path.join(home, ".local", "bin")];
+  return dirs.flatMap((d) => exe.map((e) => path.join(d, e)));
+}
+function resolveCursorCli(cliPath) {
+  const given = String(cliPath || "").trim();
+  if (given) return given;
+  for (const c of cursorCandidates()) {
+    try {
+      if (fs.statSync(c).isFile()) return c;
+    } catch {
+      /* keep looking */
+    }
+  }
+  return "cursor-agent";
+}
 
 /* Windows can start .exe directly, but .cmd/.bat (npm installs) need cmd.exe: since Node 18.20.2/20.12.2
    (CVE-2024-27980) spawning them without a shell fails with EINVAL. cmd.exe has no escape for a double quote inside
@@ -142,13 +164,15 @@ function killTree(child) {
 function classify(text) {
   const t = String(text || "");
   if (
-    /not logged in|please run \/login|\/login|invalid api key|authentication[_ ]?(?:failed|error)|oauth token|token has expired|unauthorized|\b401\b/i.test(t)
+    /not logged in|please run \/login|\/login|invalid api key|authentication[_ ]?(?:failed|error|required)|oauth token|token has expired|unauthorized|\b401\b/i.test(
+      t,
+    )
   )
     return "auth";
   if (/usage limit|limit reached|out of (?:extra )?usage|rate.?limit|\b429\b|quota|credit balance|resets? (?:at|in)/i.test(t)) return "limit";
   if (/overloaded|\b529\b/i.test(t)) return "overloaded";
   if (
-    /issue with the selected model|may not exist or you may not have access|model[^\n]{0,60}(?:not found|not available|invalid|unknown|does not exist)|unknown model|invalid model/i.test(
+    /issue with the selected model|may not exist or you may not have access|model[^\n]{0,60}(?:not found|not available|invalid|unknown|does not exist)|unknown model|invalid model|cannot use this model/i.test(
       t,
     )
   )
@@ -439,13 +463,196 @@ async function checkCodex({ cliPath } = {}) {
   };
 }
 
+/* Runs the user's own Cursor Agent CLI (`agent -p`) so SessionLens can use a Cursor plan instead of an API key.
+   Checked by hand on CLI 2026.10.01 (macOS):
+
+   - The prompt goes in on stdin with no prompt argument; a 200 KB prompt arrived whole. System and user text are
+     concatenated, as for Codex.
+   - There is no "no tools" flag: `--print` "has access to all tools, including write and shell". `--mode ask` alone
+     still read a file outside the workspace by its absolute path and ran `ls` there. So the fresh, empty temp folder
+     also gets a .cursor/cli.json that denies Shell, Write, Read, WebFetch and MCP (a deny wins over any allow in the
+     user's global config); with it, both were refused. `--trust` skips the trust prompt for that folder.
+   - On failure there is no JSON: exit 1 and a line on stderr ("Authentication required…", "Cannot use this model…").
+   - Cursor keeps every chat and has no flag against it, so its copy is removed after the run (removeCursorTraces). */
+const CURSOR_PERMISSIONS = { permissions: { allow: [], deny: ["Shell(*)", "Write(**)", "Read(**)", "WebFetch(*)", "Mcp(*:*)"] } };
+
+/* Where Cursor keeps a chat (CLI 2026.10.01): the full prompt under ~/.cursor/projects/<the workspace path as a
+   slug>/agent-transcripts/, the chat under ~/.cursor/chats/<md5 of the workspace path>/<chat id>/. The workspace is
+   this run's own temp folder with a random name, so both are found by that folder alone and removed whole; nothing
+   else in ~/.cursor is touched. A chats folder is removed only when every chat in it names that folder as its cwd.
+   → "removed" | "none" (nothing where it was expected: Cursor may have moved it) | "failed" */
+function removeCursorTraces(dir, home = os.homedir()) {
+  const base = path.join(home, ".cursor");
+  const paths = new Set([dir]);
+  try {
+    paths.add(fs.realpathSync(dir)); // macOS: /var/folders/… is /private/var/folders/…, and Cursor uses the real path
+  } catch {
+    /* already gone: the given path only */
+  }
+  let removed = 0,
+    failed = 0;
+  const rm = (p) => {
+    try {
+      fs.rmSync(p, { recursive: true, force: true });
+      removed++;
+    } catch {
+      failed++;
+    }
+  };
+  for (const p of paths) {
+    const chats = path.join(base, "chats", crypto.createHash("md5").update(p, "utf8").digest("hex"));
+    let ids;
+    try {
+      ids = fs.readdirSync(chats);
+    } catch {
+      continue;
+    }
+    const ours = ids.every((id) => {
+      try {
+        return paths.has(JSON.parse(fs.readFileSync(path.join(chats, id, "meta.json"), "utf8")).cwd);
+      } catch {
+        return false;
+      }
+    });
+    if (ours) rm(chats);
+    else failed++;
+  }
+  const tail = path.basename(dir);
+  let names = [];
+  try {
+    names = fs.readdirSync(path.join(base, "projects"));
+  } catch {
+    /* no projects folder */
+  }
+  for (const n of names) if (n.endsWith(tail)) rm(path.join(base, "projects", n));
+  return failed ? "failed" : removed ? "removed" : "none";
+}
+
+/* One request, as runClaude: resolves {text, costUsd, ms, traces} or {error: {code, message}, traces}; never throws.
+   traces is what removeCursorTraces() did. `home` is for tests. */
+/** @param {{ system?: string, user?: string, model?: string, cliPath?: string, timeoutMs?: number, home?: string }} [opts] */
+async function runCursor({ system, user, model, cliPath, timeoutMs, home } = {}) {
+  const started = Date.now();
+  if (model && !MODEL_RX.test(String(model))) return { error: { code: "model", message: String(model).slice(0, 60) } };
+  const bin = resolveCursorCli(cliPath);
+  if (!PATH_RX.test(bin)) return { error: { code: "notfound", message: bin.slice(0, 80) } };
+  const prompt = system ? `${system}\n\n${user || ""}` : String(user || "");
+  if (Buffer.byteLength(prompt, "utf8") > MAX_STDIN) return { error: { code: "toobig", message: "" } };
+
+  let dir, result;
+  try {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "sessionlens-cursor-"));
+    fs.mkdirSync(path.join(dir, ".cursor"));
+    fs.writeFileSync(path.join(dir, ".cursor", "cli.json"), JSON.stringify(CURSOR_PERMISSIONS), "utf8");
+    const args = ["-p", "--output-format", "json", "--mode", "ask", "--trust"];
+    if (model) args.push("--model", String(model));
+    result = await new Promise((resolve) => {
+      let out = "",
+        err = "",
+        done = false,
+        timedOut = false;
+      const finish = (v) => {
+        if (!done) {
+          done = true;
+          clearTimeout(timer);
+          resolve(v);
+        }
+      };
+      let child;
+      try {
+        child = launch(bin, args, { cwd: dir, env: process.env, stdio: ["pipe", "pipe", "pipe"] });
+      } catch (e) {
+        return finish({ error: { code: e && e.code === "ENOENT" ? "notfound" : "failed", message: clean(e && e.message) } });
+      }
+      const limit = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        killTree(child);
+      }, limit);
+      child.stdout.on("data", (d) => {
+        out += d;
+      });
+      child.stderr.on("data", (d) => {
+        err += d;
+      });
+      child.on("error", (/** @type {NodeJS.ErrnoException} */ e) =>
+        finish({ error: { code: e && e.code === "ENOENT" ? "notfound" : "failed", message: e && e.code === "ENOENT" ? bin : clean(e && e.message) } }),
+      );
+      child.on("close", (code) => {
+        if (timedOut) return finish({ error: { code: "timeout", message: String(Math.round(limit / 1000)) } });
+        let j = null;
+        try {
+          j = JSON.parse(out.trim());
+        } catch {
+          /* not JSON: a failure, handled below */
+        }
+        if (j && typeof j === "object") {
+          const text = typeof j.result === "string" ? j.result : "";
+          if (j.is_error || (code !== 0 && !text)) {
+            const m = text || err || out;
+            return finish({ error: { code: classify(m), message: clean(m) } });
+          }
+          return finish({ text, costUsd: null, ms: Date.now() - started });
+        }
+        const m = err || out || `exit ${code}`;
+        return finish({ error: { code: classify(m), message: clean(m) } });
+      });
+      child.stdin.on("error", () => {
+        /* the process may exit before reading; close handles it */
+      });
+      child.stdin.end(prompt, "utf8");
+    });
+  } catch (e) {
+    result = { error: { code: "failed", message: clean(e && e.message) } };
+  } finally {
+    if (dir) {
+      const traces = removeCursorTraces(dir, home);
+      result = Object.assign({}, result, { traces });
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* temp dir: best effort */
+      }
+    }
+  }
+  return result;
+}
+
+/* Is the Cursor Agent CLI installed, and is it signed in? `agent status` exits 0 either way (CLI 2026.10.01) and
+   prints "Logged in as <account>" or "Not logged in", so the text decides. */
+/** @param {{ cliPath?: string }} [opts] */
+async function checkCursor({ cliPath } = {}) {
+  const bin = resolveCursorCli(cliPath);
+  if (!PATH_RX.test(bin)) return { installed: false, cmd: bin.slice(0, 80) };
+  const v = await capture(bin, ["--version"], 20000);
+  if (v.missing || (v.code !== 0 && !v.out.trim())) return { installed: false, cmd: bin };
+  const version = (v.out.match(/\d+\.\d+\.\d+/) || [""])[0];
+  const a = await capture(bin, ["status"], 20000);
+  const text = String(a.out + "\n" + a.err).replace(/\x1b\[[0-9;]*m/g, ""); // eslint-disable-line no-control-regex
+  const m = /\blogged in as\s+(\S+)/i.exec(text);
+  return {
+    installed: true,
+    cmd: bin,
+    version,
+    loggedIn: !!m && !/not logged in/i.test(text),
+    account: m ? clean(m[1]) : "",
+    plan: "",
+    apiKeyEnv: !!process.env.CURSOR_API_KEY, // the CLI then signs in with that key, which may be another account
+  };
+}
+
 module.exports = {
   runClaude,
   checkClaude,
   runCodex,
   checkCodex,
+  runCursor,
+  checkCursor,
+  removeCursorTraces,
   resolveCli,
   resolveCodexCli,
+  resolveCursorCli,
+  CURSOR_PERMISSIONS,
   classify,
   MODEL_RX,
   buildWinCommand,

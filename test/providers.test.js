@@ -104,7 +104,7 @@ test("no key → {error:{code:'no_key'}} and no request", async () => {
 });
 
 test("CLI providers and unknown names are refused", async () => {
-  for (const p of ["claudecli", "codexcli", "nope"]) {
+  for (const p of ["claudecli", "codexcli", "cursorcli", "nope"]) {
     const r = await make(recorder())(payload(p));
     assert.equal(r.error.code, "bad_provider", p);
   }

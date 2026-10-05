@@ -994,8 +994,8 @@ message and then resolves with `{ error, code: "bridge-timeout" }` (it never rej
 | `open:transcript`, `save:file`, `save:folder-files`, `baseurl:set` | none (they wait for the person) |
 | `ai:call` to a provider with `local: true` | none (the host has no limit either) |
 | `ai:call` to a cloud provider | 10 min + 10 s (`CLOUD_TIMEOUT_MS` in `providers.js`) |
-| `claude:run`, `codex:run` | `payload.timeoutMs` (or 300 000) + 10 s |
-| `claude:check`, `codex:check` | 90 s |
+| `claude:run`, `codex:run`, `cursor:run` | `payload.timeoutMs` (or 300 000) + 10 s |
+| `claude:check`, `codex:check`, `cursor:check` | 90 s |
 | `storage:get`, `session:*`, `secret:*`, `session:open` | 5 min (they wait for `host.ready`, i.e. the migrations) |
 | everything else | 60 s |
 
@@ -1005,7 +1005,7 @@ The payload no longer carries `lang` (unused by the host since v0.1.103).
 
 | What | Source | How it changes |
 |---|---|---|
-| Path to the Claude Code / Codex CLI | the settings `sessionlens.claudeCliPath` / `codexCliPath`, `scope: "machine"` (a workspace cannot set it) | the user in Settings; the `settings:open` button only opens the editor |
+| Path to the Claude Code / Codex / Cursor CLI | the settings `sessionlens.claudeCliPath` / `codexCliPath` / `cursorCliPath`, `scope: "machine"` (a workspace cannot set it) | the user in Settings; the `settings:open` button only opens the editor |
 | Address of `local` and `qwen` | `globalState.hostBaseUrls` (not in `STORAGE_KEYS`) | `baseurl:set` + a modal confirmation; going back to the default address without a question |
 | Address of the other providers | `defaultBaseUrl` in `ai.js` | does not change |
 | `minGapMs`, `maxCode`, `verify`, `lint`, `rulesTarget` (since v0.1.103) | the settings `sessionlens.*`, `scope: "application"` (a workspace cannot set them) | Settings or the panel; from the panel through `storage:set`, numbers are clamped to the range (§16.1) |
@@ -1031,8 +1031,30 @@ escape `"` inside quotes and expands `%VAR%` even inside them, so `buildWinComma
 refuses to run if a path or an argument contains `% ! ^ & | < > "` or a line break.
 The system prompt is passed by the relative name `system.txt` (the cwd is a temporary folder).
 
+**The Cursor Agent CLI (since v0.1.121).** `runCursor` (`cli.js`) differs from the two other CLIs in three ways,
+all checked by hand on CLI 2026.10.01:
+
+- No switch turns the tools off (`--print` "has access to all tools, including write and shell"), and `--mode ask`
+  alone still read a file outside the workspace by its absolute path and ran `ls` there. The temp folder therefore
+  also holds `.cursor/cli.json` with `CURSOR_PERMISSIONS`: deny `Shell(*)`, `Write(**)`, `Read(**)`, `WebFetch(*)`,
+  `Mcp(*:*)`. A deny wins over an allow in the user's global config. The prompt comes on stdin, so nothing needs a
+  read. With the deny list both attempts were refused.
+- Cursor keeps every chat: `~/.cursor/chats/<md5 of the workspace path>/<id>/` and
+  `~/.cursor/projects/<workspace path as a slug>/` (the full prompt in `agent-transcripts/`). `removeCursorTraces`
+  deletes both after every run, found by the run's own temp folder (random name), and nothing else; a chats folder
+  only when every chat in it has that folder as its `cwd`. Its result (`removed | none | failed`) goes into the
+  reply as `traces`, and `logCli` writes `failed`, and `none` after a successful run, to the Output channel. Each run
+  also starts a `worker-server` with a socket folder under `~/.cursor/projects/`; it exits and removes that folder
+  by itself after a few minutes, so it is left alone.
+- `agent status` exits 0 whether signed in or not; `checkCursor` reads "Logged in as …" from its text. A failed
+  request prints no JSON, only a line on stderr, which `classify()` maps (`Authentication required` → `auth`,
+  `Cannot use this model` → `model`).
+
 ### 14.5 Accepted risks
 
+- The Cursor CLI is kept read-only by its ask mode and a deny list (§14.4), not by a switch that removes the tools as
+  for Claude Code (`--tools ""`). A later CLI version that changes either could widen what a prompt injection in a
+  transcript can reach; `test/cli.test.js` checks what SessionLens passes, not what the CLI does with it.
 - A compromised webview can write any text to the clipboard (`clipboard:write`) and replace a provider's
   key (`secret:set`). This cannot be closed without changing the UX.
 - It can also set the five settings of §16.1 to any allowed values (for example, `minGapMs = 0`). The values

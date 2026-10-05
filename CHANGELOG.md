@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.121
+
+### Added
+- **Cursor (subscription)** as a model provider: SessionLens runs the Cursor Agent CLI you have installed
+  (`agent -p`), so a Cursor plan works without an API key. Choose it under ⚙ → **Add a model**; **Check Cursor CLI**
+  shows the version and whether you are signed in. The path is the new machine setting `sessionlens.cursorCliPath`.
+  The CLI has no switch that turns its tools off, so each request runs in its read-only ask mode, in an empty
+  temporary folder whose `.cursor/cli.json` denies every shell command, file read, file write, web fetch and MCP tool.
+  Cursor keeps a copy of every request in `~/.cursor`; SessionLens deletes the copy of each of its requests after the
+  answer. Tested on macOS; Windows and Linux are not tested yet.
+
 ## 0.1.120
 
 ### Fixed

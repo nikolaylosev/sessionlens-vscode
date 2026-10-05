@@ -3,7 +3,7 @@ const vscode = require("vscode");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { runClaude, checkClaude, runCodex, checkCodex, PATH_RX } = require("./cli.js");
+const { runClaude, checkClaude, runCodex, checkCodex, runCursor, checkCursor, PATH_RX } = require("./cli.js");
 const Lens = require("./media/lens.js"); // shared with the webview: verdict(), same rules for the same data
 const LensAI = require("./media/ai.js"); // shared too: the provider table and each provider's request shape
 const I18N = require("./media/i18n.js");
@@ -136,7 +136,7 @@ const cliMovedText = () =>
    lives in HOST_BASE_KEY, which no storage message can read or write, and changes only after the person confirms it
    in a VS Code dialog (baseurl:set). */
 const CONFIG = "sessionlens";
-const CLI_SETTINGS = { claude: "claudeCliPath", codex: "codexCliPath" };
+const CLI_SETTINGS = { claude: "claudeCliPath", codex: "codexCliPath", cursor: "cursorCliPath" };
 const HOST_BASE_KEY = "hostBaseUrls";
 const BASEURL_PROVIDERS = Object.keys(LensAI.PROVIDERS).filter((n) => LensAI.PROVIDERS[n].local || LensAI.PROVIDERS[n].editableBase);
 const HTTP_PROVIDERS = Object.keys(LensAI.PROVIDERS).filter((n) => !LensAI.PROVIDERS[n].cli);
@@ -510,6 +510,9 @@ async function logCli(kind, what, fn) {
     } else if (what === "check" && r && r.installed === false) {
       host.log(`${kind} CLI not found: ${String(r.cmd || "").slice(0, 200)} (${ms} ms)`);
     }
+    // Cursor keeps a copy of every request; cli.js removes it after the run and says whether it could (0.1.121)
+    if (r && r.traces === "failed") host.log(`${kind} CLI: could not remove Cursor's copy of the request from ~/.cursor`);
+    else if (r && r.traces === "none" && !r.error) host.log(`${kind} CLI: found no copy of the request in ~/.cursor to remove`);
   } catch {
     /* logging never breaks a reply */
   }
@@ -752,6 +755,10 @@ function wireMessages(
         reply(await logCli("codex", "run", () => runCodex(Object.assign({}, msg.payload, { cliPath: cliPathFor("codex") })))); // the user's own Codex CLI
       } else if (msg.type === "codex:check") {
         reply(await logCli("codex", "check", () => checkCodex({ cliPath: cliPathFor("codex") })));
+      } else if (msg.type === "cursor:run") {
+        reply(await logCli("cursor", "run", () => runCursor(Object.assign({}, msg.payload, { cliPath: cliPathFor("cursor") })))); // the user's own Cursor Agent CLI
+      } else if (msg.type === "cursor:check") {
+        reply(await logCli("cursor", "check", () => checkCursor({ cliPath: cliPathFor("cursor") })));
       } else if (msg.type === "settings:open") {
         await vscode.commands.executeCommand("workbench.action.openSettings", "sessionlens.");
         reply(true);

@@ -152,7 +152,7 @@ Only the instruction part is editable. The specification, code and transcript ar
 - **Static analysis:** on by default. `qa-ts` (ESLint via eslint-plugin-playwright), `qa-cypress` (ESLint via eslint-plugin-cypress), `qa-detox` (ESLint, hand-authored rules — see [Detox](#detox-only-for-the-qa-detox-profile)), `qa-java`/`qa-c#`/`qa-python` (a real parse tree via tree-sitter, also hand-authored — see [Java](#java-only-for-the-qa-java-profile), [C#](#c-only-for-the-qa-c-profile), [Python](#python-only-for-the-qa-python-profile)), and `qa-robot` (a small hand-written parser — see [Robot Framework](#robot-framework-only-for-the-qa-robot-profile)). Each engine is loaded the first time a session of its profile is analyzed, and only in the page that analyzes it (a session tab, or the sidebar during an import); until then the finding list says "static analysis: engine loading…". With static analysis off, nothing is loaded.
 - **Hide the "Try a demo session" button:** off by default. Tick it once you have sessions of your own and no longer need the demo on the Sessions tab. It applies at once; a demo session you already opened stays in the list until you delete it.
 - **Debug model:** off by default. Turn it on to see **Model request and reply** — the exact prompt sent to the model and its raw reply — in a session (below Transcript) and on the Calibration tab. It's meant for troubleshooting a request, not everyday use: the prompts include the session's code and transcript excerpts.
-- **Reset settings:** **Reset settings to defaults** puts every setting on this page back to what a fresh install has: theme (it follows VS Code again), all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the "Try a demo session" button checkbox. The four VS Code settings above are set back to their defaults too. It asks for confirmation first, because saved keys are removed. Sessions, verdicts, rule wording, prompts and the profile are kept. The Claude Code and Codex CLI paths are VS Code settings and are not changed.
+- **Reset settings:** **Reset settings to defaults** puts every setting on this page back to what a fresh install has: theme (it follows VS Code again), all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the "Try a demo session" button checkbox. The four VS Code settings above are set back to their defaults too. It asks for confirmation first, because saved keys are removed. Sessions, verdicts, rule wording, prompts and the profile are kept. The Claude Code, Codex and Cursor CLI paths are VS Code settings and are not changed.
 - **Danger zone:** **Delete everything** removes all sessions and calibration history. Settings and rule wording are kept.
 
 ## Rules: the rule book
@@ -395,6 +395,7 @@ Semantic review, segmentation, compression and skill generation are optional and
 - Anthropic (Claude), with an API key
 - Claude Code (your Claude subscription, no API key). See [below](#using-your-claude-subscription-no-api-key)
 - Codex (your ChatGPT/Codex subscription, no API key). See [below](#using-your-codex-subscription-no-api-key)
+- Cursor (your Cursor subscription, no API key). See [below](#using-your-cursor-subscription-no-api-key)
 - Google (Gemini)
 - OpenAI (GPT)
 - xAI (Grok)
@@ -461,6 +462,32 @@ SessionLens finds `codex` itself. This works whether you installed the standalon
 - **Speed.** Each request starts a `codex` process, so expect a few seconds per request, and requests run one at a time.
 - **Remote windows.** In VS Code over SSH, WSL or a Dev Container the extension runs on the remote side, so the Codex CLI must be installed and signed in there.
 
+### Using your Cursor subscription (no API key)
+
+If you have a Cursor plan, choose **Cursor (subscription)** as the provider. SessionLens then runs the Cursor Agent CLI you have installed, in its non-interactive `agent -p` mode, and reads the answer. The Cursor editor itself is not needed, and the CLI is a separate install.
+
+**Set up**
+
+1. Install the Cursor Agent CLI and sign in once in a terminal: `curl https://cursor.com/install -fsS | bash`, then `agent login`.
+2. In SessionLens, open **⚙** and, under **Add a model**, choose **Cursor (subscription)** as the provider. Press **Check Cursor CLI**: it reports the version and whether you are signed in.
+3. Leave the model empty to use Cursor's own default (`auto`), or enter a model name from `agent --list-models`, and press **Add model**.
+
+SessionLens finds `agent` in `~/.local/bin`, where the installer puts it. Set a full path in the VS Code setting `sessionlens.cursorCliPath` only if it is somewhere else. Windows was not tested yet.
+
+**How it stays safe**
+
+- Your login is never read, copied or sent anywhere by SessionLens. The `agent` command signs itself in.
+- Cursor's CLI has no switch that turns its tools off: in `-p` mode it can read files, write files and run commands. So every request runs in Cursor's read-only `ask` mode, in an empty temporary folder that also holds a `.cursor/cli.json` denying every shell command, file read, file write, web fetch and MCP tool. A deny there wins over anything your own Cursor settings allow. Checked on CLI 2026.10.01: with the ask mode alone, a request could still read a file outside the folder by its full path and list another folder; with the deny list, both were refused.
+- The prompt goes through standard input, not the command line.
+- Cursor keeps a copy of every request, including the full prompt, under `~/.cursor/chats/` and `~/.cursor/projects/`, and has no switch against it. After each answer SessionLens deletes the copy of that one request: the folders named after its own temporary folder, and nothing else in `~/.cursor`. If it cannot, the **SessionLens** Output channel says so.
+
+**What to know**
+
+- **Usage limits.** Requests count against your plan. Cursor adds its own instructions to each request (about 8,500 tokens), so a request costs more than its text. A full review makes several requests, so turn **Verification call** off in Settings if you want to spend less.
+- **`CURSOR_API_KEY`.** If it is set, the CLI signs in with that key, which may belong to another account. **Check Cursor CLI** warns you when it is set.
+- **Speed.** Each request starts an `agent` process, so expect about ten seconds per request, and requests run one at a time. After a request, the CLI leaves a small background process running for a few minutes; it exits by itself.
+- **Remote windows.** In VS Code over SSH, WSL or a Dev Container the Cursor CLI must be installed and signed in on the remote side.
+
 ## Commands and VS Code settings
 
 **Command Palette** (all start with **SessionLens:**):
@@ -480,7 +507,7 @@ SessionLens finds `codex` itself. This works whether you installed the standalon
 | `sessionlens.verify` | ⚙ Verification call | on |
 | `sessionlens.lint` | ⚙ Static analysis | on |
 | `sessionlens.rulesTarget` | Calibration → Target file | `claude` |
-| `sessionlens.claudeCliPath`, `sessionlens.codexCliPath` | path to the `claude` / `codex` command | found automatically |
+| `sessionlens.claudeCliPath`, `sessionlens.codexCliPath`, `sessionlens.cursorCliPath` | path to the `claude` / `codex` / `agent` command | found automatically |
 
 The first five are user settings: Settings Sync carries them to your other machines, and a project's
 `.vscode/settings.json` cannot change them. The CLI paths are machine settings and are not synced. Values you had set
@@ -513,9 +540,11 @@ Everything stays on your machine, in VS Code's storage for this extension (ID `n
   (`globalState`). The five settings listed under [Commands and VS Code settings](#commands-and-vs-code-settings) are
   ordinary VS Code settings in your `settings.json`.
 - **API keys** are in VS Code's secret storage (the operating system's credential store), never in files or settings.
-- **Model requests** go from the extension straight to the provider you choose, on your account. With Claude Code or
-  Codex as the provider they go through the `claude` or `codex` command on your machine. Nothing else is sent
-  anywhere, and the panel itself has no network access.
+- **Model requests** go from the extension straight to the provider you choose, on your account. With Claude Code,
+  Codex or Cursor as the provider they go through the `claude`, `codex` or `agent` command on your machine. Cursor
+  keeps a copy of each request in `~/.cursor`, which SessionLens deletes after the answer (see
+  [Using your Cursor subscription](#using-your-cursor-subscription-no-api-key)). Nothing else is sent anywhere, and
+  the panel itself has no network access.
 
 **What a model call sends.** The model is called only when you press one of these buttons. Each button shows the
 same list when you hover over it. In everything sent, secrets are masked first: API keys and tokens (`sk-…`,

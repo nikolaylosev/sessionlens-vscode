@@ -102,8 +102,8 @@ test("clipboard:write, save:file, open:transcript", () => {
   no("open:transcript", { source: "/etc" });
 });
 
-test("claude/codex run and check: model, sizes, timeout; cliPath is simply ignored", () => {
-  for (const t of ["claude:run", "codex:run"]) {
+test("claude/codex/cursor run and check: model, sizes, timeout; cliPath is simply ignored", () => {
+  for (const t of ["claude:run", "codex:run", "cursor:run"]) {
     ok(t, { model: "sonnet", system: "s", user: "u", cliPath: "/tmp/evil", timeoutMs: 300000 });
     no(t, { model: "sonnet; rm -rf ~" });
     no(t, { timeoutMs: 10 ** 9 });
@@ -111,6 +111,7 @@ test("claude/codex run and check: model, sizes, timeout; cliPath is simply ignor
   }
   ok("claude:check", { cliPath: "/tmp/evil" });
   ok("codex:check", {});
+  ok("cursor:check", {});
 });
 
 test("session:open, tab:active, settings:open, panel:close", () => {
