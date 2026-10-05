@@ -1018,6 +1018,151 @@
     return out;
   }
 
+  // ---------- Cursor Agent CLI log (agent -p --output-format stream-json) ----------
+  /* Checked on the CLI 2026.10.01 (Oct 2026). Unlike the transcript, the log has every tool call with its result: lines
+     {"type":"tool_call","subtype":"started"|"completed","call_id","tool_call":{"<kind>ToolCall":{args, result}}}, next
+     to {"type":"system","subtype":"init","cwd"}, "user" and "assistant" lines in the Claude Code shape, "thinking" and
+     "result". An edit's result has the whole file before (none for a new file) and after; a shell call's has exitCode,
+     stdout and stderr; a read's has the content. Claude Code's own stream-json has no "tool_call" lines (its calls are
+     tool_use blocks), so a tool_use block, or Claude's init with its `tools` list, keeps a file on the Claude path. */
+  function isCursorStreamJson(text) {
+    let n = 0;
+    for (const line of text.slice(0, 200000).split("\n")) {
+      if (!line.trim()) continue;
+      if (++n > 400) break;
+      let r;
+      try {
+        r = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (!r || typeof r !== "object") continue;
+      if (r.type === "tool_call" && r.tool_call && typeof r.tool_call === "object") return true;
+      if (r.type === "system" && r.subtype === "init" && Array.isArray(r.tools)) return false;
+      const c = r.message && r.message.content;
+      if (Array.isArray(c) && c.some((b) => b && b.type === "tool_use")) return false;
+    }
+    return false;
+  }
+  // the kinds read as Claude Code's tools; the event keeps the Cursor name (Write for an edit that made a new file)
+  const CURSOR_STREAM_TOOLS = { readToolCall: "Read", grepToolCall: "Grep", globToolCall: "Glob", lsToolCall: "LS", deleteToolCall: "Delete" };
+  // a call's args and result, as the Claude Code import reads them: [claude name, input, tool_result text | null, toolUseResult, is_error, cursor name]
+  function cursorStreamCall(kind, args, result) {
+    const ok = result && typeof result === "object" ? result.success : null;
+    const path = typeof args.path === "string" ? args.path : "";
+    const text = (v) => (typeof v === "string" ? v : v == null ? null : JSON.stringify(v));
+    if (kind === "editToolCall") {
+      const after = ok && typeof ok.afterFullFileContent === "string" ? ok.afterFullFileContent : null;
+      if (after == null) return ["EditNotApplied", { file_path: path }, text(result), null, true, "Edit"]; // refused or failed: no change
+      const before = typeof ok.beforeFullFileContent === "string" ? ok.beforeFullFileContent : null;
+      return before == null
+        ? ["Write", { file_path: path, content: after }, ok.message || "", { content: after }, false, "Write"]
+        : ["Edit", { file_path: path }, ok.message || "", { originalFile: before, content: after }, false, "Edit"];
+    }
+    if (kind === "shellToolCall") {
+      const r = result && typeof result === "object" ? result.success || result.failure : null;
+      const out = r
+        ? (typeof r.interleavedOutput === "string" && r.interleavedOutput) || [r.stdout, r.stderr].filter((x) => typeof x === "string" && x).join("\n")
+        : "";
+      const code = r && Number.isInteger(r.exitCode) ? r.exitCode : null;
+      // a background command, or one with no result line, has no output: its result is unknown
+      return ["Bash", { command: String(args.command || "") }, r && (out || code != null) ? out : null, null, code != null && code !== 0, "Shell"];
+    }
+    if (kind === "mcpToolCall") {
+      const name = String(args.toolName || args.name || "mcp");
+      return ["mcp:" + name, {}, text(ok && ok.content), null, false, name];
+    }
+    const as = CURSOR_STREAM_TOOLS[kind];
+    if (!as) return [kind.replace(/ToolCall$/, ""), {}, text(ok), null, false, kind.replace(/ToolCall$/, "")];
+    const input =
+      kind === "globToolCall"
+        ? { path: args.targetDirectory || "", pattern: args.globPattern || "" }
+        : kind === "grepToolCall"
+          ? { path, pattern: args.pattern || "" }
+          : { file_path: path };
+    return [as, input, kind === "readToolCall" ? text(ok && ok.content) : text(ok), null, !ok && !!result, as];
+  }
+  function fromCursorStreamJson(text, cfg) {
+    /** @type {any[]} */
+    const recs = []; // the lines to keep, and {call} where a tool call started
+    const calls = {},
+      names = [],
+      missing = new Set();
+    let pendingTs = []; // a user line has no time: it takes the next one
+    const stamp = (rec) => {
+      const ms = Number(rec.timestamp_ms);
+      const ts = Number.isFinite(ms) && ms > 0 ? new Date(ms).toISOString() : "";
+      if (ts) {
+        for (const r of pendingTs) r.timestamp = ts;
+        pendingTs = [];
+      }
+      return ts;
+    };
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      let rec;
+      try {
+        rec = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (!rec || typeof rec !== "object") continue;
+      const ts = stamp(rec);
+      if (rec.type === "system" && typeof rec.cwd === "string") recs.push({ type: "system", cwd: rec.cwd });
+      else if ((rec.type === "user" || rec.type === "assistant") && rec.message && Array.isArray(rec.message.content)) {
+        const content = rec.message.content.filter((b) => b && b.type === "text" && typeof b.text === "string");
+        if (!content.length) continue;
+        const r = { type: rec.type, timestamp: ts, message: { role: rec.type, content } };
+        if (!ts) pendingTs.push(r);
+        recs.push(r);
+      } else if (rec.type === "tool_call" && rec.tool_call && typeof rec.tool_call === "object") {
+        const kind = Object.keys(rec.tool_call).find((k) => /ToolCall$/.test(k));
+        if (!kind) continue;
+        const body = rec.tool_call[kind] || {};
+        const id = String(rec.call_id || rec.tool_call.toolCallId || "call-" + recs.length);
+        let c = calls[id];
+        if (!c) {
+          c = calls[id] = { kind, args: {}, result: null, ts };
+          recs.push({ call: c }); // where the call started
+        }
+        if (body.args && typeof body.args === "object") c.args = body.args;
+        if (rec.subtype === "completed" && body.result) c.result = body.result;
+      }
+    }
+    const lines = [];
+    for (const r of recs) {
+      if (!r.call) {
+        lines.push(JSON.stringify(r));
+        continue;
+      }
+      const c = r.call;
+      const [as, input, result, tur, isError, name] = cursorStreamCall(c.kind, c.args, c.result);
+      const id = "cursor-" + names.length;
+      names.push(name);
+      lines.push(JSON.stringify({ type: "assistant", timestamp: c.ts, message: { role: "assistant", content: [{ type: "tool_use", id, name: as, input }] } }));
+      if (result == null) {
+        missing.add(id);
+        continue;
+      }
+      const res = {
+        type: "user",
+        timestamp: c.ts,
+        message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: result, is_error: isError }] },
+      };
+      if (tur) res.toolUseResult = tur;
+      lines.push(JSON.stringify(res));
+    }
+    const out = fromClaudeJsonl(lines.join("\n"), cfg);
+    let i = 0;
+    for (const e of out) {
+      if (!e.tool) continue;
+      const id = "cursor-" + i;
+      e.tool = names[i++];
+      if (e.kind === "run_tests" && missing.has(id)) e.output_missing = true;
+    }
+    return out;
+  }
+
   const CODE_LINE =
     /^\s*(?:import\s|from\s+\S+\s+import|export\s|const\s|let\s|await\s|test\s*\(|test\.describe|test\.skip|it\s*\(|expect\s*\(|def\s+test|@Test|assert\w*\s*\(|assert\s|func\s+Test|\}\);?\s*$)/;
   const isCodeLine = (l) => CODE_LINE.test(l) || /^\s{2,}\S/.test(l) || /^\s*[\]\}\)]/.test(l) || /^\s*(?:\/\/|\/\*|\*|#)/.test(l) || l.trim() === "";
@@ -1187,10 +1332,22 @@
         if (c.length) return c.length === 1 ? c[0].events : c;
       } catch {}
     }
+    if (t.startsWith("{") && isCursorStreamJson(t)) return stripNonSource(diffMessageVersions(fromCursorStreamJson(text, cfg), cfg), cfg);
     if (t.startsWith("{") && isCursorJsonl(t)) return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg, opts && opts.cursorOutputs), cfg), cfg);
     if (t.startsWith("{") && isCodexJsonl(t)) return stripNonSource(diffMessageVersions(fromCodexJsonl(text, cfg), cfg), cfg);
     const ev = t.startsWith("{") ? fromClaudeJsonl(text, cfg) : fromText(text, cfg);
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
+  }
+
+  /* A JSONL file with tool calls of which the import read none: only the conversation text was found, so there is
+     nothing to review (no files, edits or test runs). The panel asks before it keeps such a session (0.1.121): before,
+     a Cursor CLI log became a silent session of messages. A claude.ai export is left out: its tool blocks are the
+     chat's own tools, not an agent's work on files. */
+  function unreadToolCalls(text, events) {
+    const t = text.trimStart();
+    if (!t.startsWith("{") || /"chat_messages"/.test(t.slice(0, 5000))) return false;
+    if (!Array.isArray(events) || !events.length || events.some((e) => e.kind !== "user" && e.kind !== "message")) return false;
+    return /"type"\s*:\s*"(?:tool_call|tool_use|function_call|tool-call)"|"tool_calls"\s*:\s*\[/.test(t.slice(0, 2000000));
   }
 
   /* What the import keeps changes now and then; a stored session keeps the events it was imported with. A session
@@ -2535,6 +2692,8 @@
     redactSecrets,
     importAny,
     isCursorJsonl,
+    isCursorStreamJson,
+    unreadToolCalls,
     IMPORT_GEN,
     needsReimport,
     transcriptMatch,

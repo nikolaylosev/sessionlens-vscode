@@ -187,7 +187,10 @@
       verdict_red: "Red",
       verdict_yellow: "Yellow",
       verdict_green: "Green",
-      no_events: "Could not recognise any event. Supported: Claude Code JSONL, claude.ai conversations.json, /export, chat text.",
+      no_events:
+        "Could not recognise any event. Supported: Claude Code, Codex and Cursor Agent JSONL, a Cursor Agent CLI stream-json log, claude.ai conversations.json, /export, chat text.",
+      unread_tools:
+        "This file has tool calls in a format SessionLens does not read, so only the conversation text was found: no files, edits or test runs to review. Import the text anyway?",
       many_convs: "The file has {n} conversations. Part of a name to load only that one (empty — all):",
       no_sessions: "No sessions yet.",
       events: "{n} {n|event|events}",

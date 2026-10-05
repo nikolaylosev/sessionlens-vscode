@@ -23,6 +23,12 @@
   example **Fix after a failure without triage**). Where there is no output (a file dropped or pasted, a VS Code
   without `node:sqlite`, a chat Cursor no longer has), a run's result is unknown and **Claims tests pass** is not
   raised after it. Cloud Agent runs leave no file on your machine.
+- **Cursor Agent CLI logs** can be imported: the output of `agent -p --output-format stream-json`, for example from a
+  CI job. The log has every tool call with its result, so written and edited files come whole (the file before and
+  after each edit), and test runs have their output and exit code, without Cursor's databases. Before, such a log was
+  taken for a Claude Code transcript and gave a session of messages only, with no code to review.
+- A file with tool calls in a format SessionLens does not read now asks before it is imported: only its text would be
+  kept, with no files, edits or test runs.
 - **Rules for Cursor:** **Target file** on the Calibration tab (and the setting `sessionlens.rulesTarget`) has a new
   value, `.cursor/rules/sessionlens.mdc`, Cursor's own project rule. For it, **Copy** and the suggested stub under a
   Compress rules.md or Generate skill result start with the frontmatter Cursor needs (`alwaysApply: true`), so the

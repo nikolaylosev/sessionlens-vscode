@@ -1572,6 +1572,7 @@ ${en.raw}`).join("\n\n\n");
       await alertDialog(T("no_events"));
       return;
     }
+    if (convs.length === 1 && Lens.unreadToolCalls(text, convs[0].events) && !await confirmDialog(T("unread_tools"))) return;
     if (convs.length > 1) {
       const q = await promptDialog(T("many_convs", { n: convs.length })) || "";
       const sel = convs.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
