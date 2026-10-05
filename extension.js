@@ -185,7 +185,7 @@ const CONFIG_SETTINGS = {
   maxCode: { min: 1000, max: 2000000 },
   verify: { bool: true },
   lint: { bool: true },
-  rulesTarget: { values: ["claude", "codex", "both"] },
+  rulesTarget: { values: ["claude", "codex", "cursor", "both"] },
 };
 // → the value to use, or undefined when it cannot be one
 function normConfigValue(key, v) {

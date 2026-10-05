@@ -714,6 +714,12 @@ bad code (taken from real findings of the session) and an example of good code
 propose a rule" is the configurable `min` (the UI field `#min-count`), not
 part of the Rules system as such.
 
+The target file is `rulesTarget` (`RULES_TARGET_FILES` in `common.js`): `CLAUDE.md`, `AGENTS.md`, both, or since
+0.1.121 Cursor's `.cursor/rules/sessionlens.mdc`. Cursor (IDE and CLI 2026.10.01) loads a `.mdc` rule only with
+frontmatter, so for that target `rulesFileText()` puts `description` and `alwaysApply: true` in front of the text that
+is the whole file: **Copy** and the suggested stub. The compressed policy itself stays `rules-policy.md`. Cursor also
+reads `AGENTS.md` on its own, so the `codex` target works for Cursor too.
+
 ---
 
 ### 8.4 Profile details (since v0.1.104)
@@ -1168,7 +1174,7 @@ was the problem in the first place.
 ### 16.1 Settings
 
 `CONFIG_SETTINGS` in `extension.js`: `minGapMs` (0…600000), `maxCode` (1000…2000000), `verify`, `lint`,
-`rulesTarget` (`claude | codex | both`). In `package.json`, `scope: "application"`: Settings Sync carries them,
+`rulesTarget` (`claude | codex | cursor | both`). In `package.json`, `scope: "application"`: Settings Sync carries them,
 a project's `.vscode/settings.json` does not change them. Otherwise two windows with different `lint` would take turns re-analysing the shared
 sessions (`lint` is part of `analysisGen`).
 

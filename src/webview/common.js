@@ -11,6 +11,7 @@ export let $,
   RULES_TARGET_FILES,
   rulesTargetFiles,
   rulesTargetLabel,
+  rulesFileText,
   T,
   LABEL,
   SEV,
@@ -29,10 +30,15 @@ export function initCommon() {
   genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   // Which project file(s) the Rules-for-CLAUDE.md/AGENTS.md export, Compress rules.md and Generate skill
   // features are aimed at. CLAUDE.md is Claude Code's own convention; AGENTS.md is the open, cross-agent
-  // convention Codex (and Cursor, Copilot, Gemini CLI and others) read the same way.
-  RULES_TARGET_FILES = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], both: ["CLAUDE.md", "AGENTS.md"] };
+  // convention Codex (and Cursor, Copilot, Gemini CLI and others) read the same way. Cursor also has project
+  // rules of its own (0.1.121): a .mdc file in .cursor/rules, which both the IDE and the CLI load.
+  RULES_TARGET_FILES = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], cursor: [".cursor/rules/sessionlens.mdc"], both: ["CLAUDE.md", "AGENTS.md"] };
   rulesTargetFiles = () => RULES_TARGET_FILES[state.settings.rulesTarget] || RULES_TARGET_FILES.claude;
   rulesTargetLabel = () => rulesTargetFiles().join(" and ");
+  // The text of the whole target file. Cursor skips a .mdc rule without its frontmatter; alwaysApply: true puts the
+  // rule into every Agent chat of the project. The other targets are plain Markdown.
+  rulesFileText = (md) =>
+    state.settings.rulesTarget === "cursor" ? "---\ndescription: Rules from SessionLens reviews of agent sessions\nalwaysApply: true\n---\n\n" + md : md;
   T = (k, v) => I18N.t(k, v);
   // a finding's source as the findings filter and the Calibration table name it ("regex" for formal or none)
   const SRC_KEYS = { formal: "chip_formal", lint: "chip_lint", spec: "chip_spec", ai: "chip_ai", gherkin: "src_gherkin", external: "src_external" };

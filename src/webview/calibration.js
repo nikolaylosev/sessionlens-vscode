@@ -1,7 +1,7 @@
 // @ts-check
 /* SessionLens panel — export of verdicts and the Calibration tab. Part of the panel's source (src/webview); `npm run build` bundles it into
    media/app.js. Split out of the single app.js in phase 7 (7B.4) without changing behaviour. */
-import { $, SEV, T, VLABEL, esc, fkey, genId, rulesTargetLabel, save, srcLabel, state } from "./common.js";
+import { $, SEV, T, VLABEL, esc, fkey, genId, rulesFileText, rulesTargetLabel, save, srcLabel, state } from "./common.js";
 import { calibStatsBySource, curS, fetchSessions, isDemo, metas, onGenChanged, sessionStore, updateSession } from "./store.js";
 import { readFile, renderList, show } from "./sessions.js";
 import { renderReview } from "./review.js";
@@ -116,7 +116,7 @@ export function initCalibration() {
   );
   $("#copy-rules").addEventListener("click", async () => {
     const md = T("rules_title", { f: rulesTargetLabel() }) + "\n\n" + (pickedRulesMd() || T("rules_none") + "\n");
-    await navigator.clipboard.writeText(md);
+    await navigator.clipboard.writeText(rulesFileText(md));
     $("#copy-rules").textContent = T("rules_copied");
     setTimeout(() => ($("#copy-rules").textContent = T("rules_copy")), 1500);
   });
@@ -195,9 +195,10 @@ export function initCalibration() {
 
   // The thin CLAUDE.md/AGENTS.md pointer both agents can share, instead of duplicating the skill's
   // content into each: a plain line of prose, so it needs no vendor-specific discovery folder — the
-  // entry-point file just tells the agent to go read it, the same way for either agent.
+  // entry-point file just tells the agent to go read it, the same way for either agent. For Cursor's
+  // .mdc target it is the whole file, frontmatter included.
   skillStubPath = (skillName) => `skills/${skillName}/SKILL.md`;
-  stubText = (refPath) => `Refer to \`${refPath}\` for domain-specific automation rules and code style.\n`;
+  stubText = (refPath) => rulesFileText(`Refer to \`${refPath}\` for domain-specific automation rules and code style.\n`);
   $("#gen-skill").addEventListener("click", async () => {
     const btn = $("#gen-skill"),
       st = $("#gen-skill-status");
@@ -577,6 +578,12 @@ export function renderCalLog() {
   $("#cal-raw-count").textContent = T("cal_raw_count", { n: log.length }) + (log[0].error ? " " + T("raw_error") : "");
 }
 
+// Cursor's .mdc target is a file of its own: the stub is saved as it is, not added to an entry-point file
+const cursorTarget = () => state.settings.rulesTarget === "cursor";
+const stubTitle = () => (cursorTarget() ? T("gen_skill_stub_title_cursor") : T("gen_skill_stub_title"));
+const stubNote = () => (cursorTarget() ? T("gen_skill_stub_note_cursor") : T("gen_skill_stub_note", { f: rulesTargetLabel() }));
+const stubHeight = () => (cursorTarget() ? "110px" : "48px");
+
 export function renderCompressResults(openId) {
   const list = state.compressResults || [];
   $("#compress-d").hidden = !list.length;
@@ -586,9 +593,9 @@ export function renderCompressResults(openId) {
       <summary class="h2">${esc(r.at.replace("T", " ").slice(0, 19))}</summary>
       <textarea class="compress-out" readonly style="height:220px;font-family:monospace;font-size:12px">${esc(r.markdown)}</textarea>
       <div class="row actions"><button class="btn tiny ghost gr-copy">${T("copy")}</button><button class="btn tiny ghost gr-dl">${T("compress_dl")}</button><button class="btn tiny ghost danger gr-del">${T("delete")}</button></div>
-      <details class="gen-file"><summary>${esc(T("gen_skill_stub_title"))}</summary>
-        <p class="muted">${esc(T("gen_skill_stub_note", { f: rulesTargetLabel() }))}</p>
-        <textarea readonly class="stub-text" style="height:48px;font-family:monospace;font-size:12px">${esc(stubText("rules-policy.md"))}</textarea>
+      <details class="gen-file"><summary>${esc(stubTitle())}</summary>
+        <p class="muted">${esc(stubNote())}</p>
+        <textarea readonly class="stub-text" style="height:${stubHeight()};font-family:monospace;font-size:12px">${esc(stubText("rules-policy.md"))}</textarea>
         <div class="row actions"><button class="btn tiny ghost stub-copy">${T("copy")}</button></div>
       </details>
     </details>`,
@@ -706,9 +713,9 @@ export function renderSkillResults(openId) {
       <summary class="h2">${esc(r.at.replace("T", " ").slice(0, 19))} — ${esc(r.skill_name)}</summary>
       <div class="gen-skill-files">${r.files.map((f, i) => `<details class="gen-file"${i === 0 ? " open" : ""}><summary>${esc(f.path)}</summary><textarea readonly style="height:160px;font-family:monospace;font-size:12px">${esc(f.content)}</textarea></details>`).join("")}</div>
       <p class="muted">${T("gen_skill_note")}</p>
-      <details class="gen-file"><summary>${esc(T("gen_skill_stub_title"))}</summary>
-        <p class="muted">${esc(T("gen_skill_stub_note", { f: rulesTargetLabel() }))}</p>
-        <textarea readonly class="stub-text" style="height:48px;font-family:monospace;font-size:12px">${esc(stubText(skillStubPath(r.skill_name)))}</textarea>
+      <details class="gen-file"><summary>${esc(stubTitle())}</summary>
+        <p class="muted">${esc(stubNote())}</p>
+        <textarea readonly class="stub-text" style="height:${stubHeight()};font-family:monospace;font-size:12px">${esc(stubText(skillStubPath(r.skill_name)))}</textarea>
         <div class="row actions"><button class="btn tiny ghost stub-copy">${T("copy")}</button></div>
       </details>
       <div class="row actions"><button class="btn tiny ghost gs-save">${T("gen_skill_save")}</button><span class="muted gs-save-status"></span><button class="btn tiny ghost danger gr-del">${T("delete")}</button></div>

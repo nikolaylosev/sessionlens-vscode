@@ -158,11 +158,13 @@
           "enum": [
             "claude",
             "codex",
+            "cursor",
             "both"
           ],
           "enumDescriptions": [
             "%config.rulesTarget.claude%",
             "%config.rulesTarget.codex%",
+            "%config.rulesTarget.cursor%",
             "%config.rulesTarget.both%"
           ],
           "scope": "application",
