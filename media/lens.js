@@ -935,14 +935,26 @@
   }
   /* The user's text comes wrapped: <timestamp>Monday, Oct 5, 2026, 1:06 AM (UTC+5)</timestamp> <user_query>…</user_query>.
      The query is the text (user_frustration reads only short texts); the timestamp, the only time in the file, is the
-     event's ts as an ISO string, so the session's start is not the import time. */
+     event's ts as an ISO string, so the session's start is not the import time. Read by hand: Date.parse takes
+     "(UTC+5)" for a comment and reads the rest in the reviewer's time zone. Without an offset there is no ts. */
+  const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  function cursorTime(s) {
+    const m =
+      /\b([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AP]M)?\s*\(UTC(?:([+-])(\d{1,2})(?::?(\d{2}))?)?\)/i.exec(s);
+    const mon = m ? MONTHS.indexOf(m[1].toLowerCase()) : -1;
+    if (mon < 0) return "";
+    let h = Number(m[4]) % 12;
+    if (!m[7] || m[7].toUpperCase() === "PM") h = m[7] ? h + 12 : Number(m[4]);
+    const offset = m[8] ? (m[8] === "-" ? -1 : 1) * (Number(m[9]) * 60 + Number(m[10] || 0)) : 0;
+    const ms = Date.UTC(Number(m[3]), mon, Number(m[2]), h, Number(m[5]), Number(m[6] || 0)) - offset * 60000;
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
+  }
   function cursorUserText(t) {
     const when = /<timestamp>([\s\S]*?)<\/timestamp>/.exec(t);
     const query = /<user_query>([\s\S]*?)<\/user_query>/.exec(t);
-    const ms = when ? Date.parse(when[1].trim()) : NaN;
     return {
       text: (query ? query[1] : t.replace(/<timestamp>[\s\S]*?<\/timestamp>/g, "")).trim(),
-      ts: Number.isFinite(ms) ? new Date(ms).toISOString() : "",
+      ts: when ? cursorTime(when[1]) : "",
     };
   }
   /* Rewrites the lines in the Claude Code shape and lets fromClaudeJsonl rebuild the files, then puts Cursor's own tool
