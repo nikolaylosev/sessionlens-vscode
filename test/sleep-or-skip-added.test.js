@@ -7,8 +7,8 @@
 
    Product code is left alone (a delay there is the product's own) and pytest's reruns count only with a number above
    0, not as a word in a docstring: both were found while writing this file and fixed in 0.1.121.
-   Open question, not a bug: `page.waitForTimeout(DELAY)` with a named constant is not reported (the pattern wants a
-   number), although the rule says "no sleep with a constant". */
+   A named constant counts as a constant since 0.1.121 (`page.waitForTimeout(DELAY)`, found while writing this file);
+   a lowercase variable does not, since a polling helper sleeps for its interval. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -68,9 +68,31 @@ test("code shown in a message is checked too, named as such", () => {
 
 test("not reported: a delay under 100 ms, a wait on a route alias, retries in a runner config, retries: 0", () => {
   assert.deepEqual(found("qa-ts", write(F, ts("  setTimeout(done, 50);"))), []);
+  assert.deepEqual(found("qa-cypress", write("cypress/e2e/cart.cy.ts", 'it("total", () => {\n  cy.wait(50);\n});\n')), []);
   assert.deepEqual(found("qa-cypress", write("cypress/e2e/cart.cy.ts", 'it("total", () => {\n  cy.wait("@getCart");\n});\n')), []);
   assert.deepEqual(found("qa-ts", write("playwright.config.ts", "export default { retries: 2 };\n")), [], "config_weakened's case");
   assert.deepEqual(found("qa-ts", write(F, "test.describe.configure({ retries: 0 });\n")), []);
+});
+
+test("a named constant is a constant: DELAY, Timeouts.SHORT, config.WAIT_MS (0.1.121)", () => {
+  const sleep = (f) => [`1 high sleep: ${f}: fixed delay (sleep) in a test`];
+  assert.deepEqual(found("qa-ts", write(F, ts("  await page.waitForTimeout(DELAY);"))), sleep(F));
+  assert.deepEqual(found("qa-ts", write(F, ts("  await page.waitForTimeout(Timeouts.SHORT);"))), sleep(F));
+  assert.deepEqual(found("qa-ts", write(F, ts("  await new Promise((r) => setTimeout(r, config.WAIT_MS));"))), sleep(F));
+  assert.deepEqual(found("qa-python", write("tests/test_cart.py", "def test_total():\n    time.sleep(WAIT_SECONDS)\n")), sleep("tests/test_cart.py"));
+  assert.deepEqual(
+    found("qa-java", write("src/test/java/CartTest.java", "@Test void total() throws Exception {\n  Thread.sleep(TIMEOUT_MS);\n}\n")),
+    sleep("src/test/java/CartTest.java"),
+  );
+  assert.deepEqual(found("qa-cypress", write("cypress/e2e/cart.cy.ts", 'it("total", () => {\n  cy.wait(WAIT);\n});\n')), sleep("cypress/e2e/cart.cy.ts"));
+});
+
+test("not reported: a lowercase variable, as a polling helper sleeps for its interval", () => {
+  assert.deepEqual(
+    found("qa-python", write("tests/helpers.py", "def wait_until(check, interval=0.2):\n    while not check():\n        time.sleep(interval)\n")),
+    [],
+  );
+  assert.deepEqual(found("qa-ts", write("e2e/helpers.ts", "export const poll = async (page, every) => { await page.waitForTimeout(every); };\n")), []);
 });
 
 test("not reported: a delay or a retry in product code; reported: test-side code under src", () => {

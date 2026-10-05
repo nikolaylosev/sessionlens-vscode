@@ -77,6 +77,13 @@
   const FOCUS_JS = [/\b(?:it|test|describe|context)(?:\.describe)?\.only\s*\(/, /\b(?:fit|fdescribe)\s*\(/];
   const DEBUGGER_JS = /^\s*debugger\s*;?\s*$/m;
   const BREAKPOINT_PY = /^\s*(?:breakpoint\s*\(\s*\)|(?:i?pdb)\.set_trace\s*\(\s*\))/m;
+  /* A fixed delay: a call whose argument is a number or, since 0.1.121, a named constant (DELAY, Timeouts.SHORT,
+     config.WAIT_MS), since the rule is "no sleep with a constant". A lowercase variable is left alone: a polling helper,
+     the way the rule says to wait, sleeps for its interval. `num` is how a number has to start (setTimeout and cy.wait
+     need three digits: a short tick is not a wait). */
+  const NAMED = String.raw`(?:\w+\.)*[A-Z][A-Z0-9_]+\b`;
+  const delayCall = (call, num = String.raw`\d`) => new RegExp(call + String.raw`\s*\(\s*(?:` + num + "|" + NAMED + ")");
+  const SET_TIMEOUT = new RegExp(String.raw`setTimeout\s*\([^,]+,\s*(?:\d{3,}|` + NAMED + ")");
   /* qa-api is language-agnostic: API tests are written in whatever the team uses, so the profile carries the
      patterns of every common stack (pytest + requests/httpx, REST Assured, Jest/Vitest/Playwright + Supertest/axios,
      xUnit/NUnit + HttpClient/RestSharp, Go, Postman scripts, Karate). */
@@ -108,7 +115,7 @@
       src_dirs: ["src", "app", "lib"],
       test_dirs: ["tests", "test", "__tests__", "e2e"],
       checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
-      sleep_patterns: [/\bwaitForTimeout\s*\(\s*\d+/, /setTimeout\s*\([^,]+,\s*\d{3,}/],
+      sleep_patterns: [delayCall(String.raw`\bwaitForTimeout`), SET_TIMEOUT],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS },
       skip_patterns: [/\b(?:it|test|describe)\.skip\b/, /\btest\.fixme\b/, /\bretries\s*:\s*[1-9]/],
@@ -135,7 +142,7 @@
       src_dirs: ["src", "app", "services", "lib"],
       test_dirs: ["tests", "test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover", "config_weakened"],
-      sleep_patterns: [/\btime\.sleep\s*\(\s*[\d.]+/, /\basyncio\.sleep\s*\(\s*[\d.]+/],
+      sleep_patterns: [delayCall(String.raw`\btime\.sleep`, String.raw`[\d.]`), delayCall(String.raw`\basyncio\.sleep`, String.raw`[\d.]`)],
       debug_patterns: { breakpoint: BREAKPOINT_PY },
       // pytest-rerunfailures: reruns=N in a marker, --reruns N on a command line (not the word in a docstring, 0.1.121)
       skip_patterns: [/mark\.skip/, /\breruns\s*=\s*[1-9]/, /--reruns(?:\s+|=)[1-9]/, /@flaky/, /\bretry\s*=/],
@@ -160,7 +167,7 @@
       src_dirs: ["src/main"],
       test_dirs: ["src/test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "config_weakened"],
-      sleep_patterns: [/\bThread\.sleep\s*\(\s*\d+/, /\bTimeUnit\.\w+\.sleep\s*\(/],
+      sleep_patterns: [delayCall(String.raw`\bThread\.sleep`), /\bTimeUnit\.\w+\.sleep\s*\(/],
       skip_patterns: [/@Disabled/, /@Ignore\b/, /@Retry\b/],
       weak_assert_patterns: [/assertNotNull\s*\([^)]*\)\s*;/g, /assertTrue\s*\(\s*true\s*\)/g, /assertThat\s*\([^)]*\)\s*\.isNotNull\s*\(\)\s*;/g],
       assert_line_patterns: [/\bassert\w*\s*\(/, /\bassertThat\s*\(/],
@@ -178,7 +185,7 @@
       src_dirs: ["src"],
       test_dirs: ["tests", "test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "config_weakened"],
-      sleep_patterns: [/\bThread\.Sleep\s*\(\s*\d+/, /\bTask\.Delay\s*\(\s*\d+/],
+      sleep_patterns: [delayCall(String.raw`\bThread\.Sleep`), delayCall(String.raw`\bTask\.Delay`)],
       skip_patterns: [
         /\[(?:[^\]\n]*,\s*)?Ignore\b/,
         /\[(?:[^\]\n]*,\s*)?Explicit\b/,
@@ -222,13 +229,13 @@
       test_dirs: ["tests", "test", "__tests__", "e2e", "api-tests", "src/test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", "config_weakened", ...API],
       sleep_patterns: [
-        /\btime\.sleep\s*\(\s*[\d.]+/,
-        /\basyncio\.sleep\s*\(\s*[\d.]+/,
-        /\bThread\.sleep\s*\(\s*\d+/,
+        delayCall(String.raw`\btime\.sleep`, String.raw`[\d.]`),
+        delayCall(String.raw`\basyncio\.sleep`, String.raw`[\d.]`),
+        delayCall(String.raw`\bThread\.sleep`),
         /\bTimeUnit\.\w+\.sleep\s*\(/,
-        /\bTask\.Delay\s*\(\s*\d+/,
-        /\bwaitForTimeout\s*\(\s*\d+/,
-        /setTimeout\s*\([^,]+,\s*\d{3,}/,
+        delayCall(String.raw`\bTask\.Delay`),
+        delayCall(String.raw`\bwaitForTimeout`),
+        SET_TIMEOUT,
         /\bkarate\.sleep\s*\(/,
         /\btime\.Sleep\s*\(/,
       ],
@@ -316,11 +323,11 @@
       test_dirs: ["tests", "test", "__tests__", "e2e", "src/test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened", ...MOBILE],
       sleep_patterns: [
-        /\btime\.sleep\s*\(\s*[\d.]+/,
-        /\bThread\.sleep\s*\(\s*\d+/,
+        delayCall(String.raw`\btime\.sleep`, String.raw`[\d.]`),
+        delayCall(String.raw`\bThread\.sleep`),
         /\bTimeUnit\.\w+\.sleep\s*\(/,
-        /\bTask\.Delay\s*\(\s*\d+/,
-        /\bbrowser\.pause\s*\(\s*\d+/,
+        delayCall(String.raw`\bTask\.Delay`),
+        delayCall(String.raw`\bbrowser\.pause`),
       ],
       focus_patterns: FOCUS_JS,
       debug_patterns: { debug: /\bbrowser\.debug\s*\(/, debugger: DEBUGGER_JS, breakpoint: BREAKPOINT_PY },
@@ -346,7 +353,7 @@
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
       checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
-      sleep_patterns: [/\bcy\.wait\s*\(\s*\d{3,}/],
+      sleep_patterns: [delayCall(String.raw`\bcy\.wait`, String.raw`\d{3,}`)],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
       skip_patterns: [/\b(?:it|describe|context)\.skip\b/],
@@ -367,7 +374,7 @@
       src_dirs: ["src", "app"],
       test_dirs: ["e2e", "e2e/tests"],
       checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
-      sleep_patterns: [/setTimeout\s*\([^,]+,\s*\d{3,}/, /new Promise\s*\(\s*resolve\s*=>\s*setTimeout/],
+      sleep_patterns: [SET_TIMEOUT, /new Promise\s*\(\s*resolve\s*=>\s*setTimeout/],
       focus_patterns: FOCUS_JS,
       debug_patterns: { debugger: DEBUGGER_JS },
       skip_patterns: [/\b(?:it|describe|test)\.skip\b/],
