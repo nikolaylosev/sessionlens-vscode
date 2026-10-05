@@ -2026,15 +2026,24 @@
       }
       return out;
     },
+    /* Since 0.1.121 also the other ways to wait for network idle, in every language Playwright has: waitForLoadState /
+       wait_for_load_state, Python's wait_until=, Java's and C#'s LoadState / WaitUntilState constants (worded apart, so
+       the verdicts on "waitUntil: 'networkidle'" keep their key); and an exact count compared with toBe, toEqual or
+       toStrictEqual, spaces allowed, or in Python with ==. */
     fragile_wait(ev) {
+      const IDLE_OPTION = /waitUntil\s*:\s*['"]networkidle['"]/;
+      const IDLE_OTHER =
+        /\bwait_until\s*=\s*['"]networkidle['"]|\bwait(?:ForLoadState(?:Async)?|_for_load_state)\s*\(\s*['"]networkidle['"]|\b(?:LoadState|WaitUntilState)\.(?:NETWORKIDLE|NetworkIdle)\b/;
+      const COUNT = /\.count\(\)\s*\)\s*\.(?:toBe|toEqual|toStrictEqual)\(\s*\d+\s*\)|\.count\(\)\s*==\s*\d+/;
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
         const code = codeOf(e);
-        if (/waitUntil:\s*['"]networkidle['"]/.test(code))
+        if (IDLE_OPTION.test(code))
           out.push(Object.assign(F("fragile_wait", "medium", e.seq, T("networkidle", { file: e.file || inMsg() })), { kind: "networkidle" }));
-        if (/\.count\(\)\)\.toBe\(\d+\)/.test(code))
-          out.push(Object.assign(F("fragile_wait", "low", e.seq, T("exact_count", { file: e.file || inMsg() })), { kind: "count" }));
+        else if (IDLE_OTHER.test(code))
+          out.push(Object.assign(F("fragile_wait", "medium", e.seq, T("networkidle_wait", { file: e.file || inMsg() })), { kind: "networkidle" }));
+        if (COUNT.test(code)) out.push(Object.assign(F("fragile_wait", "low", e.seq, T("exact_count", { file: e.file || inMsg() })), { kind: "count" }));
       }
       return out;
     },

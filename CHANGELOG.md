@@ -49,6 +49,10 @@
   folders (for example `setTimeout` in `src/debounce.ts`) belongs to the product, not to a test. Page objects and other
   test-side code under `src` are still checked. In qa-python and qa-api, pytest's reruns count only with a number above
   0 (`reruns=3`, `--reruns 2`), not as the word "reruns" in a docstring or a comment.
+- **Fragile wait** finds the other ways to wait for network idle: `page.waitForLoadState("networkidle")`, and in
+  Python, Java and C# (`wait_until="networkidle"`, `LoadState.NETWORKIDLE`, `LoadState.NetworkIdle`). In qa-python the
+  check never fired before. An exact count is also found with spaces, `toEqual` or `toStrictEqual`, and in Python as
+  `assert rows.count() == 3`.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
