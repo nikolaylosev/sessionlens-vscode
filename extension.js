@@ -292,19 +292,58 @@ function broadcastRefresh(except, what = { scope: "keys" }) {
 // project/date subfolder underneath is a perfectly ordinary, visible entry.
 // `source` is what the person picked in the "Where is the transcript from?" prompt in app.js:
 // "claude" or "codex" go straight to that folder (or the home folder if it turns out not to exist);
+// "cursor" goes to this workspace's agent-transcripts folder (cursorTranscriptsDir);
 // anything else ("somewhere else", or no prompt at all) goes to the home folder, same as a plain
 // "Choose file" always did — the person is browsing for it themselves, not being pointed anywhere.
 function guessTranscriptDefaultUri(source) {
   const home = os.homedir();
-  const wanted = source === "codex" ? path.join(home, ".codex", "sessions") : source === "claude" ? path.join(home, ".claude", "projects") : null;
-  if (wanted) {
+  const wanted =
+    source === "codex"
+      ? path.join(home, ".codex", "sessions")
+      : source === "claude"
+        ? path.join(home, ".claude", "projects")
+        : source === "cursor"
+          ? cursorTranscriptsDir(home)
+          : null;
+  return vscode.Uri.file(wanted && isDir(wanted) ? wanted : home);
+}
+
+function isDir(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/* Cursor's folder for a workspace, named the way its CLI 2026.10.01 names it (workspace-paths.js in the CLI's bundle):
+   every character that is not a Latin letter or a digit becomes "-", a run of them one "-", and none is kept at either
+   end, so /Users/me/my_app is Users-me-my-app. The IDE's folders on macOS follow the same rule. Windows is not checked. */
+const cursorProjectSlug = (p) =>
+  p
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// ~/.cursor/projects/<workspace>/agent-transcripts for the first workspace folder that has one (by its path or, for a
+// symlink, its real path, which Cursor's CLI uses); otherwise ~/.cursor/projects
+function cursorTranscriptsDir(home) {
+  const projects = path.join(home, ".cursor", "projects");
+  for (const f of vscode.workspace.workspaceFolders || []) {
+    if (f.uri.scheme !== "file") continue;
+    const paths = [f.uri.fsPath];
     try {
-      if (fs.statSync(wanted).isDirectory()) return vscode.Uri.file(wanted);
+      paths.push(fs.realpathSync(f.uri.fsPath));
     } catch {
-      /* fall through to home */
+      /* the path as it is */
+    }
+    for (const p of paths) {
+      const slug = cursorProjectSlug(p);
+      const dir = path.join(projects, slug, "agent-transcripts");
+      if (slug && isDir(dir)) return dir;
     }
   }
-  return vscode.Uri.file(home);
+  return projects;
 }
 
 // API keys (phase 2): SecretStorage + host-side provider calls. Set up in activate(); `ready` is the one-time

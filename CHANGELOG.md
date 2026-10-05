@@ -11,9 +11,11 @@
   Cursor keeps a copy of every request in `~/.cursor`; SessionLens deletes the copy of each of its requests after the
   answer. Tested on macOS; Windows and Linux are not tested yet.
 - **Cursor Agent transcripts** can be imported: the `.jsonl` files in
-  `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI (pick it with
-  **Choose file** → somewhere else). Writes, edits (`StrReplace`), deleted files, reads, searches and test runs
-  (`Shell`) become the same steps as in a Claude Code session, with Cursor's tool names, and the session starts at the
+  `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI. **Choose file**
+  has a fourth source, **Cursor Agent**, which opens the dialog in the open workspace's `agent-transcripts` folder
+  (or in `~/.cursor/projects` when that workspace has none); **Import again** offers it too. The folder is found the
+  way Cursor names it on macOS; Windows is not checked yet. Writes, edits (`StrReplace`), deleted files, reads,
+  searches and test runs (`Shell`) become the same steps as in a Claude Code session, with Cursor's tool names, and the session starts at the
   time of the first request. Before, such a file gave an empty session. The file itself keeps no command output, so
   when you pick it with **Choose file**, SessionLens reads the output of the agent's commands from Cursor's own
   databases on your machine (`~/.cursor/chats/…/store.db` for the CLI, Cursor's `state.vscdb` for the IDE), read-only.

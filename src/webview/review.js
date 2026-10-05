@@ -212,6 +212,7 @@ export async function reimport() {
     const source = await chooseDialog(T("reimport_pick"), [
       { label: T("pick_source_claude"), value: "claude", primary: true },
       { label: T("pick_source_codex"), value: "codex" },
+      { label: T("pick_source_cursor"), value: "cursor" },
       { label: T("pick_source_other"), value: "other" },
     ]);
     if (source === null) return;

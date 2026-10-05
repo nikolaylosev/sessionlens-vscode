@@ -67,9 +67,11 @@ test(
       const sb = await openPage(host);
       await sb.ready();
       click(sb, "#file");
-      await until(() => sb.document.querySelectorAll(".sl-modal-overlay button").length >= 3);
-      sb.document.querySelectorAll(".sl-modal-overlay button")[2].click(); // somewhere else
+      await until(() => sb.document.querySelectorAll(".sl-modal-overlay button").length >= 4);
+      [...sb.document.querySelectorAll(".sl-modal-overlay button")].find((b) => b.textContent === "Cursor Agent").click();
       await until(() => !sb.document.querySelector("#name-row").hidden);
+      // no workspace is open, so the dialog starts in ~/.cursor/projects (transcript-dialog.test.js has the rest)
+      assert.equal(host.calls.openDialog[0].defaultUri.fsPath, path.join(h, ".cursor", "projects"));
       sb.document.querySelector("#name-go").click();
       const store = async () => {
         const st = createStore({ dir: path.join(dir, "sessions") });
