@@ -9,6 +9,7 @@
   var RULES_TARGET_FILES;
   var rulesTargetFiles;
   var rulesTargetLabel;
+  var rulesFileText;
   var T;
   var LABEL;
   var SEV;
@@ -24,9 +25,10 @@
     esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     fkey = (f) => Lens.fkey(f);
     genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    RULES_TARGET_FILES = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], both: ["CLAUDE.md", "AGENTS.md"] };
+    RULES_TARGET_FILES = { claude: ["CLAUDE.md"], codex: ["AGENTS.md"], cursor: [".cursor/rules/sessionlens.mdc"], both: ["CLAUDE.md", "AGENTS.md"] };
     rulesTargetFiles = () => RULES_TARGET_FILES[state.settings.rulesTarget] || RULES_TARGET_FILES.claude;
     rulesTargetLabel = () => rulesTargetFiles().join(" and ");
+    rulesFileText = (md) => state.settings.rulesTarget === "cursor" ? "---\ndescription: Rules from SessionLens reviews of agent sessions\nalwaysApply: true\n---\n\n" + md : md;
     T = (k, v) => I18N.t(k, v);
     const SRC_KEYS = { formal: "chip_formal", lint: "chip_lint", spec: "chip_spec", ai: "chip_ai", gherkin: "src_gherkin", external: "src_external" };
     srcLabel = (src) => SRC_KEYS[src || "formal"] ? T(SRC_KEYS[src || "formal"]) : String(src);
@@ -390,7 +392,7 @@
     );
     $("#copy-rules").addEventListener("click", async () => {
       const md = T("rules_title", { f: rulesTargetLabel() }) + "\n\n" + (pickedRulesMd() || T("rules_none") + "\n");
-      await navigator.clipboard.writeText(md);
+      await navigator.clipboard.writeText(rulesFileText(md));
       $("#copy-rules").textContent = T("rules_copied");
       setTimeout(() => $("#copy-rules").textContent = T("rules_copy"), 1500);
     });
@@ -460,8 +462,8 @@
     EXAMPLE_FILES_PER_RULE = 2;
     EXAMPLE_MAX_CHARS = 4e4;
     skillStubPath = (skillName) => `skills/${skillName}/SKILL.md`;
-    stubText = (refPath) => `Refer to \`${refPath}\` for domain-specific automation rules and code style.
-`;
+    stubText = (refPath) => rulesFileText(`Refer to \`${refPath}\` for domain-specific automation rules and code style.
+`);
     $("#gen-skill").addEventListener("click", async () => {
       const btn = $("#gen-skill"), st = $("#gen-skill-status");
       const body = pickedRulesMd();
@@ -759,6 +761,10 @@ ${en.raw}`).join("\n\n\n");
     $("#cal-raw").value = calLogText();
     $("#cal-raw-count").textContent = T("cal_raw_count", { n: log.length }) + (log[0].error ? " " + T("raw_error") : "");
   }
+  var cursorTarget = () => state.settings.rulesTarget === "cursor";
+  var stubTitle = () => cursorTarget() ? T("gen_skill_stub_title_cursor") : T("gen_skill_stub_title");
+  var stubNote = () => cursorTarget() ? T("gen_skill_stub_note_cursor") : T("gen_skill_stub_note", { f: rulesTargetLabel() });
+  var stubHeight = () => cursorTarget() ? "110px" : "48px";
   function renderCompressResults(openId) {
     const list = state.compressResults || [];
     $("#compress-d").hidden = !list.length;
@@ -767,9 +773,9 @@ ${en.raw}`).join("\n\n\n");
       <summary class="h2">${esc(r.at.replace("T", " ").slice(0, 19))}</summary>
       <textarea class="compress-out" readonly style="height:220px;font-family:monospace;font-size:12px">${esc(r.markdown)}</textarea>
       <div class="row actions"><button class="btn tiny ghost gr-copy">${T("copy")}</button><button class="btn tiny ghost gr-dl">${T("compress_dl")}</button><button class="btn tiny ghost danger gr-del">${T("delete")}</button></div>
-      <details class="gen-file"><summary>${esc(T("gen_skill_stub_title"))}</summary>
-        <p class="muted">${esc(T("gen_skill_stub_note", { f: rulesTargetLabel() }))}</p>
-        <textarea readonly class="stub-text" style="height:48px;font-family:monospace;font-size:12px">${esc(stubText("rules-policy.md"))}</textarea>
+      <details class="gen-file"><summary>${esc(stubTitle())}</summary>
+        <p class="muted">${esc(stubNote())}</p>
+        <textarea readonly class="stub-text" style="height:${stubHeight()};font-family:monospace;font-size:12px">${esc(stubText("rules-policy.md"))}</textarea>
         <div class="row actions"><button class="btn tiny ghost stub-copy">${T("copy")}</button></div>
       </details>
     </details>`
@@ -868,9 +874,9 @@ ${en.raw}`).join("\n\n\n");
       <summary class="h2">${esc(r.at.replace("T", " ").slice(0, 19))} — ${esc(r.skill_name)}</summary>
       <div class="gen-skill-files">${r.files.map((f, i) => `<details class="gen-file"${i === 0 ? " open" : ""}><summary>${esc(f.path)}</summary><textarea readonly style="height:160px;font-family:monospace;font-size:12px">${esc(f.content)}</textarea></details>`).join("")}</div>
       <p class="muted">${T("gen_skill_note")}</p>
-      <details class="gen-file"><summary>${esc(T("gen_skill_stub_title"))}</summary>
-        <p class="muted">${esc(T("gen_skill_stub_note", { f: rulesTargetLabel() }))}</p>
-        <textarea readonly class="stub-text" style="height:48px;font-family:monospace;font-size:12px">${esc(stubText(skillStubPath(r.skill_name)))}</textarea>
+      <details class="gen-file"><summary>${esc(stubTitle())}</summary>
+        <p class="muted">${esc(stubNote())}</p>
+        <textarea readonly class="stub-text" style="height:${stubHeight()};font-family:monospace;font-size:12px">${esc(stubText(skillStubPath(r.skill_name)))}</textarea>
         <div class="row actions"><button class="btn tiny ghost stub-copy">${T("copy")}</button></div>
       </details>
       <div class="row actions"><button class="btn tiny ghost gs-save">${T("gen_skill_save")}</button><span class="muted gs-save-status"></span><button class="btn tiny ghost danger gr-del">${T("delete")}</button></div>

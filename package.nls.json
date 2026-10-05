@@ -23,6 +23,7 @@
   "config.lint": "Static analysis (ESLint for `qa-ts`, `qa-cypress`, `qa-detox`; tree-sitter for `qa-java`, `qa-c#`, `qa-python`). Changing it re-analyzes every session. Same as ⚙ Settings in the panel.",
   "config.rulesTarget": "Which project file the proposed rules, **Compress rules.md** and **Generate skill** are written for. Same as **Target file** on the Calibration tab.",
   "config.rulesTarget.claude": "CLAUDE.md (Claude Code)",
-  "config.rulesTarget.codex": "AGENTS.md (Codex)",
+  "config.rulesTarget.codex": "AGENTS.md (Codex, Cursor and other agents that read it)",
+  "config.rulesTarget.cursor": ".cursor/rules/sessionlens.mdc (Cursor's own project rule, loaded in every Agent chat)",
   "config.rulesTarget.both": "Both CLAUDE.md and AGENTS.md"
 }

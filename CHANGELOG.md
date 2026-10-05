@@ -23,6 +23,11 @@
   example **Fix after a failure without triage**). Where there is no output (a file dropped or pasted, a VS Code
   without `node:sqlite`, a chat Cursor no longer has), a run's result is unknown and **Claims tests pass** is not
   raised after it. Cloud Agent runs leave no file on your machine.
+- **Rules for Cursor:** **Target file** on the Calibration tab (and the setting `sessionlens.rulesTarget`) has a new
+  value, `.cursor/rules/sessionlens.mdc`, Cursor's own project rule. For it, **Copy** and the suggested stub under a
+  Compress rules.md or Generate skill result start with the frontmatter Cursor needs (`alwaysApply: true`), so the
+  text is the whole file and Cursor's Agent reads it in every chat of the project. `AGENTS.md` is now labelled as read
+  by Cursor too, which it is.
 
 ## 0.1.120
 

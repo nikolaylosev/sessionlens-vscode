@@ -134,7 +134,7 @@ test("package.json: the five settings are application-scoped and their defaults 
     if (k in defaults) assert.equal(p.default, defaults[k], k);
   }
   assert.equal(props["sessionlens.rulesTarget"].default, "claude"); // app.js: rulesTarget || "claude"
-  assert.deepEqual(props["sessionlens.rulesTarget"].enum, ["claude", "codex", "both"]);
+  assert.deepEqual(props["sessionlens.rulesTarget"].enum, ["claude", "codex", "cursor", "both"]);
   assert.equal(props["sessionlens.claudeCliPath"].scope, "machine");
 });
 

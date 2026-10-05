@@ -335,6 +335,9 @@
       gen_skill_note:
         "examples/ (optional): real files the agent wrote in your sessions, exactly as written except for masked secrets. Check them before you share the skill.",
       gen_skill_stub_title: "Suggested CLAUDE.md / AGENTS.md text",
+      gen_skill_stub_title_cursor: "Suggested .cursor/rules/sessionlens.mdc",
+      gen_skill_stub_note_cursor:
+        "Save this as .cursor/rules/sessionlens.mdc in the project. With alwaysApply: true, Cursor's Agent (in the editor and in the CLI) reads it in every chat of that project.",
       gen_skill_stub_note:
         "Keep {f} thin: instead of pasting the rules into each one, add this one line to every entry-point file you use. Both Claude Code and Codex read it as a plain instruction, so one shared file works for both — no vendor-specific skills folder required.",
       gen_skill_save: "Save to folder…",
@@ -454,7 +457,8 @@
       c_rules_sub2: "times. Mark “moved” and the tool shows whether the finding's frequency dropped afterwards.",
       rules_target_lbl: "Target file:",
       rules_target_claude: "CLAUDE.md (Claude Code)",
-      rules_target_codex: "AGENTS.md (Codex, and other agents that read it)",
+      rules_target_codex: "AGENTS.md (Codex, Cursor and other agents that read it)",
+      rules_target_cursor: ".cursor/rules/sessionlens.mdc (Cursor)",
       rules_target_both: "Both — CLAUDE.md and AGENTS.md",
       c_export: "Export verdicts.json",
       c_import: "Import verdicts / findings",
