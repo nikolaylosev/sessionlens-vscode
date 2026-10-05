@@ -1010,6 +1010,7 @@ The payload no longer carries `lang` (unused by the host since v0.1.103).
 | Address of the other providers | `defaultBaseUrl` in `ai.js` | does not change |
 | `minGapMs`, `maxCode`, `verify`, `lint`, `rulesTarget` (since v0.1.103) | the settings `sessionlens.*`, `scope: "application"` (a workspace cannot set them) | Settings or the panel; from the panel through `storage:set`, numbers are clamped to the range (§16.1) |
 | API keys | SecretStorage (phase 2) | `secret:set` / `secret:delete` |
+| A Cursor chat's command output (since v0.1.121) | Cursor's own databases, found by the id of the transcript file picked in the VS Code dialog, opened read-only (`cursor-db.js`) | nothing in the webview can name another file or database |
 | The folder for a skill and a file | a VS Code dialog | from the webview only the file name (`safeBasename`) and the skill paths by whitelist (`checkSkillFiles`), then `isInside` |
 
 `storage:set` removes the fields `cliPath`, `cliPaths`, `baseUrls.local`, `baseUrls.qwen` from `settings`; `storage:get`

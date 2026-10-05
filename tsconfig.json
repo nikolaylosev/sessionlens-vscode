@@ -13,6 +13,6 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["extension.js", "cli.js", "providers.js", "store.js", "secrets.js", "validate.js", "media/*.js", "src/webview/*.js", "types/*.d.ts"],
+  "include": ["extension.js", "cli.js", "cursor-db.js", "providers.js", "store.js", "secrets.js", "validate.js", "media/*.js", "src/webview/*.js", "types/*.d.ts"],
   "exclude": ["media/vendor-eslint*.js", "media/tree-sitter.js", "media/app.js", "node_modules"]
 }

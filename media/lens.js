@@ -946,12 +946,17 @@
     };
   }
   /* Rewrites the lines in the Claude Code shape and lets fromClaudeJsonl rebuild the files, then puts Cursor's own tool
-     names back on the events. A StrReplace without a path has no file to apply it to: it stays a plain tool call. A
-     test run has no output in this file: output_missing says that its result is unknown, not red and not absent
-     (pass_claim_without_run, 0.1.121). */
-  function fromCursorJsonl(text, cfg) {
+     names back on the events. A StrReplace without a path has no file to apply it to: it stays a plain tool call.
+     outputs (optional) are the commands Cursor's own database kept for this chat, in order ({command, output,
+     exitCode}, read by the host, cursor-db.js): a Shell call takes the next one with the same command and gets it as
+     its tool_result, so its test results are parsed as for Claude Code. A test run without one keeps output_missing:
+     its result is unknown, not red and not absent (pass_claim_without_run, 0.1.121). */
+  function fromCursorJsonl(text, cfg, outputs) {
     const lines = [],
-      names = [];
+      names = [],
+      done = new Set(),
+      outs = Array.isArray(outputs) ? outputs.filter((o) => o && typeof o.command === "string" && typeof o.output === "string") : [];
+    let next = 0;
     for (const line of text.split("\n")) {
       if (!line.trim()) continue;
       let rec;
@@ -962,7 +967,8 @@
       }
       if (!rec || !["user", "assistant"].includes(rec.role) || !rec.message) continue;
       let ts = "";
-      const content = [];
+      const content = [],
+        results = [];
       for (const b of Array.isArray(rec.message.content) ? rec.message.content : []) {
         if (!b || typeof b !== "object") continue;
         if (b.type === "text" && rec.role === "user") {
@@ -974,18 +980,28 @@
           const name = String(b.name || ""),
             input = cursorInput(name, b.input || {});
           const as = name === "StrReplace" && !input.file_path ? name : CURSOR_TOOLS[name] || name;
-          content.push({ type: "tool_use", name: as, input });
+          const id = "cursor-" + names.length;
+          content.push({ type: "tool_use", id, name: as, input });
           names.push(name);
+          if (name !== "Shell" || typeof input.command !== "string") continue;
+          const k = outs.findIndex((o, i) => i >= next && o.command.trim() === input.command.trim());
+          if (k < 0) continue;
+          next = k + 1;
+          done.add(id);
+          const o = outs[k];
+          results.push({ type: "tool_result", tool_use_id: id, content: o.output, is_error: Number.isInteger(o.exitCode) && o.exitCode !== 0 });
         }
       }
       if (content.length) lines.push(JSON.stringify({ type: rec.role, timestamp: ts, message: { role: rec.role, content } }));
+      if (results.length) lines.push(JSON.stringify({ type: "user", timestamp: "", message: { role: "user", content: results } }));
     }
     const out = fromClaudeJsonl(lines.join("\n"), cfg);
     let i = 0;
     for (const e of out) {
       if (!e.tool) continue;
+      const id = "cursor-" + i;
       e.tool = names[i++];
-      if (e.kind === "run_tests") e.output_missing = true;
+      if (e.kind === "run_tests" && !done.has(id)) e.output_missing = true;
     }
     return out;
   }
@@ -1150,7 +1166,8 @@
     return events;
   }
 
-  function importAny(text, cfg) {
+  // opts.cursorOutputs: the commands Cursor's database kept for a Cursor transcript (fromCursorJsonl)
+  function importAny(text, cfg, opts) {
     const t = text.trimStart();
     if (t.startsWith("[") || (t.startsWith("{") && /"chat_messages"/.test(t.slice(0, 5000)))) {
       try {
@@ -1158,7 +1175,7 @@
         if (c.length) return c.length === 1 ? c[0].events : c;
       } catch {}
     }
-    if (t.startsWith("{") && isCursorJsonl(t)) return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg), cfg), cfg);
+    if (t.startsWith("{") && isCursorJsonl(t)) return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg, opts && opts.cursorOutputs), cfg), cfg);
     if (t.startsWith("{") && isCodexJsonl(t)) return stripNonSource(diffMessageVersions(fromCodexJsonl(text, cfg), cfg), cfg);
     const ev = t.startsWith("{") ? fromClaudeJsonl(text, cfg) : fromText(text, cfg);
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
@@ -2505,6 +2522,7 @@
     ALIAS,
     redactSecrets,
     importAny,
+    isCursorJsonl,
     IMPORT_GEN,
     needsReimport,
     transcriptMatch,

@@ -114,6 +114,7 @@ validate.js           host: the check every webview message passes first
 secrets.js            host: API keys in SecretStorage, migration out of settings
 providers.js          host: HTTP transport to model providers (node:http/https)
 cli.js                host: runs the user's claude / codex / cursor agent CLI with no tools, in an empty temp folder
+cursor-db.js          host: the command output of a Cursor Agent chat, read-only from Cursor's own databases
 package.json          manifest: views, commands, settings (package.nls.json holds the strings)
 
 media/                everything the webview loads (also required by Node tests)
@@ -397,6 +398,14 @@ flowchart TD
   rebuild the files, then puts Cursor's tool names back. The user's `<user_query>` is the text and its
   `<timestamp>` the `ts`. A command's output is not in the file, so a test run gets `output_missing`, and
   `pass_claim_without_run` treats its result as unknown (not red, not absent). Cloud Agent runs leave no file.
+  When the file is picked in the panel, the host (`cursor-db.js`) looks up the chat by the file's id in Cursor's own
+  databases and returns the commands with their output beside the text (`open:transcript` → `cursorOutputs`): the
+  CLI's `~/.cursor/chats/<md5 of the workspace>/<id>/store.db`, or the IDE's `globalStorage/state.vscdb`. Both are
+  opened read-only with Node's `node:sqlite`; without it (VS Code on Node before 22.13), or with no database, the
+  import runs without output. `fromCursorJsonl` gives a `Shell` call the next output with the same command as its
+  `tool_result`, so its tests are parsed as for Claude Code; a run with none keeps `output_missing`. The session
+  keeps the output's ends (`source_outputs`, 20 000 characters each) with `source_text`, for Back to regex parsing
+  and Import again. A transcript dropped onto the panel or pasted has no output.
 - **claude.ai export and plain chat** carry code only inside messages; `diffMessageVersions` treats successive
   code blocks as versions of the same tests.
 - **Secrets** are masked on export, in examples and, since 0.1.116, in every prompt sent to a model

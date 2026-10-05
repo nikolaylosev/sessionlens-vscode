@@ -105,3 +105,45 @@ test("a test run has no output: tests_never_run sees the run, a claim after it i
   assert.equal(found(noRun, "tests_never_run").length, 1);
   assert.deepEqual(found(noRun, "pass_claim_without_run"), ["high: Claims tests pass, but no test run in the preceding steps"]);
 });
+
+// ---------- with the output Cursor's database kept (cursor-db.js) ----------
+const RUN = "npx playwright test";
+const out = (output, exitCode) => ({ command: RUN, output, exitCode });
+
+test("with the database's output, test runs have results: red, fix, green gives fix_after_fail_without_triage", () => {
+  const lines = [
+    user("Write tests"),
+    call("Write", { path: SPEC, contents: TWO }),
+    call("Shell", { command: RUN }),
+    call("StrReplace", { path: SPEC, old_string: "toHaveText(COUNT)", new_string: "toContainText(COUNT)" }),
+    call("Shell", { command: RUN }),
+    say("All tests pass."),
+  ];
+  const ev = Lens.importAny(jsonl(...lines), cfg, { cursorOutputs: [out("  1 failed\n  1 passed", 1), out("  2 passed", 0)] });
+  const runs = ev.filter((e) => e.kind === "run_tests");
+  assert.deepEqual(
+    runs.map((r) => [r.tests.passed, r.tests.failed, r.exit_code, r.output_missing]),
+    [
+      [1, 1, 1, undefined],
+      [2, 0, 0, undefined],
+    ],
+  );
+  assert.equal(found(ev, "fix_after_fail_without_triage").length, 1);
+  assert.deepEqual(found(ev, "pass_claim_without_run"), [], "the last run is green");
+  assert.equal(Lens.importAny(jsonl(...lines), cfg).filter((e) => e.output_missing).length, 2, "without the database: unknown, as before");
+});
+
+test("a Shell call takes the next output with the same command; one with no match keeps output_missing", () => {
+  const lines = [user("Run"), call("Shell", { command: "ls" }), call("Shell", { command: RUN }), call("Shell", { command: "npx playwright test --headed" })];
+  const got = Lens.importAny(jsonl(...lines), cfg, {
+    cursorOutputs: [{ command: "git status", output: "clean", exitCode: 0 }, { command: "ls", output: "a.ts", exitCode: 0 }, out("  3 passed", 0)],
+  });
+  assert.deepEqual(
+    got.slice(1).map((e) => [e.cmd, e.text || "", e.tests ? e.tests.passed : null, !!e.output_missing]),
+    [
+      ["ls", "a.ts", null, false],
+      [RUN, "  3 passed", 3, false],
+      ["npx playwright test --headed", "", null, true],
+    ],
+  );
+});

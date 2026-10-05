@@ -73,7 +73,7 @@ The **Sessions** tab itself, inside Calibration & Settings, is where you load a 
 
 ![The SessionLens sidebar: the Sessions tab with Choose file, Paste text, Try a demo session and the profile, and the Sessions list under it](media/screenshots/panel-profile.png)
 
-- **Accepted input:** Claude Code `.jsonl` (from `~/.claude/projects`), Codex `rollout-*.jsonl` (from `~/.codex/sessions`, CLI or the VS Code extension), a Cursor Agent `.jsonl` (from `~/.cursor/projects/<workspace>/agent-transcripts/`; choose "somewhere else"; it has no command output, so test results are unknown), `conversations.json` from claude.ai, an `/export`, or plain chat text. A file with several conversations asks for part of a name to load only one. In the VS Code build, **Choose file** first asks whether the transcript is from Claude Code, Codex or somewhere else, then opens VS Code's own dialog straight inside `~/.claude/projects` or `~/.codex/sessions` — both are hidden by a leading dot (with no way to browse from one into the other once you're inside), but everything one level below either is a normal, visible folder or file.
+- **Accepted input:** Claude Code `.jsonl` (from `~/.claude/projects`), Codex `rollout-*.jsonl` (from `~/.codex/sessions`, CLI or the VS Code extension), a Cursor Agent `.jsonl` (from `~/.cursor/projects/<workspace>/agent-transcripts/`; choose "somewhere else"; the output of the agent's commands is read from Cursor's own databases on your machine, read-only, so test runs have their results), `conversations.json` from claude.ai, an `/export`, or plain chat text. A file with several conversations asks for part of a name to load only one. In the VS Code build, **Choose file** first asks whether the transcript is from Claude Code, Codex or somewhere else, then opens VS Code's own dialog straight inside `~/.claude/projects` or `~/.codex/sessions` — both are hidden by a leading dot (with no way to browse from one into the other once you're inside), but everything one level below either is a normal, visible folder or file.
 - **Profile:** the language and test runner to analyse for. See [Profiles](#profiles).
 - **Paste text:** paste a transcript, give it a name (for example `AUTH-142 Ivan`) and press **Analyse**.
 
@@ -540,6 +540,9 @@ Everything stays on your machine, in VS Code's storage for this extension (ID `n
   (`globalState`). The five settings listed under [Commands and VS Code settings](#commands-and-vs-code-settings) are
   ordinary VS Code settings in your `settings.json`.
 - **API keys** are in VS Code's secret storage (the operating system's credential store), never in files or settings.
+- **Cursor's databases.** When you pick a Cursor Agent transcript, SessionLens opens Cursor's own chat databases on
+  your machine read-only, takes the output of that chat's commands, and keeps its end in the session. It never writes
+  to them and sends nothing from them anywhere.
 - **Model requests** go from the extension straight to the provider you choose, on your account. With Claude Code,
   Codex or Cursor as the provider they go through the `claude`, `codex` or `agent` command on your machine. Cursor
   keeps a copy of each request in `~/.cursor`, which SessionLens deletes after the answer (see

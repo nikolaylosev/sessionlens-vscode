@@ -5,7 +5,7 @@ const { execFileSync } = require("child_process");
 
 const ALLOWED = [
   /^(LICENSE|LICENSE\.txt|THIRD-PARTY-NOTICES\.md|readme\.md|CHANGELOG\.md|package\.json|package\.nls(\.[a-z-]+)?\.json)$/,
-  /^(extension|cli|providers|store|secrets|validate)\.js$/,
+  /^(extension|cli|cursor-db|providers|store|secrets|validate)\.js$/,
   /^media\/[^/]+\.(js|css|html|png|svg|wasm)$/,
 ];
 const DENIED = [

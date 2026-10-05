@@ -4,7 +4,7 @@
 import { $, LABEL, SEV, T, VCOL, VLABEL, esc, fkey, srcLabel, state } from "./common.js";
 import { curS, needEngine, profileVerdicts, updateSession } from "./store.js";
 import { analyze, analyzeNow } from "./analysis.js";
-import { piDeps, profileSummary, readFile } from "./sessions.js";
+import { keptOutputs, piDeps, profileSummary, readFile } from "./sessions.js";
 import { download } from "./calibration.js";
 
 export function initReview() {
@@ -110,7 +110,7 @@ export function initReview() {
     await updateSession(state.current, (x) => {
       const cfg = Lens.profile(x.profile);
       // the session's own conversation of the file, not the first one (fixed in 0.1.115)
-      x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg)) || x.events;
+      x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, { cursorOutputs: x.source_outputs })) || x.events;
       x.seg = null;
       x.importGen = Lens.IMPORT_GEN;
       analyze(x);
@@ -206,7 +206,8 @@ export async function reimport() {
   const sid = state.current,
     s = curS();
   if (!s) return;
-  let text = s.source_text;
+  let text = s.source_text,
+    cursorOutputs = s.source_outputs;
   if (!text) {
     const source = await chooseDialog(T("reimport_pick"), [
       { label: T("pick_source_claude"), value: "claude", primary: true },
@@ -217,10 +218,11 @@ export async function reimport() {
     const r = await window.__slPickTranscript({ source: source === "other" ? undefined : source });
     if (!r || typeof r.text !== "string") return;
     text = r.text;
+    cursorOutputs = r.cursorOutputs;
   }
   const cfg = Lens.profile(s.profile);
   // a file with several conversations: the one closest to this session
-  const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg));
+  const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs }));
   if (!events) {
     await alertDialog(T("no_events"));
     return;
@@ -242,7 +244,10 @@ export async function reimport() {
     x.seg = null;
     x.seg_error = null;
     x.seg_raw = null;
-    if (!x.source_text && text.length < 400000) x.source_text = text;
+    if (!x.source_text && text.length < 400000) {
+      x.source_text = text;
+      x.source_outputs = keptOutputs(cursorOutputs);
+    }
     x.importGen = Lens.IMPORT_GEN;
     analyze(x, "import");
   });

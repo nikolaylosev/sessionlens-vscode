@@ -4,6 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { runClaude, checkClaude, runCodex, checkCodex, runCursor, checkCursor, PATH_RX } = require("./cli.js");
+const { cursorOutputs } = require("./cursor-db.js");
 const Lens = require("./media/lens.js"); // shared with the webview: verdict(), same rules for the same data
 const LensAI = require("./media/ai.js"); // shared too: the provider table and each provider's request shape
 const I18N = require("./media/i18n.js");
@@ -745,7 +746,12 @@ function wireMessages(
         }
         const uri = picked[0];
         const text = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString("utf8");
-        reply({ name: path.basename(uri.fsPath), text });
+        // a Cursor transcript keeps no command output; Cursor's own database may (cursor-db.js, 0.1.121)
+        if (uri.scheme === "file" && Lens.isCursorJsonl(text.trimStart())) {
+          const r = cursorOutputs(uri.fsPath);
+          host.log(r.outputs ? `cursor: the output of ${r.outputs.length} commands from the ${r.source} database` : `cursor: no command output (${r.reason})`);
+          reply({ name: path.basename(uri.fsPath), text, cursorOutputs: r.outputs || undefined });
+        } else reply({ name: path.basename(uri.fsPath), text });
       } else if (msg.type === "claude:run") {
         // the user's own Claude Code CLI, see cli.js; the path is the machine setting, never the payload's
         reply(await logCli("claude", "run", () => runClaude(Object.assign({}, msg.payload, { cliPath: cliPathFor("claude") }))));
