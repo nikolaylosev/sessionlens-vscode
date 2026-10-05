@@ -31,6 +31,7 @@ async function calib(target) {
 
 test("Cursor: the select shows it, Copy rules and the stub are a .mdc file Cursor loads in every chat", async () => {
   const { p, copied } = await calib("cursor");
+  assert.equal(p.document.querySelector("#rules-target").value, "cursor");
   assert.equal(p.document.querySelector("#c-rules-title").textContent, "Rules for .cursor/rules/sessionlens.mdc");
   assert.equal(copied.length, 1);
   assert.ok(copied[0].startsWith(MDC_HEAD + "# Proposed rules for .cursor/rules/sessionlens.mdc\n\n"), copied[0]);
