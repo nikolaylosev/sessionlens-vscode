@@ -74,9 +74,11 @@
   /* .only / fit / fdescribe: only the focused tests run, the rest are silently skipped (not a skip: that one is
      visible in the report). debug_patterns: kind → pattern; the kind is what LensLint.merge() compares with what the
      profile's engine looks for (page.pause and cy.pause are "pause", cy.debug is "debug"). */
-  const FOCUS_JS = [/\b(?:it|test|describe|context)(?:\.describe)?\.only\s*\(/, /\b(?:fit|fdescribe)\s*\(/];
-  const DEBUGGER_JS = /^\s*debugger\s*;?\s*$/m;
-  const BREAKPOINT_PY = /^\s*(?:breakpoint\s*\(\s*\)|(?:i?pdb)\.set_trace\s*\(\s*\))/m;
+  /* Since 0.1.121: .only.each (Jest); fit / fdescribe only as a call with a title, not a method (model.fit(data)); a
+     debugger statement or a pdb call after ";", ")" or "{" on its line too (`import pdb; pdb.set_trace()`). */
+  const FOCUS_JS = [/\b(?:it|test|describe|context)(?:\.describe)?\.only(?:\.each)?\s*[(`]/, /(?<![.\w$])(?:fit|fdescribe)\s*\(\s*['"`]/];
+  const DEBUGGER_JS = /(?<=^|[;{})])\s*debugger\s*(?:;|$)/m;
+  const BREAKPOINT_PY = /(?<=^|;)\s*(?:breakpoint\s*\(\s*\)|(?:i?pdb)\.set_trace\s*\(\s*\))/m;
   /* A fixed delay: a call whose argument is a number or, since 0.1.121, a named constant (DELAY, Timeouts.SHORT,
      config.WAIT_MS), since the rule is "no sleep with a constant". A lowercase variable is left alone: a polling helper,
      the way the rule says to wait, sleeps for its interval. `num` is how a number has to start (setTimeout and cy.wait
@@ -143,7 +145,7 @@
       test_dirs: ["tests", "test"],
       checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover", "config_weakened"],
       sleep_patterns: [delayCall(String.raw`\btime\.sleep`, String.raw`[\d.]`), delayCall(String.raw`\basyncio\.sleep`, String.raw`[\d.]`)],
-      debug_patterns: { breakpoint: BREAKPOINT_PY },
+      debug_patterns: { pause: /\bpage\.pause\s*\(/, breakpoint: BREAKPOINT_PY }, // Playwright for Python too (0.1.121)
       // pytest-rerunfailures: reruns=N in a marker, --reruns N on a command line (not the word in a docstring, 0.1.121)
       skip_patterns: [/mark\.skip/, /\breruns\s*=\s*[1-9]/, /--reruns(?:\s+|=)[1-9]/, /@flaky/, /\bretry\s*=/],
       weak_assert_patterns: [
