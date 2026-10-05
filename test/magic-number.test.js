@@ -1,11 +1,9 @@
 "use strict";
 /* magic_number: a number on an assertion line inside a test, one low finding per test that lists up to four numbers.
    What must not count: 0, 1, 2, 100 and the common HTTP status codes, a number between -1 and 1, a number outside an
-   assertion or inside a name, an assertion line with a comment that explains the number, a commented-out assertion,
-   and the profiles without assertion patterns (qa-robot, qa-generic).
-   Not pinned here (a detector bug, to be fixed in its own pull request): a line with "#" or "//" anywhere is skipped as
-   if it had a comment, so a CSS id selector (`page.locator("#total")`) or a URL (`toHaveURL("https://…?page=7")`)
-   hides every number on that assertion line. */
+   assertion or inside a name, an assertion line with a comment that explains the number, a commented-out assertion
+   (also inside a block comment), and the profiles without assertion patterns (qa-robot, qa-generic). Until 0.1.120 a
+   "#" or "//" anywhere on the line counted as a comment, so a CSS id selector or a URL hid the numbers on that line. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -84,6 +82,28 @@ test("not reported: a comment that explains the number, and a commented-out asse
   assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw("  // the old total\n  expect(total).toBe(1499);\n")]]), [
     msg("e2e/cart.spec.ts", "cart total", "1499"),
   ]);
+});
+
+test("a # or // inside a string is not a comment: a CSS id, a URL, a hash in Python (0.1.120)", () => {
+  assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw('  await expect(page.locator("#total")).toHaveText("42");\n')]]), [
+    msg("e2e/cart.spec.ts", "cart total", "42"),
+  ]);
+  assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw("  await expect(page).toHaveURL('https://shop.test/cart?page=7');\n")]]), [
+    msg("e2e/cart.spec.ts", "cart total", "7"),
+  ]);
+  assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw("  expect(this.#count).toBe(12);\n")]]), [msg("e2e/cart.spec.ts", "cart total", "12")]);
+  assert.deepEqual(found("qa-python", [["write", "tests/test_cart.py", 'def test_badge():\n    assert badge.text == "#3 of 15"\n']]), [
+    msg("tests/test_cart.py", "test_badge", "3, 15"),
+  ]);
+  assert.deepEqual(
+    found("qa-ts", [["write", "e2e/cart.spec.ts", pw('  await expect(page.locator("#total")).toHaveText("42"); // 42 = 6 × 7, spec 3.2\n')]]),
+    [],
+  );
+});
+
+test("a commented-out assertion inside a block comment does not count (0.1.120)", () => {
+  assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw("  /*\n   * expect(total).toBe(1499);\n   */\n  expect(total).toBe(PRICE);\n")]]), []);
+  assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", pw("  expect(total).toBe(1499); /* cents */\n")]]), []);
 });
 
 test("a number an Edit puts into an assertion is reported; the same number in later versions only once", () => {
