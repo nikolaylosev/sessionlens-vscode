@@ -5,10 +5,8 @@
    config_weakened), retries: 0, and the same sleep again in a later version of the file. Commented-out code: see
    commented-out-code.test.js (fixed in 0.1.121).
 
-   Detector bugs found while writing this file (5 Oct 2026), not pinned here, to be fixed in a PR of their own after the
-   owner decides:
-   - product code counts as a test: src/debounce.ts with `setTimeout(fn, 1000)` gives "fixed delay (sleep) in a test";
-   - qa-python's `\breruns\b` matches the word in a docstring ("No reruns here.") and gives a high "retry".
+   Product code is left alone (a delay there is the product's own) and pytest's reruns count only with a number above
+   0, not as a word in a docstring: both were found while writing this file and fixed in 0.1.121.
    Open question, not a bug: `page.waitForTimeout(DELAY)` with a named constant is not reported (the pattern wants a
    number), although the rule says "no sleep with a constant". */
 const test = require("node:test");
@@ -73,6 +71,26 @@ test("not reported: a delay under 100 ms, a wait on a route alias, retries in a 
   assert.deepEqual(found("qa-cypress", write("cypress/e2e/cart.cy.ts", 'it("total", () => {\n  cy.wait("@getCart");\n});\n')), []);
   assert.deepEqual(found("qa-ts", write("playwright.config.ts", "export default { retries: 2 };\n")), [], "config_weakened's case");
   assert.deepEqual(found("qa-ts", write(F, "test.describe.configure({ retries: 0 });\n")), []);
+});
+
+test("not reported: a delay or a retry in product code; reported: test-side code under src", () => {
+  assert.deepEqual(found("qa-ts", write("src/debounce.ts", "export const later = (fn) => setTimeout(fn, 1000);\n")), []);
+  assert.deepEqual(found("qa-ts", write("src/http.ts", "export const client = create({ retries: 3 });\n")), []);
+  assert.deepEqual(found("qa-java", write("src/main/java/shop/Poller.java", "class Poller { void run() throws Exception { Thread.sleep(500); } }\n")), []);
+  assert.deepEqual(found("qa-ts", write("src/pages/cart.page.ts", "export const open = async (page) => page.waitForTimeout(1000);\n")), [
+    "1 high sleep: src/pages/cart.page.ts: fixed delay (sleep) in a test",
+  ]);
+});
+
+test("pytest reruns: a number above 0 in a marker or on a command line, not the word", () => {
+  const retry = ["1 high retry: tests/test_cart.py: skip / retry added"];
+  assert.deepEqual(found("qa-python", write("tests/test_cart.py", "@pytest.mark.flaky(reruns=3)\ndef test_total():\n    pass\n")), retry);
+  assert.deepEqual(found("qa-python", write("tests/run_suite.py", "args = ['pytest', '--reruns 2']\n")), [
+    "1 high retry: tests/run_suite.py: skip / retry added",
+  ]);
+  assert.deepEqual(found("qa-python", write("tests/test_cart.py", 'def test_total():\n    """No reruns here."""\n')), []);
+  assert.deepEqual(found("qa-python", write("tests/test_cart.py", "@pytest.mark.flaky(reruns=0)\ndef test_total():\n    pass\n")), []);
+  assert.deepEqual(found("qa-api", write("tests/test_api.py", 'def test_status():\n    """No reruns here."""\n')), []);
 });
 
 test("one finding per file: a later edit that keeps the same sleep does not report it again", () => {

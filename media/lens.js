@@ -137,7 +137,8 @@
       checks: [...METHOD, ...PROCESS, ...CODE, "debug_leftover", "config_weakened"],
       sleep_patterns: [/\btime\.sleep\s*\(\s*[\d.]+/, /\basyncio\.sleep\s*\(\s*[\d.]+/],
       debug_patterns: { breakpoint: BREAKPOINT_PY },
-      skip_patterns: [/mark\.skip/, /\breruns\b/, /@flaky/, /\bretry\s*=/],
+      // pytest-rerunfailures: reruns=N in a marker, --reruns N on a command line (not the word in a docstring, 0.1.121)
+      skip_patterns: [/mark\.skip/, /\breruns\s*=\s*[1-9]/, /--reruns(?:\s+|=)[1-9]/, /@flaky/, /\bretry\s*=/],
       weak_assert_patterns: [
         /assert\s+[^\n]+?\.status_code\s*(?:<|<=|!=)\s*\d+/g,
         /assert\s+True\b/g,
@@ -235,7 +236,8 @@
       debug_patterns: { pause: /\bpage\.pause\s*\(/, debugger: DEBUGGER_JS, breakpoint: BREAKPOINT_PY },
       skip_patterns: [
         /mark\.skip/,
-        /\breruns\b/,
+        /\breruns\s*=\s*[1-9]/,
+        /--reruns(?:\s+|=)[1-9]/,
         /@flaky/,
         /\bretry\s*=/,
         /@Disabled/,
@@ -1511,6 +1513,17 @@
   // test-side code that is not a test: fixtures, helpers, page objects, mocks, support files (and conftest.py)
   const TEST_SIDE_RX =
     /(?:^|\/)(?:__tests__|__mocks__|tests?|e2e|specs?|fixtures?|support|mocks?|testing|test-?utils|page-?objects?|pages)\/|(?:^|\/)conftest\.py$/i;
+  /* Product code: a code file under the profile's src_dirs that is not test-side code (a test, a fixture, a page object,
+     a runner config). product_code_edited reports an edit of it; sleep_or_skip_added leaves it alone, since a delay or a
+     retry there belongs to the product, not to a test (0.1.121). */
+  const productFile = (f, cfg) =>
+    !!f &&
+    isCode(f, cfg) &&
+    underDir(f, cfg.src_dirs) &&
+    !underDir(f, cfg.test_dirs) &&
+    !TEST_FILE_RX.test(f) &&
+    !TEST_SIDE_RX.test(f) &&
+    !RUNNER_CONFIG_RX.test(f);
   function phases(ev) {
     const first = (k) => {
       const e = ev.find((x) => k.includes(x.kind));
@@ -1704,7 +1717,8 @@
     sleep_or_skip_added(ev, cfg) {
       const out = [];
       for (const e of ev) {
-        if (!e.new_content || isRunnerConfig(e.file)) continue; // retries in a runner config: config_weakened
+        // retries in a runner config: config_weakened; a delay or a retry in product code is the product's own
+        if (!e.new_content || isRunnerConfig(e.file) || productFile(e.file, cfg)) continue;
         // kind (every SUPERSEDES check has one): what LensLint.merge() compares with what the profile's engine looks for
         const code = codeOf(e);
         if (cfg.sleep_patterns.some((r) => r.test(code)))
@@ -1809,14 +1823,7 @@
     product_code_edited(ev, cfg) {
       const p = planSeq(ev, cfg);
       const planned = approvalSeq(ev, p) != null ? plannedFiles(ev, p, cfg) : new Set();
-      const product = (f) =>
-        isCode(f, cfg) &&
-        underDir(f, cfg.src_dirs) &&
-        !underDir(f, cfg.test_dirs) &&
-        !TEST_FILE_RX.test(f) &&
-        !TEST_SIDE_RX.test(f) &&
-        !RUNNER_CONFIG_RX.test(f) &&
-        !inPlan(f, planned);
+      const product = (f) => productFile(f, cfg) && !inPlan(f, planned);
       const byFile = {};
       for (const e of ev) if (["write", "edit"].includes(e.kind) && e.file && product(e.file)) (byFile[e.file] = byFile[e.file] || []).push(e);
       // one finding per file: its first edit right after a red run if there is one, else its first edit
