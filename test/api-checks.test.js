@@ -1,6 +1,7 @@
 "use strict";
 /* API regex checks on qa-api: status_only_assert, mocked_service, no_negative_cases, test_data_no_cleanup,
-   response_time_assert. What must not count is next to each case. */
+   response_time_assert. What must not count is next to each case. A commented-out assertion is not an assertion: until
+   0.1.120 it hid a status-only test and counted as a negative case. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -29,6 +30,22 @@ test("status_only_assert: every assertion is the HTTP status", () => {
     ),
     [],
   );
+});
+
+test("a commented-out assertion does not count: status_only_assert and no_negative_cases (0.1.120)", () => {
+  assert.deepEqual(
+    found(
+      "tests/orders.spec.ts",
+      "it('creates an order', async () => {\n  const r = await request.post('/orders');\n  expect(r.status).toBe(201);\n  // expect(r.body.id).toBeTruthy();\n});\n",
+      "status_only_assert",
+    ),
+    ["medium: tests/orders.spec.ts: creates an order — asserts only the status code; the body, headers and schema are not checked"],
+  );
+  const negOut =
+    "it('creates', async () => {\n  expect(r.status).toBe(201);\n});\nit('checks a token', async () => {\n  expect(r.status).toBe(200);\n  // expect(r.status).toBe(401);\n});\n";
+  assert.deepEqual(found("tests/orders.spec.ts", negOut, "no_negative_cases"), [
+    "medium: 2 API test(s) written, none checks an error response (401/403/404/400/422) — only the happy path is covered",
+  ]);
 });
 
 test("mocked_service: nock / jest.mock of an HTTP client", () => {

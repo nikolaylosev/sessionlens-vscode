@@ -551,9 +551,14 @@
     });
     return out;
   }
+  /* An assertion line of the profile that is not a comment line (//, #, /* or * inside a block). A commented-out
+     assertion never runs: until 0.1.120 it still counted, so commenting one out was not "fewer assertions". */
+  function isAssertLine(ln, cfg) {
+    return !/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && cfg.assert_line_patterns.some((p) => p.test(ln));
+  }
   function compareAsserts(oldSrc, newSrc, cfg) {
     if (!cfg.assert_line_patterns) return null;
-    const isA = (ln) => cfg.assert_line_patterns.some((p) => p.test(ln));
+    const isA = (ln) => isAssertLine(ln, cfg);
     const asserts = (t) =>
       t
         .split("\n")
@@ -1697,9 +1702,7 @@
         for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
           const at = body.indexOf(".then()"),
             scope = at >= 0 ? body.slice(at) : body;
-          const as = scope
-            .split("\n")
-            .filter((l) => cfg.assert_line_patterns.some((p) => p.test(l)) || (at >= 0 && /^\s*\.(?:header|headers|contentType|time|cookie)\s*\(/.test(l)));
+          const as = scope.split("\n").filter((l) => isAssertLine(l, cfg) || (at >= 0 && /^\s*\.(?:header|headers|contentType|time|cookie)\s*\(/.test(l)));
           if (as.length && as.every(isStatusLine))
             out.push(F("status_only_assert", "medium", e.seq, T("status_only", { file: e.file || inMsg(), test: name })));
         }
@@ -1789,11 +1792,7 @@
           if (seen.has(k)) continue;
           seen.add(k);
           last = Math.max(last, e.seq);
-          if (
-            NEG_NAME.test(name) ||
-            body.split("\n").some((l) => cfg.assert_line_patterns.some((p) => p.test(l)) && NEG_CODE.test(l) && !/[<>]=?\s*\d{3}/.test(l))
-          )
-            neg++;
+          if (NEG_NAME.test(name) || body.split("\n").some((l) => isAssertLine(l, cfg) && NEG_CODE.test(l) && !/[<>]=?\s*\d{3}/.test(l))) neg++;
         }
       return seen.size >= 2 && neg === 0 ? [F("no_negative_cases", "medium", last, T("no_negative", { n: seen.size }))] : [];
     },
@@ -1899,7 +1898,7 @@
       for (const e of ev) {
         if (!e.new_content || !cfg.assert_line_patterns) continue;
         for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
-          const as = body.split("\n").filter((l) => cfg.assert_line_patterns.some((p) => p.test(l)));
+          const as = body.split("\n").filter((l) => isAssertLine(l, cfg));
           const withMsg = as.filter((l) => (cfg.language === "python" ? /,\s*(?:f?["'])/.test(l) : /assert\w+\s*\("[^"]*",/.test(l))).length;
           if (as.length >= 3 && withMsg === 0)
             out.push(F("assertion_roulette", "low", e.seq, T("roulette", { file: e.file || inMsg(), test: name, n: as.length })));
@@ -1932,7 +1931,7 @@
           const seen = new Map();
           for (const l of body.split("\n")) {
             const t = l.trim();
-            if (!cfg.assert_line_patterns.some((p) => p.test(t))) continue;
+            if (!isAssertLine(t, cfg)) continue;
             seen.set(t, (seen.get(t) || 0) + 1);
           }
           const dup = [...seen].filter(([, n]) => n > 1);
