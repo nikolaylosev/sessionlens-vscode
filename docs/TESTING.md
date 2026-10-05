@@ -142,6 +142,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, or the same request twice; a long paste and two different requests do not count. |
 | `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |
+| `magic-number.test.js` | `magic_number`: a number on an assertion line, one finding per test listing up to four numbers, in TypeScript, Python, Java, C# and Cypress. 0, 1, 2, 100, HTTP status codes, numbers between -1 and 1, a number outside an assertion or inside a name, a comment on the line and a commented-out assertion do not count. |
 | `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, and TypeScript do not count. |
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. |
 | `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; the x/y form of a gesture in each client (0.1.119); accessibility id, `quit()` / `afterEach`, a tap on an element, single-digit arguments, `clickRow(15, 30)` and x/y outside a gesture do not count. |
@@ -374,8 +375,8 @@ request.
 ### 10.1 Detectors without a file of their own
 
 Every check name appears in some test file, and `rules-consistency.test.js` fails when a new one does not. The checks
-below have no test file of their own that says in one place what counts and what does not; most have real cases in
-other files, and `magic_number` has none. A pull request that gives one of them its own file removes its row.
+below have no test file of their own that says in one place what counts and what does not; they have real cases in
+other files. A pull request that gives one of them its own file removes its row.
 
 | Check | Where it is covered now |
 |---|---|
@@ -383,7 +384,6 @@ other files, and `magic_number` has none. A pull request that gives one of them 
 | `fragile_wait` | `supersedes.test.js`, `rule-mapping.test.js`, the lint snapshot |
 | `expected_failure` | Two cases in `rule-mapping.test.js`, one must-not case in `config-weakened.test.js` |
 | `focused_test`, `debug_leftover` | `supersedes.test.js`, `rule-mapping.test.js` |
-| `magic_number` | None on a transcript: every test that names it builds the finding by hand |
 | `conditional_logic` | `supersedes.test.js`, the lint snapshot, `calibration-loop.test.js` |
 | `duplicate_assert` | `calibration-loop.test.js` only |
 | `raw_locator`, `no_assertion_after_action` | The lint snapshot, `rule-mapping.test.js`; `raw_locator` also demo count |
