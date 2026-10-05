@@ -159,7 +159,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. A commented-out assertion neither hides a status-only test nor counts as a negative case (0.1.120). |
 | `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; the x/y form of a gesture in each client (0.1.119); accessibility id, `quit()` / `afterEach`, a tap on an element, single-digit arguments, `clickRow(15, 30)` and x/y outside a gesture do not count. |
 | `gherkin-checks.test.js` | `outline_no_examples`, `bloated_background`, `duplicate_step_text`; `scenario_no_then` stays in `finding-pipeline.test.js`. |
-| `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`, `lint_valid_title`, and the Playwright and Cypress rules mapped to `weak_assert`, with severity and message. |
+| `lint-mapped-checks.test.js` | Engine-only checks with the real engines: `positional_locator`, `no_app_reset`, `unannotated_test_method`, `swallowed_exception`, `assert_args_reversed`, `lint_valid_title`, `raw_locator`, `no_assertion_after_action` (Playwright, Detox, Java, C#, Robot), `cypress_async_test`, `empty_test_case`, and the Playwright and Cypress rules mapped to `weak_assert`, with severity and message. |
 | `ai-categories.test.js` | `parseFindings` maps every review category to `ai_<name>` and an unknown name to `ai_other`. |
 | `spec-extract.test.js` | Which tests the specification coverage finds, for every visible profile and every file extension it declares: Kotlin names in backticks, Robot documentation links, comments above a test, `describe` and hooks that are not tests, `test.skip` after a test. |
 | `profile-info.test.js` | `Lens.profileInfo()` for every profile (snapshot), its agreement with the structures it comes from, and the "What this profile checks" block in the panel. |
@@ -395,8 +395,5 @@ other files. A pull request that gives one of them its own file removes its row.
 
 | Check | Where it is covered now |
 |---|---|
-| `raw_locator`, `no_assertion_after_action` | The lint snapshot, `rule-mapping.test.js`; `raw_locator` also demo count |
-| `empty_test_case` | One Robot case in `finding-pipeline.test.js`, the lint snapshot |
-| `cypress_async_test` | One case in `rule-mapping.test.js` |
 | `scenario_no_then` | One case in `finding-pipeline.test.js` |
 | `no_spec`, `spec_uncovered` | `no_spec`: one case in `finding-pipeline.test.js`. `spec_uncovered`: `spec-extract.test.js` (names only), demo count. Both are facts that calibration never hides, so they come last. |
