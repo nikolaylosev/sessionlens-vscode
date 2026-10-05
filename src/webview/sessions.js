@@ -123,15 +123,16 @@ export async function pickAndImport() {
   ]);
   if (source === null) return; // the dialog's own Cancel button
   const r = await window.__slPickTranscript({ source: source === "other" ? undefined : source });
-  if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""));
+  if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
 }
 
 /* A file name like 53c39a7e-61e5-… says nothing three days later, so the import stops to ask for a name.
      The suggestion is the task id found in the session when there is one, otherwise the file name. */
-export function askName(text, fallback) {
+// cursorOutputs: the command output the host found in Cursor's database for a Cursor transcript (0.1.121)
+export function askName(text, fallback, cursorOutputs) {
   const guess = Lens.guessTask(text.slice(0, 200000));
   const uuidish = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(fallback) || /^[0-9a-f]{12,}$/i.test(fallback);
-  pendingImport = { text, fallback };
+  pendingImport = { text, fallback, cursorOutputs };
   $("#name-input").value = guess || (uuidish ? "" : fallback);
   $("#name-hint").textContent = T("name_from_file", { f: fallback.slice(0, 40) });
   $("#name-row").hidden = false;
@@ -141,10 +142,10 @@ export function askName(text, fallback) {
 
 export function confirmName() {
   if (!pendingImport) return;
-  const { text, fallback } = pendingImport;
+  const { text, fallback, cursorOutputs } = pendingImport;
   pendingImport = null;
   $("#name-row").hidden = true;
-  importText(text, $("#name-input").value.trim() || fallback);
+  importText(text, $("#name-input").value.trim() || fallback, cursorOutputs);
 }
 
 export function readFile(f, cb) {
@@ -153,9 +154,16 @@ export function readFile(f, cb) {
   r.readAsText(f);
 }
 
-export async function importText(text, name) {
+/* What a session keeps of a Cursor chat's command output: the end of each (a runner's summary is there), so the
+   stored session does not grow by the full output of every command. */
+export function keptOutputs(outputs) {
+  if (!Array.isArray(outputs) || !outputs.length) return undefined;
+  return outputs.map((o) => ({ command: o.command, output: String(o.output || "").slice(-20000), exitCode: o.exitCode }));
+}
+
+export async function importText(text, name, cursorOutputs) {
   const cfg = Lens.profile(state.settings.profile);
-  const res = Lens.importAny(text, cfg);
+  const res = Lens.importAny(text, cfg, { cursorOutputs });
   const convs = Array.isArray(res) && res.length && res[0].events ? res : [{ name, events: res }];
   if (!convs.length || !convs[0].events.length) {
     await alertDialog(T("no_events"));
@@ -182,6 +190,8 @@ export async function importText(text, name) {
       spec: "",
       dropped: [],
       source_text: text.length < 400000 ? text : "",
+      // kept with the text, so Back to regex parsing and Import again parse it the same way
+      source_outputs: text.length < 400000 ? keptOutputs(cursorOutputs) : undefined,
       seg: null,
       importGen: Lens.IMPORT_GEN,
     };

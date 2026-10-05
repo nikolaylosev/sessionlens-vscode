@@ -14,10 +14,13 @@
   `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI (pick it with
   **Choose file** → somewhere else). Writes, edits (`StrReplace`), deleted files, reads, searches and test runs
   (`Shell`) become the same steps as in a Claude Code session, with Cursor's tool names, and the session starts at the
-  time of the first request. Before, such a file gave an empty session. These files do not keep the output of
-  commands, so a test run's result is unknown: **Claims tests pass** is not raised after it, and the checks that need a
-  red run (**Fix after a failure without triage**, high severity right after a red run) do not see one yet. Cloud
-  Agent runs leave no file on your machine.
+  time of the first request. Before, such a file gave an empty session. The file itself keeps no command output, so
+  when you pick it with **Choose file**, SessionLens reads the output of the agent's commands from Cursor's own
+  databases on your machine (`~/.cursor/chats/…/store.db` for the CLI, Cursor's `state.vscdb` for the IDE), read-only.
+  Test runs then have their passed and failed counts, and the checks that need them work as for Claude Code (for
+  example **Fix after a failure without triage**). Where there is no output (a file dropped or pasted, a VS Code
+  without `node:sqlite`, a chat Cursor no longer has), a run's result is unknown and **Claims tests pass** is not
+  raised after it. Cloud Agent runs leave no file on your machine.
 
 ## 0.1.120
 

@@ -73,7 +73,7 @@ function fakeVscode(opts = {}) {
       String(bundle[message] !== undefined ? bundle[message] : message).replace(/\{(\d+)\}/g, (m, i) => (args[i] !== undefined ? String(args[i]) : m)),
   };
   const Uri = {
-    file: (p) => ({ fsPath: p, toString: () => "file://" + p }),
+    file: (p) => ({ scheme: "file", fsPath: p, toString: () => "file://" + p }),
     joinPath: (base, ...parts) => {
       const p = path.join(base.fsPath, ...parts);
       return { fsPath: p, toString: () => "file://" + p };
@@ -177,6 +177,7 @@ function fakeVscode(opts = {}) {
         writeFile: async (u, buf) => {
           calls.writes.push({ path: u.fsPath, content: Buffer.from(buf).toString("utf8") });
         },
+        readFile: async (u) => fs.readFileSync(u.fsPath), // a transcript picked in open:transcript
       },
       // settings: { global: {key: value}, workspace: {key: value} }; get() follows VS Code: a machine-scoped
       // setting ignores workspace values (the fake applies that to every key in `machineScoped`)

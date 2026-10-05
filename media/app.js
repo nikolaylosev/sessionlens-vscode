@@ -1521,12 +1521,12 @@ ${en.raw}`).join("\n\n\n");
     ]);
     if (source === null) return;
     const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
-    if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""));
+    if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
   }
-  function askName(text, fallback) {
+  function askName(text, fallback, cursorOutputs) {
     const guess = Lens.guessTask(text.slice(0, 2e5));
     const uuidish = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(fallback) || /^[0-9a-f]{12,}$/i.test(fallback);
-    pendingImport = { text, fallback };
+    pendingImport = { text, fallback, cursorOutputs };
     $("#name-input").value = guess || (uuidish ? "" : fallback);
     $("#name-hint").textContent = T("name_from_file", { f: fallback.slice(0, 40) });
     $("#name-row").hidden = false;
@@ -1535,19 +1535,23 @@ ${en.raw}`).join("\n\n\n");
   }
   function confirmName() {
     if (!pendingImport) return;
-    const { text, fallback } = pendingImport;
+    const { text, fallback, cursorOutputs } = pendingImport;
     pendingImport = null;
     $("#name-row").hidden = true;
-    importText(text, $("#name-input").value.trim() || fallback);
+    importText(text, $("#name-input").value.trim() || fallback, cursorOutputs);
   }
   function readFile(f, cb) {
     const r = new FileReader();
     r.onload = () => cb(r.result, f.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""));
     r.readAsText(f);
   }
-  async function importText(text, name) {
+  function keptOutputs(outputs) {
+    if (!Array.isArray(outputs) || !outputs.length) return void 0;
+    return outputs.map((o) => ({ command: o.command, output: String(o.output || "").slice(-2e4), exitCode: o.exitCode }));
+  }
+  async function importText(text, name, cursorOutputs) {
     const cfg = Lens.profile(state.settings.profile);
-    const res = Lens.importAny(text, cfg);
+    const res = Lens.importAny(text, cfg, { cursorOutputs });
     const convs = Array.isArray(res) && res.length && res[0].events ? res : [{ name, events: res }];
     if (!convs.length || !convs[0].events.length) {
       await alertDialog(T("no_events"));
@@ -1574,6 +1578,8 @@ ${en.raw}`).join("\n\n\n");
         spec: "",
         dropped: [],
         source_text: text.length < 4e5 ? text : "",
+        // kept with the text, so Back to regex parsing and Import again parse it the same way
+        source_outputs: text.length < 4e5 ? keptOutputs(cursorOutputs) : void 0,
         seg: null,
         importGen: Lens.IMPORT_GEN
       };
@@ -1762,7 +1768,7 @@ ${en.raw}`).join("\n\n\n");
       await needEngine(s.profile);
       await updateSession(state.current, (x) => {
         const cfg = Lens.profile(x.profile);
-        x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg)) || x.events;
+        x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, { cursorOutputs: x.source_outputs })) || x.events;
         x.seg = null;
         x.importGen = Lens.IMPORT_GEN;
         analyze(x);
@@ -1841,7 +1847,7 @@ ${en.raw}`).join("\n\n\n");
   async function reimport() {
     const sid = state.current, s = curS();
     if (!s) return;
-    let text = s.source_text;
+    let text = s.source_text, cursorOutputs = s.source_outputs;
     if (!text) {
       const source = await chooseDialog(T("reimport_pick"), [
         { label: T("pick_source_claude"), value: "claude", primary: true },
@@ -1852,9 +1858,10 @@ ${en.raw}`).join("\n\n\n");
       const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
       if (!r || typeof r.text !== "string") return;
       text = r.text;
+      cursorOutputs = r.cursorOutputs;
     }
     const cfg = Lens.profile(s.profile);
-    const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg));
+    const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs }));
     if (!events) {
       await alertDialog(T("no_events"));
       return;
@@ -1874,7 +1881,10 @@ ${en.raw}`).join("\n\n\n");
       x.seg = null;
       x.seg_error = null;
       x.seg_raw = null;
-      if (!x.source_text && text.length < 4e5) x.source_text = text;
+      if (!x.source_text && text.length < 4e5) {
+        x.source_text = text;
+        x.source_outputs = keptOutputs(cursorOutputs);
+      }
       x.importGen = Lens.IMPORT_GEN;
       analyze(x, "import");
     });
