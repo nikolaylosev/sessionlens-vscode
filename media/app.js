@@ -1527,8 +1527,16 @@ ${en.raw}`).join("\n\n\n");
       { label: T("pick_source_other"), value: "other" }
     ]);
     if (source === null) return;
+    const r = await pickTranscript(source);
+    if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+  }
+  async function pickTranscript(source) {
     const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
-    if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+    if (r && r.error) {
+      await alertDialog(T("pick_failed", { e: r.error }));
+      return null;
+    }
+    return r && typeof r.text === "string" ? r : null;
   }
   function askName(text, fallback, cursorOutputs) {
     const guess = Lens.guessTask(text.slice(0, 2e5));
@@ -1863,8 +1871,8 @@ ${en.raw}`).join("\n\n\n");
         { label: T("pick_source_other"), value: "other" }
       ]);
       if (source === null) return;
-      const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
-      if (!r || typeof r.text !== "string") return;
+      const r = await pickTranscript(source);
+      if (!r) return;
       text = r.text;
       cursorOutputs = r.cursorOutputs;
     }

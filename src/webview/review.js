@@ -4,7 +4,7 @@
 import { $, LABEL, SEV, T, VCOL, VLABEL, esc, fkey, srcLabel, state } from "./common.js";
 import { curS, needEngine, profileVerdicts, updateSession } from "./store.js";
 import { analyze, analyzeNow } from "./analysis.js";
-import { keptOutputs, piDeps, profileSummary, readFile } from "./sessions.js";
+import { keptOutputs, pickTranscript, piDeps, profileSummary, readFile } from "./sessions.js";
 import { download } from "./calibration.js";
 
 export function initReview() {
@@ -216,8 +216,8 @@ export async function reimport() {
       { label: T("pick_source_other"), value: "other" },
     ]);
     if (source === null) return;
-    const r = await window.__slPickTranscript({ source: source === "other" ? undefined : source });
-    if (!r || typeof r.text !== "string") return;
+    const r = await pickTranscript(source);
+    if (!r) return;
     text = r.text;
     cursorOutputs = r.cursorOutputs;
   }

@@ -123,8 +123,20 @@ export async function pickAndImport() {
     { label: T("pick_source_other"), value: "other" },
   ]);
   if (source === null) return; // the dialog's own Cancel button
+  const r = await pickTranscript(source);
+  if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+}
+
+/* The host's file dialog for `source` (claude | codex | cursor | other). → { name, text, cursorOutputs } or null when
+   the person cancelled. A host that refuses or fails says so in a dialog instead of nothing happening: a host older
+   than this page (a .vsix installed without reloading the window) refuses a source it does not know. */
+export async function pickTranscript(source) {
   const r = await window.__slPickTranscript({ source: source === "other" ? undefined : source });
-  if (r && typeof r.text === "string") askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+  if (r && r.error) {
+    await alertDialog(T("pick_failed", { e: r.error }));
+    return null;
+  }
+  return r && typeof r.text === "string" ? r : null;
 }
 
 /* A file name like 53c39a7e-61e5-… says nothing three days later, so the import stops to ask for a name.
