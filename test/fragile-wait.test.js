@@ -2,11 +2,9 @@
 /* fragile_wait (regex side; ESLint's playwright, cypress and detox rules replace it where they run, see supersedes.test.js):
    `waitUntil: 'networkidle'` in written code, medium, kind networkidle, and an exact element count read with
    `.count()` and compared with `.toBe(n)`, low, kind count. What must not count: another waitUntil value, and a count
-   compared with toBeGreaterThan.
+   compared with toBeGreaterThan. Commented-out code: see commented-out-code.test.js (fixed in 0.1.121).
 
    Detector gaps found while writing this file (5 Oct 2026), not pinned here, for the owner to decide:
-   - commented-out code counts: `// await page.goto("/", { waitUntil: "networkidle" })` gives a medium finding (the
-     same mistake duplicate_assert and weak_assert had before 0.1.120);
    - `page.waitForLoadState("networkidle")`, the other way to wait for network idle, is not reported;
    - qa-python has the check but no pattern for Python: `page.goto("/", wait_until="networkidle")` is not reported, and
      no lint rule maps to fragile_wait for Python;

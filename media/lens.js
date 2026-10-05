@@ -551,6 +551,60 @@
     });
     return out;
   }
+  /* The code of a text with its comments blanked out, line for line, for the checks that look for a pattern anywhere in
+     a file: a commented-out sleep, skip, .only, debugger or mock never runs (until 0.1.121 each still gave a finding).
+     The file's extension says which comments its language has: # in Python, Robot, Gherkin, YAML, shell (where // is
+     floor division, not a comment); // and /* … *\/ in the C-like ones; both for code
+     with no file (in a message). # counts at the start of a line or after a space. Inside a string none of them is one
+     ("#total", "https://…"); a ' or " string ends with its line, so a quote in plain text or a regex literal cannot hide
+     the rest of the file. */
+  const HASH_COMMENTS = /\.(?:py|pyi|robot|resource|feature|ya?ml|sh|rb|toml|ini|cfg|r)$/i;
+  function withoutComments(text, file) {
+    const hash = !file || HASH_COMMENTS.test(file),
+      slash = !file || !HASH_COMMENTS.test(file);
+    let out = "",
+      q = "", // the open string's quote, or "/*" in a block comment, or "//" in a line comment
+      prev = "\n";
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i],
+        n = text[i + 1];
+      if (q === "//") {
+        if (c === "\n") q = "";
+        out += c === "\n" ? c : " ";
+      } else if (q === "/*") {
+        if (c === "*" && n === "/") {
+          q = "";
+          out += "  ";
+          i++;
+        } else out += c === "\n" ? c : " ";
+      } else if (q) {
+        out += c;
+        if (c === "\\" && n !== undefined && n !== "\n") out += text[++i];
+        else if (c === q || (c === "\n" && q !== "`")) q = "";
+      } else if (slash && c === "/" && n === "/") {
+        q = "//";
+        out += " ";
+      } else if (slash && c === "/" && n === "*") {
+        q = "/*";
+        out += "  ";
+        i++;
+      } else if (hash && c === "#" && /\s/.test(prev)) {
+        q = "//";
+        out += " ";
+      } else {
+        if (c === '"' || c === "'" || c === "`") q = c;
+        out += c;
+      }
+      prev = c;
+    }
+    return out;
+  }
+  // an event's new_content without comments, worked out once per event: several checks read it
+  const NO_COMMENTS = new WeakMap();
+  function codeOf(e) {
+    if (!NO_COMMENTS.has(e)) NO_COMMENTS.set(e, withoutComments(e.new_content || "", e.file));
+    return NO_COMMENTS.get(e);
+  }
   /* An assertion line of the profile that is not a comment line (//, #, /* or * inside a block). A commented-out
      assertion never runs: until 0.1.120 it still counted, so commenting one out was not "fewer assertions". */
   function isAssertLine(ln, cfg) {
@@ -1652,9 +1706,10 @@
       for (const e of ev) {
         if (!e.new_content || isRunnerConfig(e.file)) continue; // retries in a runner config: config_weakened
         // kind (every SUPERSEDES check has one): what LensLint.merge() compares with what the profile's engine looks for
-        if (cfg.sleep_patterns.some((r) => r.test(e.new_content)))
+        const code = codeOf(e);
+        if (cfg.sleep_patterns.some((r) => r.test(code)))
           out.push(Object.assign(F("sleep_or_skip_added", "high", e.seq, T("sleep", { file: e.file || inMsg() })), { kind: "sleep" }));
-        const skips = cfg.skip_patterns.filter((r) => r.test(e.new_content));
+        const skips = cfg.skip_patterns.filter((r) => r.test(code));
         if (skips.length)
           out.push(
             Object.assign(F("sleep_or_skip_added", "high", e.seq, T("skip", { file: e.file || inMsg() })), {
@@ -1904,7 +1959,9 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        const ln = e.new_content.split("\n").find((l) => (cfg.focus_patterns || []).some((r) => r.test(l)));
+        const ln = codeOf(e)
+          .split("\n")
+          .find((l) => (cfg.focus_patterns || []).some((r) => r.test(l)));
         if (ln)
           out.push(Object.assign(F("focused_test", "high", e.seq, T("focused", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })), { kind: "only" }));
       }
@@ -1916,7 +1973,7 @@
       for (const e of ev) {
         if (!e.new_content) continue;
         for (const [kind, rx] of Object.entries(cfg.debug_patterns || {})) {
-          const m = e.new_content.match(rx);
+          const m = codeOf(e).match(rx);
           if (m)
             out.push(
               Object.assign(F("debug_leftover", "medium", e.seq, T("debug_leftover", { file: e.file || inMsg(), line: m[0].trim().slice(0, 80) })), { kind }),
@@ -1966,9 +2023,10 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        if (/waitUntil:\s*['"]networkidle['"]/.test(e.new_content))
+        const code = codeOf(e);
+        if (/waitUntil:\s*['"]networkidle['"]/.test(code))
           out.push(Object.assign(F("fragile_wait", "medium", e.seq, T("networkidle", { file: e.file || inMsg() })), { kind: "networkidle" }));
-        if (/\.count\(\)\)\.toBe\(\d+\)/.test(e.new_content))
+        if (/\.count\(\)\)\.toBe\(\d+\)/.test(code))
           out.push(Object.assign(F("fragile_wait", "low", e.seq, T("exact_count", { file: e.file || inMsg() })), { kind: "count" }));
       }
       return out;
@@ -1999,7 +2057,7 @@
       for (const e of ev) {
         if (!e.new_content) continue;
         for (const rx of RX) {
-          const m = e.new_content.match(rx);
+          const m = codeOf(e).match(rx);
           if (m) {
             out.push(F("mocked_service", "medium", e.seq, T("mocked_api", { file: e.file || inMsg(), what: m[0].trim().slice(0, 40) })));
             break;
@@ -2116,7 +2174,9 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        const n = e.new_content.split("\n").filter((l) => RX.test(l)).length;
+        const n = codeOf(e)
+          .split("\n")
+          .filter((l) => RX.test(l)).length;
         if (n) out.push(F("mobile_raw_locator", "low", e.seq, T("mobile_raw_locator_msg", { file: e.file || inMsg(), n })));
       }
       return out;
@@ -2131,7 +2191,9 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        const ln = e.new_content.split("\n").find((l) => CALL.test(l) || (XY.test(l) && GESTURE.test(l)));
+        const ln = codeOf(e)
+          .split("\n")
+          .find((l) => CALL.test(l) || (XY.test(l) && GESTURE.test(l)));
         if (ln)
           out.push(F("hardcoded_coordinates", "medium", e.seq, T("hardcoded_coordinates_msg", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
       }
@@ -2142,7 +2204,7 @@
       const TEARDOWN = /\bdriver\.quit\s*\(\)|\bdriver\.Quit\s*\(\)|\bafterEach\s*\(|\bafter\s*\(|@After(?:Each|Class)?\b|\btearDown\b|\[TearDown\]/i;
       const out = [];
       for (const e of ev) {
-        if (!e.new_content || !CREATE.test(e.new_content) || TEARDOWN.test(e.new_content)) continue;
+        if (!e.new_content || !CREATE.test(codeOf(e)) || TEARDOWN.test(codeOf(e))) continue;
         out.push(F("no_driver_teardown", "medium", e.seq, T("no_driver_teardown_msg", { file: e.file || inMsg() })));
       }
       return out;
@@ -2226,8 +2288,8 @@
       const RX = /\btest\.fail\s*\(|\bxfail\b/;
       const out = [];
       for (const e of ev) {
-        if (!e.new_content || !RX.test(e.new_content)) continue;
-        const n = (e.new_content.match(new RegExp(RX.source, "g")) || []).length;
+        if (!e.new_content || !RX.test(codeOf(e))) continue;
+        const n = (codeOf(e).match(new RegExp(RX.source, "g")) || []).length;
         out.push(F("expected_failure", "medium", e.seq, T("expected_failure", { file: e.file || inMsg(), n })));
       }
       return out;

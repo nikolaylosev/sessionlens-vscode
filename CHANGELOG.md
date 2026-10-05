@@ -40,6 +40,11 @@
   setting `sessionlens.claudeCliPath`" instead of "the VS Code setting", "this editor window is remote".
 
 ### Fixed
+- **Commented-out code no longer gives findings** in the checks that look for a pattern anywhere in a file: a
+  commented-out sleep, skip or retry (**Sleep or skip added**), `networkidle` (**Fragile wait**), `.only`, a debugger
+  call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without
+  teardown never runs. Each of them gave a finding before, often high. Comments are read the way the file's language
+  writes them (`#` in Python, `//` and `/* */` in TypeScript, Java and C#), and `#` or `//` inside a string is code.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
