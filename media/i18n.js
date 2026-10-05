@@ -363,7 +363,7 @@
       key_save_failed: "Could not save the key: {msg}",
       err_timeout: "No reply within {s} s, the request was stopped.",
       err_local_remote:
-        "This VS Code window is remote ({where}): the request to {url} goes out from the remote machine, so localhost there is that machine, not yours.",
+        "This editor window is remote ({where}): the request to {url} goes out from the remote machine, so localhost there is that machine, not yours.",
       model_default: "default {m}",
       local_model_hint: " — this is likely not enough for useful findings; Qwen2.5-Coder-32B (Qwen2.5-32B) or Qwen2.5-72B is the recommended minimum.",
       // ---- html ----
@@ -608,7 +608,7 @@
         "Uses your Claude plan through the Claude Code you already have installed. No API key. A review sends several requests, and all of them count against your plan's usage limits.",
       s_cli_path: "Claude Code command",
       s_cli_hint:
-        "The path is the VS Code setting “sessionlens.claudeCliPath”; empty means “claude” is found automatically. Sign in once in a terminal with “claude auth login”.",
+        "The path is the setting “sessionlens.claudeCliPath”; empty means “claude” is found automatically. Sign in once in a terminal with “claude auth login”.",
       s_cli_open_settings: "Open settings",
       model_hint_cli: "sonnet, opus or haiku always mean the latest model of that family. A full model name also works.",
       cli_check_btn: "Check Claude Code",
@@ -616,7 +616,7 @@
       cli_check_ok: "Claude Code {v} is installed and signed in{who}.",
       cli_check_nologin: "Claude Code {v} is installed but not signed in. Run “claude auth login” in a terminal.",
       cli_check_apikey: "ANTHROPIC_API_KEY is set in your environment, so Claude Code will bill that key instead of your plan.",
-      cli_err_notfound: "Claude Code was not found (“{cmd}”). Install it, or set its full path in the VS Code setting “sessionlens.claudeCliPath”.",
+      cli_err_notfound: "Claude Code was not found (“{cmd}”). Install it, or set its full path in the setting “sessionlens.claudeCliPath”.",
       cli_err_auth: "Claude Code is not signed in. Run “claude auth login” in a terminal and try again.",
       cli_err_limit: "Your Claude usage limit is reached. Wait for it to reset and try again. ({msg})",
       cli_err_overloaded: "Claude is overloaded right now. Try again in a minute.",
@@ -624,18 +624,18 @@
       cli_err_timeout: "Claude Code did not answer in {s} s and was stopped.",
       cli_err_toobig: "The request is too large for Claude Code (over 10 MB). Lower the code limit in Settings.",
       cli_err_failed: "Claude Code failed: {msg}",
-      cli_no_host: "The Claude Code provider works only in the VS Code version of SessionLens.",
+      cli_no_host: "The Claude Code provider works only in the editor extension of SessionLens (VS Code, Cursor).",
       cli_note_codex:
         "Uses your ChatGPT/Codex plan through the Codex CLI you already have installed. No API key. A review sends several requests, and all of them count against your plan's usage limits.",
       s_cli_path_codex: "Codex CLI command",
       s_cli_hint_codex:
-        "The path is the VS Code setting “sessionlens.codexCliPath”; empty means “codex” is found automatically. Sign in once in a terminal with “codex login”.",
+        "The path is the setting “sessionlens.codexCliPath”; empty means “codex” is found automatically. Sign in once in a terminal with “codex login”.",
       model_hint_cli_codex: "Leave empty to use Codex's own default model. A full model name, such as gpt-5.1-codex, also works.",
       cli_check_btn_codex: "Check Codex CLI",
       cli_check_ok_codex: "Codex CLI {v} is installed and signed in{who}.",
       cli_check_nologin_codex: "Codex CLI {v} is installed but not signed in. Run “codex login” in a terminal.",
       cli_check_apikey_codex: "CODEX_API_KEY or OPENAI_API_KEY is set in your environment, so Codex may bill that key instead of your plan.",
-      cli_err_notfound_codex: "Codex CLI was not found (“{cmd}”). Install it, or set its full path in the VS Code setting “sessionlens.codexCliPath”.",
+      cli_err_notfound_codex: "Codex CLI was not found (“{cmd}”). Install it, or set its full path in the setting “sessionlens.codexCliPath”.",
       cli_err_auth_codex: "Codex CLI is not signed in. Run “codex login” in a terminal and try again.",
       cli_err_limit_codex: "Your Codex usage limit is reached. Wait for it to reset and try again. ({msg})",
       cli_err_overloaded_codex: "Codex is overloaded right now. Try again in a minute.",
@@ -643,18 +643,18 @@
       cli_err_timeout_codex: "Codex CLI did not answer in {s} s and was stopped.",
       cli_err_toobig_codex: "The request is too large for Codex CLI (over 10 MB). Lower the code limit in Settings.",
       cli_err_failed_codex: "Codex CLI failed: {msg}",
-      cli_no_host_codex: "The Codex provider works only in the VS Code version of SessionLens.",
+      cli_no_host_codex: "The Codex provider works only in the editor extension of SessionLens (VS Code, Cursor).",
       cli_note_cursor:
         "Uses your Cursor plan through the Cursor Agent CLI you already have installed. No API key. A review sends several requests, and all of them count against your plan's usage limits. Cursor keeps a copy of each request in ~/.cursor; SessionLens deletes it after the answer.",
       s_cli_path_cursor: "Cursor Agent CLI command",
       s_cli_hint_cursor:
-        "The path is the VS Code setting “sessionlens.cursorCliPath”; empty means “agent” in ~/.local/bin is found automatically. Install it with “curl https://cursor.com/install -fsS | bash” and sign in once in a terminal with “agent login”.",
+        "The path is the setting “sessionlens.cursorCliPath”; empty means “agent” in ~/.local/bin is found automatically. Install it with “curl https://cursor.com/install -fsS | bash” and sign in once in a terminal with “agent login”.",
       model_hint_cli_cursor: "Leave empty to use Cursor's own default (auto). A model name from “agent --list-models” also works.",
       cli_check_btn_cursor: "Check Cursor CLI",
       cli_check_ok_cursor: "Cursor CLI {v} is installed and signed in{who}.",
       cli_check_nologin_cursor: "Cursor CLI {v} is installed but not signed in. Run “agent login” in a terminal.",
       cli_check_apikey_cursor: "CURSOR_API_KEY is set in your environment, so Cursor CLI signs in with that key, which may be another account.",
-      cli_err_notfound_cursor: "Cursor CLI was not found (“{cmd}”). Install it, or set its full path in the VS Code setting “sessionlens.cursorCliPath”.",
+      cli_err_notfound_cursor: "Cursor CLI was not found (“{cmd}”). Install it, or set its full path in the setting “sessionlens.cursorCliPath”.",
       cli_err_auth_cursor: "Cursor CLI is not signed in. Run “agent login” in a terminal and try again.",
       cli_err_limit_cursor: "Your Cursor usage limit is reached. Wait for it to reset and try again. ({msg})",
       cli_err_overloaded_cursor: "Cursor is overloaded right now. Try again in a minute.",
@@ -662,7 +662,7 @@
       cli_err_timeout_cursor: "Cursor CLI did not answer in {s} s and was stopped.",
       cli_err_toobig_cursor: "The request is too large for Cursor CLI (over 10 MB). Lower the code limit in Settings.",
       cli_err_failed_cursor: "Cursor CLI failed: {msg}",
-      cli_no_host_cursor: "The Cursor provider works only in the VS Code version of SessionLens.",
+      cli_no_host_cursor: "The Cursor provider works only in the editor extension of SessionLens (VS Code, Cursor).",
       // 0.1.116: what each model call sends, on its button (README, "Your data")
       send_seg: "Sends to the model: the session's steps as numbered lines, up to the code limit in ⚙ Settings, with secrets masked.",
       send_review:
@@ -693,7 +693,7 @@
       cal_raw_clear_confirm: "Delete the saved requests and replies?",
       s_reset_settings: "Reset settings",
       s_reset_settings_sub:
-        "Puts every setting on this page back to its default: theme, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the “Try a demo session” button checkbox. Your sessions, verdicts, rules and prompts are not touched, nor are the Claude Code, Codex and Cursor CLI paths (VS Code settings).",
+        "Puts every setting on this page back to its default: theme, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the “Try a demo session” button checkbox. Your sessions, verdicts, rules and prompts are not touched, nor are the Claude Code, Codex and Cursor CLI paths (editor settings).",
       s_reset_settings_btn: "Reset settings to defaults",
       s_reset_settings_confirm:
         "Reset every setting on this page to its default? Saved API keys, models and per-request models will be removed. Sessions, verdicts, rules and prompts are kept.",

@@ -130,7 +130,7 @@ function describeSession(s) {
   return bits.filter(Boolean).join(" · ");
 }
 const cliMovedText = () =>
-  t("SessionLens: the path to the CLI you entered in the panel is now a VS Code setting (sessionlens.claudeCliPath / sessionlens.codexCliPath).");
+  t("SessionLens: the path to the CLI you entered in the panel is now a setting (sessionlens.claudeCliPath / sessionlens.codexCliPath).");
 
 /* Phase 3: what a webview must not decide on its own. The CLI paths are machine-scoped VS Code settings
    (package.json: a workspace's .vscode/settings.json cannot set them); the address of a local server or of Qwen
