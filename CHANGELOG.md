@@ -60,6 +60,9 @@
 - **Expected failure** finds Jest's `it.failing` / `test.failing`, and counts pytest's xfail only as the marker
   (`@pytest.mark.xfail`) or the call (`pytest.xfail(…)`). The word "xfail" in a docstring or a string gave a finding
   before.
+- **Focused test** no longer takes a method named `fit` (`model.fit(data)`) for Jasmine's focused test, which gave a
+  high finding, and finds Jest's `test.only.each`. **Debugging left in** finds `import pdb; pdb.set_trace()` on one
+  line and `if (x) debugger;`, and in qa-python Playwright's `page.pause()`.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.

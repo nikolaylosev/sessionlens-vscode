@@ -7,12 +7,9 @@
    breakpoint() and pdb / ipdb.set_trace(), medium, one finding per file and kind. Commented out: neither (0.1.121,
    commented-out-code.test.js).
 
-   Detector gaps found while writing this file (5 Oct 2026), not pinned here, for the owner to decide:
-   - focused_test: `\bfit\s*\(` matches any call named fit: `model.fit(data)` or `fit (x)` gives a high "focused test";
-     `test.only.each([…])(…)` (Jest) is not reported;
-   - debug_leftover: `import pdb; pdb.set_trace()` on one line, the usual way to write it, is not reported (the pattern
-     wants the call at the start of a line); nor is `if (x) debugger;`; qa-python has no pattern for Playwright's
-     `page.pause()`. */
+   Since 0.1.121 (gaps found while writing this file): .only.each; fit / fdescribe only as a call with a title, not a
+   method named fit (model.fit(data) gave a high finding); a debugger statement or a pdb call after ";", ")" or "{" on
+   its line (`import pdb; pdb.set_trace()` was missed); Playwright's page.pause() in qa-python. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -49,6 +46,27 @@ test("focused_test: one finding per file, naming the first line", () => {
 test("focused_test: not a method named only, not commented out", () => {
   assert.deepEqual(found("focused_test", "qa-ts", TS, "const first = items.only(1);\n"), []);
   assert.deepEqual(found("focused_test", "qa-ts", TS, '// test.only("total", async () => {});\n'), []);
+});
+
+test("focused_test since 0.1.121: .only.each; fit only with a title, not a method named fit", () => {
+  assert.deepEqual(
+    found("focused_test", "qa-ts", TS, 'test.only.each([1, 2])("total %i", () => {});\n'),
+    only(TS, 'test.only.each([1, 2])("total %i", () => {});'),
+  );
+  assert.deepEqual(found("focused_test", "qa-ts", TS, 'it.only.each`a | b`("x", () => {});\n'), only(TS, 'it.only.each`a | b`("x", () => {});'));
+  assert.deepEqual(found("focused_test", "qa-ts", TS, "const curve = model.fit(data);\n"), []);
+  assert.deepEqual(found("focused_test", "qa-ts", TS, "const curve = fit (points);\n"), []);
+  assert.deepEqual(found("focused_test", "qa-ts", TS, "fit(`total`, () => {});\n"), only(TS, "fit(`total`, () => {});"));
+});
+
+test("debug_leftover since 0.1.121: after ; ) or { on the line, and page.pause() in Python", () => {
+  assert.deepEqual(found("debug_leftover", "qa-python", PY, "def test_total():\n    import pdb; pdb.set_trace()\n"), [
+    debug(PY, "breakpoint", "pdb.set_trace()"),
+  ]);
+  assert.deepEqual(found("debug_leftover", "qa-ts", TS, "  if (total === 0) debugger;\n"), [debug(TS, "debugger", "debugger;")]);
+  assert.deepEqual(found("debug_leftover", "qa-ts", TS, "  page.on('load', () => { debugger; });\n"), [debug(TS, "debugger", "debugger;")]);
+  assert.deepEqual(found("debug_leftover", "qa-python", PY, "def test_total(page):\n    page.pause()\n"), [debug(PY, "pause", "page.pause(")]);
+  assert.deepEqual(found("debug_leftover", "qa-python", PY, "def test_total(cart):\n    cart.breakpoint()\n    debugger.attach()\n"), [], "a method, a name");
 });
 
 test("debug_leftover: Playwright, Cypress, WebdriverIO and a debugger statement, one finding per kind", () => {
