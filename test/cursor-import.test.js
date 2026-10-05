@@ -40,6 +40,20 @@ test("detected by `role` at the top: a file that starts with the user's text giv
   assert.equal(ev[0].ts, "2026-10-04T20:06:00.000Z", "the <timestamp> as ISO; lines have no time of their own");
 });
 
+test("the timestamp's offset is read, whatever the reviewer's time zone; no offset, no time", () => {
+  const ts = (when) =>
+    Lens.importAny(
+      JSON.stringify({ role: "user", message: { content: [{ type: "text", text: `<timestamp>${when}</timestamp>\n<user_query>hi</user_query>` }] } }),
+      cfg,
+    )[0].ts;
+  assert.equal(ts("Monday, Oct 5, 2026, 1:06 AM (UTC+5)"), "2026-10-04T20:06:00.000Z");
+  assert.equal(ts("Sunday, Oct 4, 2026, 11:30 PM (UTC-3)"), "2026-10-05T02:30:00.000Z");
+  assert.equal(ts("Monday, Oct 5, 2026, 12:05 PM (UTC+5:30)"), "2026-10-05T06:35:00.000Z");
+  assert.equal(ts("Monday, Oct 5, 2026, 12:05 AM (UTC)"), "2026-10-05T00:05:00.000Z");
+  assert.equal(ts("Monday, Oct 5, 2026, 14:05 (UTC+2)"), "2026-10-05T12:05:00.000Z", "24-hour clock");
+  assert.equal(ts("Monday, Oct 5, 2026, 1:06 AM"), "", "no offset: the time zone is unknown");
+});
+
 test("a Claude Code or Codex file is not taken for a Cursor one", () => {
   const claude = JSON.stringify({ type: "user", message: { role: "user", content: "Write the tests" } });
   assert.deepEqual(
