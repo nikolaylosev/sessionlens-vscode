@@ -6,8 +6,8 @@
    Since 0.1.121 also the other ways to wait for network idle (waitForLoadState, Python, Java, C#), worded apart from
    the waitUntil finding so its verdicts keep their key, and a wider count pattern (spaces, toEqual, Python's ==): gaps
    found while writing this file.
-   Open question, not a bug: `await expect(rows).toHaveCount(3)` is not reported. It is an exact count too, but it
-   waits for the page, which is what Playwright advises. */
+   Not reported, by the owner's decision (5 Oct 2026): `await expect(rows).toHaveCount(3)`. It is an exact count too,
+   but it waits for the page, which is what Playwright advises. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
