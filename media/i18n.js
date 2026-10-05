@@ -608,7 +608,7 @@
         "Uses your Claude plan through the Claude Code you already have installed. No API key. A review sends several requests, and all of them count against your plan's usage limits.",
       s_cli_path: "Claude Code command",
       s_cli_hint:
-        "The path is the VS Code setting “sessionlens.claudeCliPath”; empty means “claude” is found automatically. Sign in once in a terminal with “claude auth login”.",
+        "The path is the setting “sessionlens.claudeCliPath”; empty means “claude” is found automatically. Sign in once in a terminal with “claude auth login”.",
       s_cli_open_settings: "Open settings",
       model_hint_cli: "sonnet, opus or haiku always mean the latest model of that family. A full model name also works.",
       cli_check_btn: "Check Claude Code",
@@ -693,7 +693,7 @@
       cal_raw_clear_confirm: "Delete the saved requests and replies?",
       s_reset_settings: "Reset settings",
       s_reset_settings_sub:
-        "Puts every setting on this page back to its default: theme, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the “Try a demo session” button checkbox. Your sessions, verdicts, rules and prompts are not touched, nor are the Claude Code, Codex and Cursor CLI paths (VS Code settings).",
+        "Puts every setting on this page back to its default: theme, all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the “Try a demo session” button checkbox. Your sessions, verdicts, rules and prompts are not touched, nor are the Claude Code, Codex and Cursor CLI paths (editor settings).",
       s_reset_settings_btn: "Reset settings to defaults",
       s_reset_settings_confirm:
         "Reset every setting on this page to its default? Saved API keys, models and per-request models will be removed. Sessions, verdicts, rules and prompts are kept.",
