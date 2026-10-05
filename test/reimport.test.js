@@ -189,6 +189,21 @@ test("Import again without the text: the file is picked again; a transcript of a
   p.close();
 });
 
+test("Import again: a pick the host refuses is said in a dialog, nothing is written", async () => {
+  const { p } = await tab();
+  const alerts = [];
+  p.window.chooseDialog = async () => "newer-source"; // a source an older host does not know
+  p.window.alertDialog = async (m) => alerts.push(m);
+  const n0 = puts(p).length;
+  click(p, "#reimport-go");
+  await until(() => alerts.length);
+  await p.idle();
+  assert.match(alerts[0], /SessionLens: unknown source/);
+  assert.equal(puts(p).length, n0);
+  assert.deepEqual(p.errors, []);
+  p.close();
+});
+
 test("Import again that would detach verdicts asks first (the steps are numbered differently now)", async () => {
   const text = transcript();
   // one event fewer at the start, as when an older import skipped an event the new one keeps (a Codex deletion)

@@ -29,6 +29,11 @@
   text is the whole file and Cursor's Agent reads it in every chat of the project. `AGENTS.md` is now labelled as read
   by Cursor too, which it is.
 
+### Fixed
+- **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
+  example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
+  suggests reloading the window.
+
 ## 0.1.120
 
 ### Fixed

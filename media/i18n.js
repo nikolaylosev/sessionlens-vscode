@@ -303,6 +303,8 @@
       pick_source_codex: "Codex",
       pick_source_cursor: "Cursor Agent",
       pick_source_other: "Somewhere else",
+      pick_failed:
+        "Could not open the transcript: {e}. If SessionLens was updated a moment ago, reload the window (Command Palette → Developer: Reload Window) and try again.",
       eff_no_after: "effect: before {b} per session ({n}); no sessions after yet",
       eff: "effect: before {b} per session ({nb} {nb|session|sessions}) → after {a} ({na}){d}{few}",
       eff_few: " · little data",
