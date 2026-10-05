@@ -2036,12 +2036,22 @@
     /* Since 0.1.121 also the other ways to wait for network idle, in every language Playwright has: waitForLoadState /
        wait_for_load_state, Python's wait_until=, Java's and C#'s LoadState / WaitUntilState constants (worded apart, so
        the verdicts on "waitUntil: 'networkidle'" keep their key); and an exact count compared with toBe, toEqual or
-       toStrictEqual, spaces allowed, or in Python with ==. */
+       toStrictEqual, spaces allowed, in Python with ==, and in Java and C# with their assertion libraries. */
     fragile_wait(ev) {
       const IDLE_OPTION = /waitUntil\s*:\s*['"]networkidle['"]/;
       const IDLE_OTHER =
         /\bwait_until\s*=\s*['"]networkidle['"]|\bwait(?:ForLoadState(?:Async)?|_for_load_state)\s*\(\s*['"]networkidle['"]|\b(?:LoadState|WaitUntilState)\.(?:NETWORKIDLE|NetworkIdle)\b/;
-      const COUNT = /\.count\(\)\s*\)\s*\.(?:toBe|toEqual|toStrictEqual)\(\s*\d+\s*\)|\.count\(\)\s*==\s*\d+/;
+      const COUNT = new RegExp(
+        [
+          String.raw`\.count\(\)\s*\)\s*\.(?:toBe|toEqual|toStrictEqual)\(\s*\d+\s*\)`, // expect(await rows.count()).toBe(3)
+          String.raw`\.count\(\)\s*==\s*\d+`, // Python: assert rows.count() == 3
+          // Java and C#: assertEquals(3, rows.count()), Assert.AreEqual / Assert.Equal(3, await rows.CountAsync())
+          String.raw`\b(?:assertEquals|Assert\.(?:AreEqual|Equal))\s*\(\s*\d+\s*,[^;\n]*\.(?:count|CountAsync)\(\)`,
+          String.raw`\.(?:count|CountAsync)\(\)\s*\)\s*\.isEqualTo\(\s*\d+\s*\)`, // AssertJ: assertThat(rows.count()).isEqualTo(3)
+          String.raw`\.CountAsync\(\)\s*,\s*Is\.EqualTo\(\s*\d+\s*\)`, // NUnit: Assert.That(await rows.CountAsync(), Is.EqualTo(3))
+          String.raw`\.CountAsync\(\)\s*\)\s*\.Should\(\)\.Be\(\s*\d+\s*\)`, // FluentAssertions
+        ].join("|"),
+      );
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;

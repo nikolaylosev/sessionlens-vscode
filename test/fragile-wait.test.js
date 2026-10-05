@@ -5,7 +5,7 @@
    compared with toBeGreaterThan. Commented-out code: see commented-out-code.test.js (fixed in 0.1.121).
    Since 0.1.121 also the other ways to wait for network idle (waitForLoadState, Python, Java, C#), worded apart from
    the waitUntil finding so its verdicts keep their key, and a wider count pattern (spaces, toEqual, Python's ==): gaps
-   found while writing this file.
+   found while writing this file. Java's and C#'s exact counts since 0.1.121 too.
    Not reported, by the owner's decision (5 Oct 2026): `await expect(rows).toHaveCount(3)`. It is an exact count too,
    but it waits for the page, which is what Playwright advises. */
 const test = require("node:test");
@@ -82,6 +82,22 @@ test("the count pattern: spaces, toEqual and toStrictEqual, and Python's ==", ()
     "low count: tests/test_cart.py: exact element count in an assertion — brittle when content changes",
   ]);
   assert.deepEqual(foundIn("qa-python", "tests/test_cart.py", "def test_rows(page):\n    assert rows.count() >= 1\n"), []);
+});
+
+test("an exact count in Java and C#: JUnit, AssertJ, MSTest, xUnit, NUnit, FluentAssertions (0.1.121)", () => {
+  const J = "src/test/java/CartTest.java",
+    C = "tests/CartTests.cs";
+  const count = (f) => [`low count: ${f}: exact element count in an assertion — brittle when content changes`];
+  assert.deepEqual(foundIn("qa-java", J, '@Test void rows() { assertEquals(3, page.locator("tr").count()); }\n'), count(J));
+  assert.deepEqual(foundIn("qa-java", J, '@Test void rows() { assertThat(page.locator("tr").count()).isEqualTo(3); }\n'), count(J));
+  assert.deepEqual(foundIn("qa-c#", C, '[Test] public async Task Rows() { Assert.AreEqual(3, await Page.Locator("tr").CountAsync()); }\n'), count(C));
+  assert.deepEqual(foundIn("qa-c#", C, '[Fact] public async Task Rows() { Assert.Equal(3, await Page.Locator("tr").CountAsync()); }\n'), count(C));
+  assert.deepEqual(foundIn("qa-c#", C, '[Test] public async Task Rows() { Assert.That(await Page.Locator("tr").CountAsync(), Is.EqualTo(3)); }\n'), count(C));
+  assert.deepEqual(foundIn("qa-c#", C, '[Test] public async Task Rows() { (await Page.Locator("tr").CountAsync()).Should().Be(3); }\n'), count(C));
+  // not a count of elements on the page, or not exact
+  assert.deepEqual(foundIn("qa-java", J, "@Test void total() { assertEquals(3, cart.size()); }\n"), []);
+  assert.deepEqual(foundIn("qa-java", J, '@Test void rows() { assertTrue(page.locator("tr").count() > 0); }\n'), []);
+  assert.deepEqual(foundIn("qa-c#", C, '[Test] public async Task Rows() { Assert.That(await Page.Locator("tr").CountAsync(), Is.GreaterThan(0)); }\n'), []);
 });
 
 test("the profiles that run it", () => {
