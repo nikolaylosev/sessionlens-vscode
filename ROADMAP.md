@@ -1,6 +1,6 @@
 # SessionLens roadmap
 
-This is how we see SessionLens developing, as of version 0.1.117 (October 2026). There are no dates, and the order
+This is how we see SessionLens developing, as of version 0.1.119 (October 2026). There are no dates, and the order
 can change with feedback. To suggest something, please
 [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues).
 
@@ -16,7 +16,7 @@ around process mistakes that only the session shows.
 
 ## Now
 
-- Test 0.1.116 and 0.1.117 by hand in real VS Code and ship fixes as patch releases.
+- Test 0.1.116 to 0.1.119 by hand in real VS Code and ship fixes as patch releases.
 - Tune checks based on [false finding reports](https://github.com/nikolaylosev/sessionlens-vscode/issues/new?template=false-finding.yml).
 
 ## Next: command line tool and CI
