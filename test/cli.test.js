@@ -226,6 +226,39 @@ test("removeCursorTraces: a chats folder that also holds a chat of another folde
   }
 });
 
+test(
+  "cursorSocketDir: a long path is cut to 84 characters and gets the first 7 hex digits of its sha256",
+  { skip: process.platform === "win32" && "POSIX paths" },
+  () => {
+    // the expected names come from the rule as Cursor's CLI 2026.10.01 applies it (checked against a folder it made)
+    assert.equal(cli.cursorSocketDir("/Users/me/.cursor/projects", "/Users/me/shop"), path.join("/Users/me/.cursor/projects", "Users-me-shop"));
+    const long = cli.cursorSocketDir("/Users/me/.cursor/projects", "/Users/me/Downloads/samples/a-project-with-a-rather-long-name/tests");
+    const whole = path.join("/Users/me/.cursor/projects", "Users-me-Downloads-samples-a-project-with-a-rather-long-name-tests");
+    assert.equal(crypto.createHash("sha256").update(whole).digest("hex").slice(0, 7), "a965ed5", "the hash is of the whole path");
+    assert.equal(path.basename(long), "Users-me-Downloads-samples-a-project-with-a-rather-long-n-a965ed5");
+    assert.equal(long.length, 92);
+  },
+);
+
+test("removeCursorTraces: the worker's socket folder under its cut name goes too; another cut name stays", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "h"));
+  const deep = fs.mkdtempSync(path.join(os.tmpdir(), "sl-a-folder-with-a-long-name-so-the-path-passes-the-limit-"));
+  const ws = fs.mkdtempSync(path.join(deep, "sessionlens-cursor-"));
+  try {
+    const projects = path.join(home, ".cursor", "projects");
+    const sock = cli.cursorSocketDir(projects, fs.realpathSync(ws));
+    assert.ok(!path.basename(sock).endsWith(path.basename(ws)), "the cut name does not end with the folder's name");
+    fs.mkdirSync(sock, { recursive: true });
+    const other = path.join(projects, path.basename(sock).slice(0, -7) + "0000000");
+    fs.mkdirSync(other, { recursive: true });
+    assert.equal(cli.removeCursorTraces(ws, home), "removed");
+    assert.deepEqual(fs.readdirSync(projects), [path.basename(other)]);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+    fs.rmSync(deep, { recursive: true, force: true });
+  }
+});
+
 test("checkCursor: `agent status` exits 0 signed in or not, so its text decides", { skip: process.platform === "win32" }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl-fake-agent-"));
   const bin = path.join(dir, "agent");

@@ -9,7 +9,7 @@
   The CLI has no switch that turns its tools off, so each request runs in its read-only ask mode, in an empty
   temporary folder whose `.cursor/cli.json` denies every shell command, file read, file write, web fetch and MCP tool.
   Cursor keeps a copy of every request in `~/.cursor`; SessionLens deletes the copy of each of its requests after the
-  answer. Tested on macOS; Windows and Linux are not tested yet.
+  answer, including the folder Cursor names with a hash when the path is long. Tested on macOS; Windows and Linux are not tested yet.
 - **Cursor Agent transcripts** can be imported: the `.jsonl` files in
   `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI. **Choose file**
   has a fourth source, **Cursor Agent**, which opens the dialog in the open workspace's `agent-transcripts` folder
