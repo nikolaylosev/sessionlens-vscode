@@ -298,9 +298,10 @@
       gen_dup_overwrite: "Overwrite last",
       gen_dup_new: "Create new",
       pick_source_msg:
-        "Where is the transcript from? This decides where the file dialog opens — both ~/.claude and ~/.codex are dot-folders a file dialog otherwise hides, and there's no way to browse from one into the other.",
+        "Where is the transcript from? This decides where the file dialog opens — ~/.claude, ~/.codex and ~/.cursor are dot-folders a file dialog otherwise hides, and there's no way to browse from one into another.",
       pick_source_claude: "Claude Code",
       pick_source_codex: "Codex",
+      pick_source_cursor: "Cursor Agent",
       pick_source_other: "Somewhere else",
       eff_no_after: "effect: before {b} per session ({n}); no sessions after yet",
       eff: "effect: before {b} per session ({nb} {nb|session|sessions}) → after {a} ({na}){d}{few}",

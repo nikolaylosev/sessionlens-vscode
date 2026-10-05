@@ -98,8 +98,10 @@ test("clipboard:write, save:file, open:transcript", () => {
   no("save:file", { name: "a.md" });
   no("save:file", { name: {}, content: "x" });
   ok("open:transcript", { source: "codex" });
+  ok("open:transcript", { source: "cursor" });
   ok("open:transcript", {});
   no("open:transcript", { source: "/etc" });
+  no("open:transcript", { source: "Cursor" });
 });
 
 test("claude/codex/cursor run and check: model, sizes, timeout; cliPath is simply ignored", () => {

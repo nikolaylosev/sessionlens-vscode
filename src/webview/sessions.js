@@ -110,15 +110,16 @@ export function show(v) {
 }
 
 // VS Code build: use the extension's own file dialog instead of the browser-native one, so it can
-// start already inside ~/.claude or ~/.codex — dot-folders a native "choose file" dialog hides by
+// start already inside ~/.claude, ~/.codex or ~/.cursor — dot-folders a native "choose file" dialog hides by
 // default, with no way for us to override that from a webview's plain <input type="file">. Ask
 // which one first: guessing (e.g. "whichever changed more recently") traps the person in one of
-// the two, since going up from inside a dot-folder to the home folder hides dot-folders again,
-// including the other one — there'd be no way to browse across.
+// them, since going up from inside a dot-folder to the home folder hides dot-folders again,
+// including the others — there'd be no way to browse across.
 export async function pickAndImport() {
   const source = await chooseDialog(T("pick_source_msg"), [
     { label: T("pick_source_claude"), value: "claude", primary: true },
     { label: T("pick_source_codex"), value: "codex" },
+    { label: T("pick_source_cursor"), value: "cursor" },
     { label: T("pick_source_other"), value: "other" },
   ]);
   if (source === null) return; // the dialog's own Cancel button

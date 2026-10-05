@@ -161,7 +161,8 @@ test("Import again with the text kept at import: the same session gets test_dele
 test("Import again without the text: the file is picked again; a transcript of another session is asked about", async () => {
   const { dir, p } = await tab();
   const asked = [];
-  p.window.chooseDialog = async (msg) => (asked.push(msg), "claude");
+  let sources = null;
+  p.window.chooseDialog = async (msg, opts) => (asked.push(msg), (sources = opts.map((o) => String(o.value)).join()), "claude");
   p.window.confirmDialog = async (msg) => (asked.push(msg), false);
   let file = other();
   p.window.__slPickTranscript = async (o) => (asked.push("pick " + o.source), { name: "x.jsonl", text: file });
@@ -170,6 +171,7 @@ test("Import again without the text: the file is picked again; a transcript of a
   await until(() => asked.length === 3);
   await p.idle();
   assert.match(asked[0], /Pick the transcript of this session/);
+  assert.equal(sources, "claude,codex,cursor,other");
   assert.equal(asked[1], "pick claude");
   assert.match(asked[2], /does not look like this session/);
   assert.equal(puts(p).length, n0, "cancelled: nothing written");

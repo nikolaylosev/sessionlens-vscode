@@ -75,7 +75,7 @@ flowchart TB
       GS[(globalState)]
     end
     FILES[(globalStorage/sessions<br/>*.json + *.meta.json)]
-    TR[(Transcripts<br/>~/.claude/projects<br/>~/.codex/sessions)]
+    TR[(Transcripts<br/>~/.claude/projects<br/>~/.codex/sessions<br/>~/.cursor/projects)]
     CC[claude CLI]
     CX[codex CLI]
     CU[cursor agent CLI]
@@ -405,7 +405,10 @@ flowchart TD
   import runs without output. `fromCursorJsonl` gives a `Shell` call the next output with the same command as its
   `tool_result`, so its tests are parsed as for Claude Code; a run with none keeps `output_missing`. The session
   keeps the output's ends (`source_outputs`, 20 000 characters each) with `source_text`, for Back to regex parsing
-  and Import again. A transcript dropped onto the panel or pasted has no output.
+  and Import again. A transcript dropped onto the panel or pasted has no output. **Choose file** → Cursor Agent opens
+  the dialog at the workspace's `agent-transcripts` folder: the folder's name is the workspace path with every
+  character that is not a Latin letter or a digit made `-` (`guessTranscriptDefaultUri` in `extension.js`, the rule
+  of Cursor's CLI; Windows not checked); with no such folder, at `~/.cursor/projects`.
 - **claude.ai export and plain chat** carry code only inside messages; `diffMessageVersions` treats successive
   code blocks as versions of the same tests.
 - **Secrets** are masked on export, in examples and, since 0.1.116, in every prompt sent to a model
