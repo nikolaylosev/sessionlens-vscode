@@ -54,8 +54,9 @@
   variable is still left alone, since a polling helper sleeps for its interval.
 - **Fragile wait** finds the other ways to wait for network idle: `page.waitForLoadState("networkidle")`, and in
   Python, Java and C# (`wait_until="networkidle"`, `LoadState.NETWORKIDLE`, `LoadState.NetworkIdle`). In qa-python the
-  check never fired before. An exact count is also found with spaces, `toEqual` or `toStrictEqual`, and in Python as
-  `assert rows.count() == 3`.
+  check never fired before. An exact count is also found with spaces, `toEqual` or `toStrictEqual`, in Python as
+  `assert rows.count() == 3`, and in Java and C# (`assertEquals(3, rows.count())`, `assertThat(…).isEqualTo(3)`,
+  `Assert.AreEqual` / `Assert.Equal`, `Is.EqualTo(3)`, `.Should().Be(3)`).
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
