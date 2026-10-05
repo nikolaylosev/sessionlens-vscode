@@ -1,8 +1,17 @@
 "use strict";
 /* Engine-mapped checks with no regex fallback: positional_locator, no_app_reset, unannotated_test_method,
-   swallowed_exception, assert_args_reversed, lint_valid_title; and the engine rules mapped to weak_assert (its regex
-   side is in weak-assert.test.js). Real engines, same as supersedes.test.js. Severity and message are pinned too: the
-   verdict key includes the start of the message. */
+   swallowed_exception, assert_args_reversed, lint_valid_title, raw_locator, no_assertion_after_action,
+   cypress_async_test, empty_test_case; and the engine rules mapped to weak_assert (its regex side is in
+   weak-assert.test.js). Real engines, same as supersedes.test.js. Severity and message are pinned too: the verdict key
+   includes the start of the message.
+
+   Gaps found on 5 Oct 2026, not pinned here, for the owner to decide:
+   - robot/no-assertion-after-action takes only a keyword that starts with Should or Must for an assertion, so
+     SeleniumLibrary's and Browser's `Page Should Contain`, `Element Should Be Visible`, `Title Should Be` or
+     `Get Text    id=t    ==    42` give a high "nothing is actually verified"; so does a test that calls a user keyword
+     with an assertion inside (`Verify Cart Total`);
+   - eslint-plugin-cypress's no-async-before (vendored, not changed here) reports only a hook with a title,
+     `before("load", async () => …)`, not the usual `before(async () => …)`. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -236,5 +245,156 @@ test("weak_assert from the engines, not reported: toBeHidden(), an awaited match
       "weak_assert",
     ),
     [],
+  );
+});
+
+test("raw_locator: a CSS locator in Playwright; chained get, xpath and a class selector in Cypress", async () => {
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW +
+        'test("total", async ({ page }) => {\n  await page.locator(".cart > .total").click();\n  await expect(page.getByText("Total")).toBeVisible();\n});\n',
+      "raw_locator",
+    ),
+    [
+      "raw_locator/lint low: e2e/cart.spec.ts:3 — Usage of raw locator detected. Use methods like .getByRole() or .getByText() instead of raw locators [playwright/no-raw-locators]",
+    ],
+  );
+  const CY = "cypress/e2e/cart.cy.ts";
+  assert.deepEqual(await lintFound("qa-cypress", CY, 'it("total", () => {\n  cy.get(".cart").get(".total").should("contain", "42");\n});\n', "raw_locator"), [
+    "raw_locator/lint low: cypress/e2e/cart.cy.ts:2 — Avoid chaining multiple cy.get() calls [cypress/no-chained-get]",
+    "raw_locator/lint low: cypress/e2e/cart.cy.ts:2 — use data-* attribute selectors instead of classes or tag names [cypress/require-data-selectors]",
+  ]);
+  assert.deepEqual(await lintFound("qa-cypress", CY, 'it("total", () => {\n  cy.xpath("//div[@id=total]").should("contain", "42");\n});\n', "raw_locator"), [
+    "raw_locator/lint low: cypress/e2e/cart.cy.ts:2 — cy.xpath() is deprecated and unsupported. Consider using cy.get() with appropriate selectors instead [cypress/no-xpath]",
+  ]);
+  // not reported: a role in Playwright, a data-* selector in Cypress
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW +
+        'test("total", async ({ page }) => {\n  await page.getByRole("button", { name: "Pay" }).click();\n  await expect(page.getByText("Paid")).toBeVisible();\n});\n',
+      "raw_locator",
+    ),
+    [],
+  );
+  assert.deepEqual(await lintFound("qa-cypress", CY, 'it("total", () => {\n  cy.get("[data-test=total]").should("contain", "42");\n});\n', "raw_locator"), []);
+});
+
+test("no_assertion_after_action: a test with actions and no assertion, in Playwright, Detox, Java, C# and Robot", async () => {
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW + 'test("total", async ({ page }) => {\n  await page.getByRole("button", { name: "Pay" }).click();\n});\n',
+      "no_assertion_after_action",
+    ),
+    ["no_assertion_after_action/lint high: e2e/cart.spec.ts:2 — Test has no assertions [playwright/expect-expect]"],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-detox",
+      "e2e/cart.test.js",
+      'describe("cart", () => {\n  beforeEach(async () => { await device.reloadReactNative(); });\n  it("pays", async () => {\n    await element(by.id("pay")).tap();\n  });\n});\n',
+      "no_assertion_after_action",
+    ),
+    [
+      "no_assertion_after_action/lint high: e2e/cart.test.js:3 — Test performs actions (tap/typeText/swipe/…) but has no expect(...) anywhere — nothing is actually verified [detox/expect-after-action]",
+    ],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-java",
+      "src/test/java/CartTest.java",
+      "import org.junit.jupiter.api.Test;\nclass CartTest {\n  @Test\n  void pays() {\n    page.getByRole(AriaRole.BUTTON).click();\n  }\n}\n",
+      "no_assertion_after_action",
+    ),
+    [
+      "no_assertion_after_action/lint high: src/test/java/CartTest.java:3 — pays() calls other code but has no assert*(...) anywhere in its body — nothing is actually verified [java/no-assertion-after-action]",
+    ],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-c#",
+      "tests/CartTests.cs",
+      "public class CartTests {\n  [Test]\n  public async Task Pays() {\n    await Page.GetByRole(AriaRole.Button).ClickAsync();\n  }\n}\n",
+      "no_assertion_after_action",
+    ),
+    [
+      "no_assertion_after_action/lint high: tests/CartTests.cs:2 — Pays() calls other code but has no assertion (Assert.*/\u200b.Should()) anywhere in its body — nothing is actually verified [csharp/no-assertion-after-action]",
+    ],
+  );
+  assert.deepEqual(await lintFound("qa-robot", "tests/cart.robot", "*** Test Cases ***\nPays\n    Click Button    pay\n", "no_assertion_after_action"), [
+    "no_assertion_after_action/lint high: tests/cart.robot:2 — Pays: has steps but none of them is a Should */Must * keyword — nothing is actually verified [robot/no-assertion-after-action]",
+  ]);
+  // not reported: an assertion after the action
+  assert.deepEqual(
+    await lintFound(
+      "qa-ts",
+      "e2e/cart.spec.ts",
+      PW +
+        'test("total", async ({ page }) => {\n  await page.getByRole("button", { name: "Pay" }).click();\n  await expect(page.getByText("Paid")).toBeVisible();\n});\n',
+      "no_assertion_after_action",
+    ),
+    [],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-robot",
+      "tests/cart.robot",
+      "*** Test Cases ***\nPays\n    Click Button    pay\n    Should Be Equal    ${status}    paid\n",
+      "no_assertion_after_action",
+    ),
+    [],
+  );
+});
+
+test("cypress_async_test: an async test, and an async hook with a title", async () => {
+  const CY = "cypress/e2e/cart.cy.ts";
+  assert.deepEqual(
+    await lintFound("qa-cypress", CY, 'it("total", async () => {\n  cy.get("[data-test=total]").should("contain", "42");\n});\n', "cypress_async_test"),
+    ["cypress_async_test/lint medium: cypress/e2e/cart.cy.ts:1 — Avoid using async functions with Cypress tests [cypress/no-async-tests]"],
+  );
+  assert.deepEqual(
+    await lintFound(
+      "qa-cypress",
+      CY,
+      'before("load", async () => {\n  cy.visit("/");\n});\nit("total", () => {\n  cy.get("[data-test=total]").should("contain", "42");\n});\n',
+      "cypress_async_test",
+    ),
+    [
+      "cypress_async_test/lint medium: cypress/e2e/cart.cy.ts:1 — Avoid using async functions with Cypress before / beforeEach functions [cypress/no-async-before]",
+    ],
+  );
+  assert.deepEqual(
+    await lintFound("qa-cypress", CY, 'it("total", () => {\n  cy.get("[data-test=total]").should("contain", "42");\n});\n', "cypress_async_test"),
+    [],
+  );
+});
+
+test("empty_test_case: a Robot test case with no steps, or only settings", async () => {
+  assert.deepEqual(
+    await lintFound(
+      "qa-robot",
+      "tests/cart.robot",
+      "*** Test Cases ***\nEmpty Case\n\nPays\n    Click Button    pay\n    Should Be Equal    ${status}    paid\n",
+      "empty_test_case",
+    ),
+    ["empty_test_case/lint high: tests/cart.robot:2 — Empty Case: no steps at all — an empty test case [robot/empty-test-case]"],
+  );
+  assert.deepEqual(await lintFound("qa-robot", "tests/cart.robot", "*** Test Cases ***\nOnly Docs\n    [Documentation]    nothing here\n", "empty_test_case"), [
+    "empty_test_case/lint high: tests/cart.robot:2 — Only Docs: no steps at all — an empty test case [robot/empty-test-case]",
+  ]);
+  assert.deepEqual(
+    await lintFound(
+      "qa-robot",
+      "tests/cart.robot",
+      "*** Keywords ***\nOpen Cart\n\n*** Test Cases ***\nPays\n    Open Cart\n    Should Be Equal    ${a}    ${b}\n",
+      "empty_test_case",
+    ),
+    [],
+    "an empty keyword is not a test",
   );
 });
