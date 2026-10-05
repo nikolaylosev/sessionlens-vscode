@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.120
+
+### Fixed
+- **Magic number** (`magic_number`, low) skipped an assertion line with `#` or `//` anywhere in it, as if the line had
+  a comment. So a CSS id selector (`page.locator("#total")`), a URL (`toHaveURL("https://shop.test/cart?page=7")`) or
+  a private field (`this.#count`) hid every number on that line. Only a real comment counts now; a comment that
+  explains the number still keeps the line from being reported. A commented-out assertion inside a `/* … */` block
+  (`* expect(total).toBe(1499)`) was reported; it no longer is. Stored sessions are analyzed again after the update.
+
 ## 0.1.119
 
 ### Fixed

@@ -1870,15 +1870,20 @@
       return out;
     },
     // ---- test smells (taxonomy: TsDetect / Pynose), per test block ----
+    /* A line with a comment is skipped: the comment may explain the number, or the line is commented out. Since 0.1.120
+       only a real comment counts: "#" or "//" inside a string (a CSS id, a URL) or `this.#field` is not one, and a line
+       inside a block comment ("* expect(…)") is. */
     magic_number(ev, cfg) {
       const out = [],
         OK = new Set([0, 1, 2, 100, 200, 201, 204, 301, 302, 400, 401, 403, 404, 405, 409, 422, 423, 429, 500, 502, 503]);
+      const STRING = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
+      const commented = (ln) => /\/\/|\/\*|(?:^|\s)#|^\s*\*/.test(ln.replace(STRING, '""'));
       for (const e of ev) {
         if (!e.new_content || !cfg.assert_line_patterns) continue;
         for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
           const nums = new Set();
           for (const ln of body.split("\n"))
-            if (cfg.assert_line_patterns.some((p) => p.test(ln)) && !/#|\/\//.test(ln))
+            if (cfg.assert_line_patterns.some((p) => p.test(ln)) && !commented(ln))
               for (const m of ln.matchAll(/(?<![\w.])(-?\d+(?:\.\d+)?)(?![\w.])/g)) {
                 const n = +m[1];
                 if (!OK.has(n) && Math.abs(n) > 1) nums.add(m[1]);
@@ -2196,7 +2201,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.119";
+  const ANALYSIS_VERSION = "0.1.120";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")
