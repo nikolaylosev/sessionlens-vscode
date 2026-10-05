@@ -1093,6 +1093,13 @@ session file, keeping its `order` and `analyzedGen`. A summary without a session
 an unreadable session file is moved to `sessions/corrupt/`, leftover `*.tmp` files are deleted. Everything is written to the Output
 channel "SessionLens".
 
+Since v0.1.120 `open()` is safe while another window writes. A `*.tmp` younger than a minute is left alone: it may be
+that window's write in progress (deleting it made its `rename` fail with `ENOENT`). A summary is rebuilt as before, but
+right before the rename the summary file is read again; if it is no longer the text read at the start, another window
+has written it (it writes the session, then the summary), so the rebuilt one is dropped and the file on disk is used
+("kept the summary of … that another window wrote"). Before, an older summary could land last, with the old
+`analyzedGen` (the session was analyzed again) or an older `rev` (the next save was a conflict).
+
 ### 15.4 Messages and refresh
 
 `session:list` → `{ items }`, `session:get` → `{ session, rev, meta }`, `session:put` → `{ ok, rev, meta } |

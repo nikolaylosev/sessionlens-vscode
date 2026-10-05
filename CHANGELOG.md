@@ -8,6 +8,11 @@
   a private field (`this.#count`) hid every number on that line. Only a real comment counts now; a comment that
   explains the number still keeps the line from being reported. A commented-out assertion inside a `/* … */` block
   (`* expect(total).toBe(1499)`) was reported; it no longer is. Stored sessions are analyzed again after the update.
+- With two VS Code windows open, starting the second one could make the first fail to save a session: the second
+  deleted every unfinished temporary file in the sessions folder, including the one the first window was writing at
+  that moment. Only temporary files older than a minute are deleted now. The second window could also overwrite the
+  summary the first one had just written with an older copy, so the session was analyzed again for no reason; it
+  now keeps the newer summary.
 
 ## 0.1.119
 

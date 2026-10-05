@@ -21,6 +21,8 @@ const META = ".meta.json";
 const META_SCHEMA = 3;
 const RETRY_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
 const RETRY_MS = [20, 40, 80, 160, 320];
+// open() leaves a younger temporary file alone: another window may be writing it right now (0.1.120)
+const TMP_AGE_MS = 60 * 1000;
 
 function fileNameFor(id) {
   const s = String(id);
@@ -54,7 +56,8 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
       }
     }
   }
-  async function writeAtomic(target, text) {
+  // unchanged (optional) is asked right before the rename: false → nothing is written and false is returned
+  async function writeAtomic(target, text, unchanged) {
     const tmp = `${target}.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`;
     const h = await P.open(tmp, "w");
     try {
@@ -63,16 +66,24 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
     } finally {
       await h.close();
     }
-    try {
-      await rename(tmp, target);
-    } catch (e) {
+    const drop = async () => {
       try {
         await P.unlink(tmp);
       } catch {
         /* gone already */
       }
+    };
+    if (unchanged && !(await unchanged())) {
+      await drop();
+      return false;
+    }
+    try {
+      await rename(tmp, target);
+    } catch (e) {
+      await drop();
       throw e;
     }
+    return true;
   }
   async function readJson(p) {
     return JSON.parse(await P.readFile(p, "utf8"));
@@ -109,7 +120,9 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
     for (const n of names)
       if (n.endsWith(".tmp")) {
         try {
-          await P.unlink(path.join(dir, n));
+          const p = path.join(dir, n);
+          if (Date.now() - (await P.stat(p)).mtimeMs < TMP_AGE_MS) continue;
+          await P.unlink(p);
           log(`removed an unfinished write: ${n}`);
         } catch {
           /* another window */
@@ -157,6 +170,7 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
       const sp = path.join(dir, base + ".json"),
         mp = path.join(dir, base + META);
       let meta = null,
+        metaText = null,
         sst = null,
         mst = null;
       try {
@@ -167,7 +181,8 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
       if (metaFiles.has(base)) {
         try {
           mst = await P.stat(mp);
-          meta = await readJson(mp);
+          metaText = await P.readFile(mp, "utf8");
+          meta = JSON.parse(metaText);
         } catch {
           meta = null;
         }
@@ -190,11 +205,23 @@ function createStore({ dir, fs = nodeFs, log = (message) => {}, summarize } = /*
           return;
         }
         const rev = Number.isInteger(session.__rev) ? session.__rev : 1;
-        const old = metaFiles.has(base) ? await readJson(mp).catch(() => null) : null;
+        let old = null;
+        try {
+          old = metaText && JSON.parse(metaText);
+        } catch {
+          /* unreadable: rebuilt without it */
+        }
         delete session.__rev;
         meta = buildMeta(session, rev, { order: (old && old.order) || 0, analyzedGen: (old && old.analyzedGen) || "", size: sst.size });
-        await writeAtomic(mp, JSON.stringify(meta));
-        log(`rebuilt the summary of ${session.id}`);
+        // Another window writes a session and then its summary. When that summary lands while this one is being
+        // rebuilt, it is newer and keeps its analyzedGen: it is not overwritten (0.1.120).
+        if (await writeAtomic(mp, JSON.stringify(meta), async () => (await P.readFile(mp, "utf8").catch(() => null)) === metaText))
+          log(`rebuilt the summary of ${session.id}`);
+        else {
+          meta = await readJson(mp).catch(() => null);
+          if (!meta || typeof meta.id !== "string" || typeof meta.rev !== "number") return; // refreshIfChanged() picks it up
+          log(`kept the summary of ${meta.id} that another window wrote`);
+        }
       }
       metas.set(meta.id, meta);
       try {
