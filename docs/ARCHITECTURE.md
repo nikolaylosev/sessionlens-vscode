@@ -409,6 +409,14 @@ flowchart TD
   the dialog at the workspace's `agent-transcripts` folder: the folder's name is the workspace path with every
   character that is not a Latin letter or a digit made `-` (`guessTranscriptDefaultUri` in `extension.js`, the rule
   of Cursor's CLI; Windows not checked); with no such folder, at `~/.cursor/projects`.
+- **Cursor Agent CLI log** (since 0.1.121; `agent -p --output-format stream-json`): `tool_call` lines, started and
+  completed, each with `args` and `result` under `<kind>ToolCall`. `isCursorStreamJson` looks for such a line (Claude
+  Code's own stream-json has `tool_use` blocks and an init with `tools`), and `fromCursorStreamJson` rewrites the calls
+  in the Claude Code shape for `fromClaudeJsonl`: an edit's `beforeFullFileContent`/`afterFullFileContent` become
+  `toolUseResult` (a new file is a write), a shell call's output and exit code the `tool_result`, a read's content its
+  text. The output is in the file, so no database is read. A run with no result keeps `output_missing`.
+- A JSONL file with tool calls that gave no event at all (`Lens.unreadToolCalls`) is imported only after the reviewer
+  agrees, since the session would hold text only.
 - **claude.ai export and plain chat** carry code only inside messages; `diffMessageVersions` treats successive
   code blocks as versions of the same tests.
 - **Secrets** are masked on export, in examples and, since 0.1.116, in every prompt sent to a model

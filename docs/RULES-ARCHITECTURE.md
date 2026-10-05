@@ -1051,8 +1051,11 @@ all checked by hand on CLI 2026.10.01:
   deletes both after every run, found by the run's own temp folder (random name), and nothing else; a chats folder
   only when every chat in it has that folder as its `cwd`. Its result (`removed | none | failed`) goes into the
   reply as `traces`, and `logCli` writes `failed`, and `none` after a successful run, to the Output channel. Each run
-  also starts a `worker-server` with a socket folder under `~/.cursor/projects/`; it exits and removes that folder
-  by itself after a few minutes, so it is left alone.
+  also starts a `worker-server` with a socket folder under `~/.cursor/projects/`. It exits after a few minutes and
+  empties that folder but leaves it. For a path over 92 characters (a temp folder on macOS) the folder's name is cut
+  to 84 characters plus `-` and 7 hex digits of the path's sha256, so it does not end with the temp folder's name;
+  `cursorSocketDir` computes it and `removeCursorTraces` removes it too (0.1.121, after 7 empty folders were found
+  left behind). The worker keeps running until it exits by itself.
 - `agent status` exits 0 whether signed in or not; `checkCursor` reads "Logged in as …" from its text. A failed
   request prints no JSON, only a line on stderr, which `classify()` maps (`Authentication required` → `auth`,
   `Cannot use this model` → `model`).

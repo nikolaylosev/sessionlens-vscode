@@ -9,7 +9,7 @@
   The CLI has no switch that turns its tools off, so each request runs in its read-only ask mode, in an empty
   temporary folder whose `.cursor/cli.json` denies every shell command, file read, file write, web fetch and MCP tool.
   Cursor keeps a copy of every request in `~/.cursor`; SessionLens deletes the copy of each of its requests after the
-  answer. Tested on macOS; Windows and Linux are not tested yet.
+  answer, including the folder Cursor names with a hash when the path is long. Tested on macOS; Windows and Linux are not tested yet.
 - **Cursor Agent transcripts** can be imported: the `.jsonl` files in
   `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI. **Choose file**
   has a fourth source, **Cursor Agent**, which opens the dialog in the open workspace's `agent-transcripts` folder
@@ -23,11 +23,26 @@
   example **Fix after a failure without triage**). Where there is no output (a file dropped or pasted, a VS Code
   without `node:sqlite`, a chat Cursor no longer has), a run's result is unknown and **Claims tests pass** is not
   raised after it. Cloud Agent runs leave no file on your machine.
+- **Cursor Agent CLI logs** can be imported: the output of `agent -p --output-format stream-json`, for example from a
+  CI job. The log has every tool call with its result, so written and edited files come whole (the file before and
+  after each edit), and test runs have their output and exit code, without Cursor's databases. Before, such a log was
+  taken for a Claude Code transcript and gave a session of messages only, with no code to review.
+- A file with tool calls in a format SessionLens does not read now asks before it is imported: only its text would be
+  kept, with no files, edits or test runs.
 - **Rules for Cursor:** **Target file** on the Calibration tab (and the setting `sessionlens.rulesTarget`) has a new
   value, `.cursor/rules/sessionlens.mdc`, Cursor's own project rule. For it, **Copy** and the suggested stub under a
   Compress rules.md or Generate skill result start with the frontmatter Cursor needs (`alwaysApply: true`), so the
   text is the whole file and Cursor's Agent reads it in every chat of the project. `AGENTS.md` is now labelled as read
   by Cursor too, which it is.
+
+### Changed
+- Messages and hints no longer say "VS Code" where they mean the editor, since SessionLens also runs in Cursor: "the
+  setting `sessionlens.claudeCliPath`" instead of "the VS Code setting", "this editor window is remote".
+
+### Fixed
+- **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
+  example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
+  suggests reloading the window.
 
 ## 0.1.120
 

@@ -1,6 +1,6 @@
 # SessionLens roadmap
 
-This is how we see SessionLens developing, as of version 0.1.119 (October 2026). There are no dates, and the order
+This is how we see SessionLens developing, as of version 0.1.120 (October 2026). There are no dates, and the order
 can change with feedback. To suggest something, please
 [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues).
 
@@ -16,7 +16,15 @@ around process mistakes that only the session shows.
 
 ## Now
 
-- Test 0.1.116 to 0.1.119 by hand in real VS Code and ship fixes as patch releases.
+- Cursor support, in the next release (0.1.121):
+  - import Cursor Agent sessions: the transcripts in `~/.cursor/projects/<workspace>/agent-transcripts/` from the
+    Cursor editor and its CLI, and the CLI's `stream-json` log, for example from a CI job;
+  - the output of the agent's commands, read from Cursor's own databases on your machine, so test runs have their
+    results;
+  - **Choose file** → **Cursor Agent** opens the dialog in the open workspace's transcript folder;
+  - rules for Cursor: `AGENTS.md`, which Cursor reads, or Cursor's own `.cursor/rules/sessionlens.mdc`;
+  - Cursor (subscription) as a model for the semantic review, through the Cursor Agent CLI.
+- Test 0.1.116 to 0.1.121 by hand in real VS Code and Cursor and ship fixes as patch releases.
 - Tune checks based on [false finding reports](https://github.com/nikolaylosev/sessionlens-vscode/issues/new?template=false-finding.yml).
 
 ## Next: command line tool and CI
@@ -27,6 +35,8 @@ around process mistakes that only the session shows.
 
 ## Later
 
+- Cursor on Windows and Linux (tested on macOS only so far), and Cloud Agent runs once they leave a file on your
+  machine.
 - Precision per model on the Calibration tab, and calibration thresholds per source, once there are enough verdicts.
 - New profiles for iOS (Swift, XCTest) and Flutter (Dart).
 - A JetBrains plugin built on the same analysis code.

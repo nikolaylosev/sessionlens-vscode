@@ -168,7 +168,7 @@ test("connection refused from a remote window: the local provider explains where
   let r = await make(refused)(payload("local"));
   assert.equal(r.error.message, "Failed to fetch (ECONNREFUSED)");
   r = await make(refused, { remoteName: "ssh-remote" })(payload("local"));
-  assert.match(r.error.message, /^Failed to fetch \(ECONNREFUSED\) This VS Code window is remote \(ssh-remote\)/);
+  assert.match(r.error.message, /^Failed to fetch \(ECONNREFUSED\) This editor window is remote \(ssh-remote\)/);
 });
 
 // ---- nodeFetch against a real local server ----
