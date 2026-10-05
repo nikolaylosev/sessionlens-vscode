@@ -154,6 +154,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `fragile-wait.test.js` | `fragile_wait`, the regex side: `waitUntil: 'networkidle'` (medium), the other ways to wait for network idle in TypeScript, Python, Java and C# (worded apart), and an exact count (`.count()` with `toBe`, `toEqual`, `toStrictEqual`, Python's `==`, Java's and C#'s assertion libraries; low), in a file or a message; not another load state or `toBeGreaterThan`; the profiles that run it. |
 | `expected-failure.test.js` | `expected_failure`: Playwright's `test.fail` (as a test, inside one, with a condition), Jest's `it.failing` / `test.failing`, and pytest's `xfail` (marker, strict, call; not the word), medium, one finding per file with the count; not a skip, an expected exception or `test.failures()`; commented out; the profiles that run it. |
 | `focused-test-debug-leftover.test.js` | `focused_test` (`.only` and `.only.each` on a test, describe, context, `test.describe`; `fit`, `fdescribe` with a title; high, one per file naming the first line; not a method named `only` or `fit`) and `debug_leftover` (`page.pause`, `cy.pause`, `.debug()`, `browser.debug`, `debugger;`, `breakpoint()`, `pdb`/`ipdb.set_trace()`, also after `;`, `)` or `{`, Python's `page.pause()`; medium, one per kind; not a name containing debugger); commented out; the profiles that run them. |
+| `conditional-logic.test.js` | `conditional_logic`: `if`, `for`, `while`, `switch`, `try` on a line inside a test (TypeScript, Python, Java, Cypress), low, one per test naming the first line; not a ternary, a comprehension, `with`, a hook or a helper, a comment or a string; the profiles that run it. The header lists the gaps found on 5 Oct 2026. |
 | `assertion-roulette.test.js` | `assertion_roulette`: Python and Java, three asserts with no messages; two asserts, messages, TypeScript and commented-out asserts (0.1.120) do not count. |
 | `api-checks.test.js` | `status_only_assert`, `mocked_service`, `no_negative_cases`, `test_data_no_cleanup`, `response_time_assert` on qa-api, with a must-not case for each; a mocked local module and a logged response time do not count. A commented-out assertion neither hides a status-only test nor counts as a negative case (0.1.120). |
 | `mobile-checks.test.js` | `mobile_raw_locator`, `no_driver_teardown` and `hardcoded_coordinates` on qa-mobile; the x/y form of a gesture in each client (0.1.119); accessibility id, `quit()` / `afterEach`, a tap on an element, single-digit arguments, `clickRow(15, 30)` and x/y outside a gesture do not count. |
@@ -394,7 +395,6 @@ other files. A pull request that gives one of them its own file removes its row.
 
 | Check | Where it is covered now |
 |---|---|
-| `conditional_logic` | `supersedes.test.js`, the lint snapshot, `calibration-loop.test.js` |
 | `raw_locator`, `no_assertion_after_action` | The lint snapshot, `rule-mapping.test.js`; `raw_locator` also demo count |
 | `empty_test_case` | One Robot case in `finding-pipeline.test.js`, the lint snapshot |
 | `cypress_async_test` | One case in `rule-mapping.test.js` |
