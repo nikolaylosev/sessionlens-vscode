@@ -297,6 +297,7 @@ classDiagram
     config_content
     fragment_only
     tests
+    output_missing
     assert_delta
   }
   class Finding {
@@ -348,7 +349,8 @@ Key points:
   fragment only when the file was never seen whole: `fragment_only`). `prev_content` is the file as it was, kept for
   runner configs and test files so a first edit can be compared. `config_content` is the text of a runner config
   that is not code (`pytest.ini`, `pom.xml`, `build.gradle`, `.runsettings`…), kept away from the code checks.
-  `ts` is the step's time from the transcript (empty for a claude.ai export).
+  `ts` is the step's time from the transcript (empty for a claude.ai export). `output_missing` (0.1.121) marks a
+  test run whose output the transcript does not keep (a Cursor import): its result is unknown, not red.
 - **Finding.** `check` is the one key of the rules system (RA §1). `source` says which track made it; calibration
   is per check and source. `kind` is set on regex findings of the checks an engine may replace (RA §6.3). A model
   finding has `evidence`, and `model` / `verifier` (`provider/model`, since 0.1.115); an engine finding has `rule`,
@@ -372,9 +374,11 @@ Key points:
 flowchart TD
   IN[Text of a file, a paste or the demo] --> D{importAny}
   D -->|a JSON array or chat_messages| CA[fromClaudeAiExport<br/>claude.ai conversations.json<br/>several conversations]
+  D -->|Cursor agent-transcripts jsonl| CU[fromCursorJsonl<br/>rewritten as Claude lines]
   D -->|Codex rollout jsonl| CX[fromCodexJsonl<br/>patch_apply_end, shell calls]
   D -->|other JSON lines| CL[fromClaudeJsonl<br/>tool_use / tool_result / toolUseResult]
   D -->|anything else| TX[fromText<br/>/export, chat text, code blocks]
+  CU --> CL
   CA & CX & CL & TX --> DV[diffMessageVersions<br/>versions of code pasted in messages]
   DV --> SN[stripNonSource<br/>drop text of docs, configs, lockfiles]
   SN --> EV[Event list]
@@ -386,6 +390,13 @@ flowchart TD
   passed/failed counts by `runners.*` (pytest, jest/Playwright, JUnit, dotnet, go, newman, karate).
 - **Codex `rollout-*.jsonl`** gives file changes as unified diffs (`patch_apply_end`), applied to the last known
   content; a deleted file becomes a `delete` event.
+- **Cursor Agent `.jsonl`** (since 0.1.121; `~/.cursor/projects/<workspace>/agent-transcripts/<id>/<id>.jsonl`,
+  from the IDE or the CLI) has `role` at the top of a line and tool calls without ids or results. `fromCursorJsonl`
+  rewrites each line in the Claude Code shape (`Shell` → `Bash`, `StrReplace` → `Edit`, `path`/`contents` →
+  `file_path`/`content`, `Glob`'s `target_directory` → `path`, `Delete` → a `delete` event), lets `fromClaudeJsonl`
+  rebuild the files, then puts Cursor's tool names back. The user's `<user_query>` is the text and its
+  `<timestamp>` the `ts`. A command's output is not in the file, so a test run gets `output_missing`, and
+  `pass_claim_without_run` treats its result as unknown (not red, not absent). Cloud Agent runs leave no file.
 - **claude.ai export and plain chat** carry code only inside messages; `diffMessageVersions` treats successive
   code blocks as versions of the same tests.
 - **Secrets** are masked on export, in examples and, since 0.1.116, in every prompt sent to a model

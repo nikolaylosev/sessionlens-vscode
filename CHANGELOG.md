@@ -10,6 +10,14 @@
   temporary folder whose `.cursor/cli.json` denies every shell command, file read, file write, web fetch and MCP tool.
   Cursor keeps a copy of every request in `~/.cursor`; SessionLens deletes the copy of each of its requests after the
   answer. Tested on macOS; Windows and Linux are not tested yet.
+- **Cursor Agent transcripts** can be imported: the `.jsonl` files in
+  `~/.cursor/projects/<workspace>/agent-transcripts/<id>/`, written by the Cursor IDE and its CLI (pick it with
+  **Choose file** → somewhere else). Writes, edits (`StrReplace`), deleted files, reads, searches and test runs
+  (`Shell`) become the same steps as in a Claude Code session, with Cursor's tool names, and the session starts at the
+  time of the first request. Before, such a file gave an empty session. These files do not keep the output of
+  commands, so a test run's result is unknown: **Claims tests pass** is not raised after it, and the checks that need a
+  red run (**Fix after a failure without triage**, high severity right after a red run) do not see one yet. Cloud
+  Agent runs leave no file on your machine.
 
 ## 0.1.120
 
