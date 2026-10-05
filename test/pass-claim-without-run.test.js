@@ -79,3 +79,25 @@ test("a claim phrase counts only as whole words; an English one may end in -es, 
   for (const claim of ["All tests passed.", "The suite passes, all green.", "Tests are passing.", "Тест проходит.", "Все тесты проходят!"])
     assert.deepEqual(found([["say", claim]]), [NO_RUN], claim);
 });
+
+test("a run whose output the transcript does not have (output_missing, a Cursor import): unknown, not reported (0.1.121)", () => {
+  const cfg = Lens.profile("qa-ts");
+  const ev = (missing) => [
+    { seq: 1, kind: "run_tests", cmd: "npx playwright test", output_missing: missing || undefined },
+    { seq: 2, kind: "message", text: "All tests pass." },
+  ];
+  const check = (events) =>
+    Lens.runChecks(events, cfg)
+      .filter((f) => f.check === "pass_claim_without_run")
+      .map((f) => `${f.severity}: ${f.message}`);
+  assert.deepEqual(check(ev(true)), []);
+  assert.deepEqual(check(ev(false)), [NO_RUN], "output there but not understood: no run, as before");
+  assert.deepEqual(
+    check([
+      { seq: 1, kind: "run_tests", cmd: "npx playwright test", tests: { passed: 1, failed: 1, errors: 0, failed_names: [] } },
+      ...ev(true).map((e) => Object.assign({}, e, { seq: e.seq + 1 })),
+    ]),
+    [],
+    "a later run without output: the red one before it is not the last result",
+  );
+});

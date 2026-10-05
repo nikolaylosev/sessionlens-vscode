@@ -598,6 +598,7 @@
     if (["Grep", "Glob", "LS", "Search"].includes(tool)) return ["search", input.path || input.pattern || "", ""];
     if (["Edit", "MultiEdit"].includes(tool)) return ["edit", f, ""];
     if (["Write", "Create"].includes(tool)) return ["write", f, ""];
+    if (tool === "Delete") return ["delete", f, ""]; // Cursor's tool for removing a file (test_deleted)
     if (tool === "Bash") {
       const c = input.command || "";
       if (cfg.test_runner_patterns.some((p) => c.includes(p))) return ["run_tests", "", c];
@@ -903,6 +904,92 @@
     return out;
   }
 
+  // ---------- Cursor Agent (agent-transcripts/<id>/<id>.jsonl, from the Cursor IDE or its CLI) ----------
+  /* Checked on the IDE and CLI 2026.10.01 (Oct 2026): a line has `role` ("user" | "assistant") at the top and
+     `message.content`, or is {"type":"turn_ended"}. A tool_use has `name` and `input` only: no id and no result, so a
+     command's output is not in the file (the CLI and the IDE keep it in their own databases). Claude Code puts `type`
+     at the top and `role` inside `message`, so the same check leaves a Claude file on the Claude path. */
+  function isCursorJsonl(text) {
+    const nl = text.indexOf("\n");
+    const first = (nl === -1 ? text : text.slice(0, nl)).trim();
+    try {
+      const r = JSON.parse(first);
+      if (!r || typeof r !== "object") return false;
+      if (r.type === "turn_ended") return true;
+      return !r.type && ["user", "assistant"].includes(r.role) && !!r.message && Array.isArray(r.message.content);
+    } catch {
+      return false;
+    }
+  }
+  // Cursor's tools under the names and input keys the Claude Code import reads; other tools stay as they are (kind "tool")
+  const CURSOR_TOOLS = { Shell: "Bash", StrReplace: "Edit", Write: "Write", Read: "Read", Grep: "Grep", Glob: "Glob", Delete: "Delete" };
+  function cursorInput(name, input) {
+    const o = Object.assign({}, input);
+    if (o.path != null && o.file_path == null) o.file_path = o.path;
+    if (o.contents != null && o.content == null) o.content = o.contents;
+    if (name === "Glob") {
+      if (!o.path && o.target_directory) o.path = o.target_directory; // a Glob over src/ is a look at product code
+      if (!o.pattern && o.glob_pattern) o.pattern = o.glob_pattern;
+    }
+    return o;
+  }
+  /* The user's text comes wrapped: <timestamp>Monday, Oct 5, 2026, 1:06 AM (UTC+5)</timestamp> <user_query>…</user_query>.
+     The query is the text (user_frustration reads only short texts); the timestamp, the only time in the file, is the
+     event's ts as an ISO string, so the session's start is not the import time. */
+  function cursorUserText(t) {
+    const when = /<timestamp>([\s\S]*?)<\/timestamp>/.exec(t);
+    const query = /<user_query>([\s\S]*?)<\/user_query>/.exec(t);
+    const ms = when ? Date.parse(when[1].trim()) : NaN;
+    return {
+      text: (query ? query[1] : t.replace(/<timestamp>[\s\S]*?<\/timestamp>/g, "")).trim(),
+      ts: Number.isFinite(ms) ? new Date(ms).toISOString() : "",
+    };
+  }
+  /* Rewrites the lines in the Claude Code shape and lets fromClaudeJsonl rebuild the files, then puts Cursor's own tool
+     names back on the events. A StrReplace without a path has no file to apply it to: it stays a plain tool call. A
+     test run has no output in this file: output_missing says that its result is unknown, not red and not absent
+     (pass_claim_without_run, 0.1.121). */
+  function fromCursorJsonl(text, cfg) {
+    const lines = [],
+      names = [];
+    for (const line of text.split("\n")) {
+      if (!line.trim()) continue;
+      let rec;
+      try {
+        rec = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (!rec || !["user", "assistant"].includes(rec.role) || !rec.message) continue;
+      let ts = "";
+      const content = [];
+      for (const b of Array.isArray(rec.message.content) ? rec.message.content : []) {
+        if (!b || typeof b !== "object") continue;
+        if (b.type === "text" && rec.role === "user") {
+          const u = cursorUserText(b.text || "");
+          if (u.ts) ts = u.ts;
+          if (u.text) content.push({ type: "text", text: u.text });
+        } else if (b.type === "text") content.push({ type: "text", text: b.text || "" });
+        else if (b.type === "tool_use" && rec.role === "assistant") {
+          const name = String(b.name || ""),
+            input = cursorInput(name, b.input || {});
+          const as = name === "StrReplace" && !input.file_path ? name : CURSOR_TOOLS[name] || name;
+          content.push({ type: "tool_use", name: as, input });
+          names.push(name);
+        }
+      }
+      if (content.length) lines.push(JSON.stringify({ type: rec.role, timestamp: ts, message: { role: rec.role, content } }));
+    }
+    const out = fromClaudeJsonl(lines.join("\n"), cfg);
+    let i = 0;
+    for (const e of out) {
+      if (!e.tool) continue;
+      e.tool = names[i++];
+      if (e.kind === "run_tests") e.output_missing = true;
+    }
+    return out;
+  }
+
   const CODE_LINE =
     /^\s*(?:import\s|from\s+\S+\s+import|export\s|const\s|let\s|await\s|test\s*\(|test\.describe|test\.skip|it\s*\(|expect\s*\(|def\s+test|@Test|assert\w*\s*\(|assert\s|func\s+Test|\}\);?\s*$)/;
   const isCodeLine = (l) => CODE_LINE.test(l) || /^\s{2,}\S/.test(l) || /^\s*[\]\}\)]/.test(l) || /^\s*(?:\/\/|\/\*|\*|#)/.test(l) || l.trim() === "";
@@ -1071,6 +1158,7 @@
         if (c.length) return c.length === 1 ? c[0].events : c;
       } catch {}
     }
+    if (t.startsWith("{") && isCursorJsonl(t)) return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg), cfg), cfg);
     if (t.startsWith("{") && isCodexJsonl(t)) return stripNonSource(diffMessageVersions(fromCodexJsonl(text, cfg), cfg), cfg);
     const ev = t.startsWith("{") ? fromClaudeJsonl(text, cfg) : fromText(text, cfg);
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
@@ -1269,7 +1357,9 @@
         .map((e) => F("peeked_at_src_before_plan", "high", e.seq, T("peeked", { file: e.file })));
     },
     /* A claim phrase counts as whole words (0.1.119): "bypassing" is not "passing", "проходить" is not "проходит".
-       An English phrase may end in -es, -ed or -ing ("tests passed", "all passes"). */
+       An English phrase may end in -es, -ed or -ing ("tests passed", "all passes"). Since 0.1.121 a claim after a run
+       whose output the transcript does not have (output_missing, a Cursor import) is not reported: its result is unknown.
+       A run whose output is there but not understood (no tests) still counts as no run, as before. */
     pass_claim_without_run(ev, cfg) {
       const out = [],
         pats = cfg.pass_claim_patterns.map(
@@ -1286,7 +1376,10 @@
         if (e.kind !== "message") continue;
         const t = e.text.toLowerCase();
         if (!pats.some((rx) => rx.test(t))) continue;
-        const runs = ev.filter((x) => x.seq >= e.seq - cfg.pass_claim_lookback && x.seq < e.seq && x.kind === "run_tests" && x.tests);
+        const near = ev.filter((x) => x.seq >= e.seq - cfg.pass_claim_lookback && x.seq < e.seq && x.kind === "run_tests");
+        // the last run's result is not in the transcript (a Cursor transcript keeps no output): unknown, not red, not absent
+        if (near.length && near[near.length - 1].output_missing) continue;
+        const runs = near.filter((x) => x.tests);
         if (!runs.length) out.push(F("pass_claim_without_run", "high", e.seq, T("pass_no_run")));
         else {
           const l = runs[runs.length - 1].tests;
