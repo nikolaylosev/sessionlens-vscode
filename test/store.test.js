@@ -10,6 +10,11 @@ const { load } = require("./helpers");
 const { Lens } = load();
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "sl-store-"));
+// a file written `seconds` ago
+const age = (p, seconds) => {
+  const t = Date.now() / 1000 - seconds;
+  fs.utimesSync(p, t, t);
+};
 const sess = (id, extra = {}) =>
   Object.assign(
     {
@@ -194,6 +199,7 @@ test("open(): an interrupted write is repaired", async () => {
   fs.writeFileSync(path.join(dir, "d.meta.json"), JSON.stringify({ id: "d", rev: 1 }));
   fs.writeFileSync(path.join(dir, "e.json"), "{ not json");
   fs.writeFileSync(path.join(dir, "a.json.123.abcd.tmp"), "partial");
+  age(path.join(dir, "a.json.123.abcd.tmp"), 120); // by the next start; a younger one may be another window's write
   const r = await open(dir);
   st = r.st;
   assert.deepEqual(
@@ -211,6 +217,81 @@ test("open(): an interrupted write is repaired", async () => {
   assert.equal(fs.readdirSync(path.join(dir, "corrupt")).length, 1);
   assert.ok(!fs.readdirSync(dir).some((f) => f.endsWith(".tmp")));
   assert.ok(r.logs.some((l) => /rebuilt the summary of b/.test(l)) && r.logs.some((l) => /corrupt/.test(l)));
+});
+
+test("open() in a second window leaves a write in progress alone; a temporary file older than a minute is removed (0.1.120)", async () => {
+  const dir = tmp();
+  let release, reached;
+  const paused = new Promise((r) => (release = r));
+  const atSync = new Promise((r) => (reached = r));
+  let first = true;
+  const P = Object.assign({}, fs.promises, {
+    open: async (...args) => {
+      const h = await fs.promises.open(...args);
+      if (first && String(args[0]).endsWith(".tmp")) {
+        first = false;
+        const sync = h.sync.bind(h);
+        h.sync = async () => {
+          reached();
+          await paused;
+          return sync();
+        };
+      }
+      return h;
+    },
+  });
+  const writer = createStore({ dir, fs: { promises: P } });
+  await writer.open();
+  const crashed = path.join(dir, "x.json.1.dead.tmp");
+  fs.writeFileSync(crashed, "left by a crash");
+  age(crashed, 120);
+  const put = writer.put(sess("a"));
+  await atSync; // the writer's temporary file is on disk, not renamed yet
+  const { logs } = await open(dir); // a second window starts
+  release();
+  assert.equal((await put).rev, 1, "the write of the first window succeeds");
+  assert.ok(!fs.existsSync(crashed));
+  assert.deepEqual(
+    fs.readdirSync(dir).filter((f) => f.endsWith(".tmp")),
+    [],
+  );
+  assert.deepEqual(
+    logs.filter((l) => /unfinished/.test(l)),
+    ["removed an unfinished write: x.json.1.dead.tmp"],
+  );
+});
+
+test("open(): a summary another window writes while it is rebuilt here is kept, not overwritten (0.1.120)", async () => {
+  const dir = tmp();
+  const { st } = await open(dir);
+  await st.put(sess("a"), { analyzedGen: "gen-1" });
+  // the other window has written the session (rev 2), its summary comes next
+  const sp = path.join(dir, "a.json"),
+    mp = path.join(dir, "a.meta.json");
+  const text = JSON.stringify(Object.assign(sess("a", { name: "newer" }), { __rev: 2 }));
+  fs.writeFileSync(sp, text);
+  age(mp, 60);
+  const theirs = Object.assign(JSON.parse(fs.readFileSync(mp, "utf8")), { rev: 2, name: "newer", analyzedGen: "gen-2", size: Buffer.byteLength(text) });
+  let landed = false;
+  const summarize = (s) => {
+    if (!landed) {
+      landed = true; // the other window's summary lands while this one is being rebuilt
+      fs.writeFileSync(mp, JSON.stringify(theirs));
+    }
+    return Lens.sessionSummary(s);
+  };
+  const r = await open(dir, { summarize });
+  assert.ok(landed);
+  assert.deepEqual(JSON.parse(fs.readFileSync(mp, "utf8")), theirs, "the file is the other window's");
+  assert.deepEqual([r.st.meta("a").rev, r.st.meta("a").analyzedGen], [2, "gen-2"]);
+  assert.deepEqual(
+    r.logs.filter((l) => /summary of a/.test(l)),
+    ["kept the summary of a that another window wrote"],
+  );
+  assert.deepEqual(
+    fs.readdirSync(dir).filter((f) => f.endsWith(".tmp")),
+    [],
+  );
 });
 
 test("rename is retried on EPERM/EBUSY (Windows antivirus), other errors are not", async () => {
