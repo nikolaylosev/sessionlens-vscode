@@ -3,10 +3,8 @@
    the number of them in the file. What must not count: a skip (test.fixme, @Disabled, Ignore are sleep_or_skip_added's,
    since 0.1.113), an assertion about an exception, and commented-out code (0.1.121, commented-out-code.test.js).
 
-   Detector gaps found while writing this file (5 Oct 2026), not pinned here, for the owner to decide:
-   - the word "xfail" anywhere counts: a docstring ("Shows xfail in the report.") or a string (`status != "xfail"`)
-     gives a medium finding (the same mistake "reruns" had, fixed in 0.1.121);
-   - Jest's expected failure, `it.failing(…)` / `test.failing(…)` (Jest 28+), is not reported.
+   Since 0.1.121 (gaps found while writing this file): Jest's it.failing / test.failing, and pytest's xfail only as the
+   marker or the call, not as a word in a docstring or a string.
    Not a gap: Java and C# have the check but no pattern, since JUnit, TestNG, NUnit, xUnit and MSTest have no "expected
    to fail" marker (`@Test(expected = …)` and `assertThrows` expect an exception, which is a passing test). */
 const test = require("node:test");
@@ -37,6 +35,19 @@ test("pytest's xfail: the marker, strict, and the call inside a test", () => {
   assert.deepEqual(found("qa-python", PY, '@pytest.mark.xfail(reason="bug 12")\ndef test_total():\n    pass\n'), [msg(PY, 1)]);
   assert.deepEqual(found("qa-python", PY, "@pytest.mark.xfail(strict=True)\ndef test_total():\n    pass\n"), [msg(PY, 1)]);
   assert.deepEqual(found("qa-python", PY, 'def test_total():\n    pytest.xfail("bug 12")\n'), [msg(PY, 1)]);
+});
+
+test("Jest's expected failure: it.failing, test.failing, test.failing.each (0.1.121)", () => {
+  assert.deepEqual(found("qa-ts", TS, 'it.failing("total", () => {});\n'), [msg(TS, 1)]);
+  assert.deepEqual(found("qa-ts", TS, 'test.failing("total", () => {});\n'), [msg(TS, 1)]);
+  assert.deepEqual(found("qa-ts", TS, 'test.failing.each([1, 2])("total %i", () => {});\n'), [msg(TS, 1)]);
+});
+
+test("xfail as a word is not a marker: a docstring, a string, a name (0.1.121)", () => {
+  assert.deepEqual(found("qa-python", PY, 'def test_total():\n    """Shows xfail in the report."""\n'), []);
+  assert.deepEqual(found("qa-python", PY, 'def test_status():\n    assert status != "xfail"\n'), []);
+  assert.deepEqual(found("qa-python", PY, "def test_report():\n    assert report.xfailed == 0\n"), []);
+  assert.deepEqual(found("qa-python", PY, '@mark.xfail(reason="bug 12")\ndef test_total():\n    pass\n'), [msg(PY, 1)], "mark imported from pytest");
 });
 
 test("code shown in a message is checked too", () => {

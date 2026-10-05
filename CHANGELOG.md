@@ -57,6 +57,9 @@
   check never fired before. An exact count is also found with spaces, `toEqual` or `toStrictEqual`, in Python as
   `assert rows.count() == 3`, and in Java and C# (`assertEquals(3, rows.count())`, `assertThat(…).isEqualTo(3)`,
   `Assert.AreEqual` / `Assert.Equal`, `Is.EqualTo(3)`, `.Should().Be(3)`).
+- **Expected failure** finds Jest's `it.failing` / `test.failing`, and counts pytest's xfail only as the marker
+  (`@pytest.mark.xfail`) or the call (`pytest.xfail(…)`). The word "xfail" in a docstring or a string gave a finding
+  before.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
