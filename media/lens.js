@@ -616,13 +616,33 @@
     if (!NO_COMMENTS.has(e)) NO_COMMENTS.set(e, withoutComments(e.new_content || "", e.file));
     return NO_COMMENTS.get(e);
   }
+  /* The text with every line that is all comment left empty, for the checks that read a file line by line: a line
+     inside a block comment is one even without a leading "*" (until 0.1.121 it was read as code). The lines stay where
+     they are, and a line with code keeps its comment: magic_number takes one at the end of a line for the number's
+     explanation. A Python docstring is a string, not a comment, and stays. */
+  function commentLinesBlanked(text, file) {
+    const code = withoutComments(text, file).split("\n");
+    return text
+      .split("\n")
+      .map((ln, i) => (code[i].trim() || !ln.trim() ? ln : ""))
+      .join("\n");
+  }
+  // an event's new_content with its comment lines left empty, worked out once per event
+  const NO_COMMENT_LINES = new WeakMap();
+  function linesOf(e) {
+    if (!NO_COMMENT_LINES.has(e)) NO_COMMENT_LINES.set(e, commentLinesBlanked(e.new_content || "", e.file));
+    return NO_COMMENT_LINES.get(e);
+  }
   /* An assertion line of the profile that is not a comment line (//, #, /* or * inside a block). A commented-out
      assertion never runs: until 0.1.120 it still counted, so commenting one out was not "fewer assertions". */
   function isAssertLine(ln, cfg) {
     return !/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && cfg.assert_line_patterns.some((p) => p.test(ln));
   }
-  function compareAsserts(oldSrc, newSrc, cfg) {
+  // file: whose comments to read (the extension says which); none for code in a message
+  function compareAsserts(oldSrc, newSrc, cfg, file) {
     if (!cfg.assert_line_patterns) return null;
+    oldSrc = commentLinesBlanked(oldSrc, file);
+    newSrc = commentLinesBlanked(newSrc, file);
     const isA = (ln) => isAssertLine(ln, cfg);
     const asserts = (t) =>
       t
@@ -726,7 +746,7 @@
             keepBefore(r, f, o, cfg);
             files[f] = inp.content || "";
             if (o != null && isCode(f, cfg)) {
-              const d = compareAsserts(o, files[f], cfg);
+              const d = compareAsserts(o, files[f], cfg, f);
               if (d) r.assert_delta = d;
             }
           } else if (kind === "edit") {
@@ -738,7 +758,7 @@
               const n = inp.old_string ? o.replace(inp.old_string, inp.new_string || "") : o + "\n" + (inp.new_string || "");
               files[f] = n;
               if (isCode(f, cfg)) {
-                const d = compareAsserts(o, n, cfg);
+                const d = compareAsserts(o, n, cfg, f);
                 if (d) r.assert_delta = d;
               }
             }
@@ -770,7 +790,7 @@
               files[full] = after;
               keepBefore(r, r.file, before, cfg);
               if (before != null && isCode(r.file, cfg)) {
-                const d = compareAsserts(before, after, cfg);
+                const d = compareAsserts(before, after, cfg, r.file);
                 if (d) r.assert_delta = d;
               }
               r.new_content = after.slice(0, 200000);
@@ -889,7 +909,7 @@
             keepBefore(r, f, before, cfg);
             if (before == null) r.fragment_only = true;
             else if (isCode(f, cfg)) {
-              const d = compareAsserts(before, after, cfg);
+              const d = compareAsserts(before, after, cfg, f);
               if (d) r.assert_delta = d;
             }
             files[path] = after;
@@ -1676,7 +1696,7 @@
       const out = [];
       const PREDICATE = /^assert\s[\w.]*\b(?:(?:is|has|can|should|was|were|does|did)_\w+(?:\(\))?|is[a-z]+\(\)|exists\(\))\s*$/;
       for (const e of ev) {
-        const code = e.new_content;
+        const code = e.new_content && linesOf(e);
         if (!code || !/assert|expect|\.should\s*\(/.test(code)) continue;
         for (const rx of cfg.weak_assert_patterns) {
           rx.lastIndex = 0;
@@ -2030,14 +2050,15 @@
       if (ev.some((e) => e.kind === "run_tests")) return [];
       return [F("tests_never_run", "high", code[code.length - 1].seq, T("never_run", { n: code.length }))];
     },
-    // a commented-out assertion never runs: a line that is a comment (//, #, /* or * inside a block) is skipped (0.1.118)
+    /* a commented-out assertion never runs: a line that is a comment (//, #, /* or * inside a block) is skipped (0.1.118),
+       and since 0.1.121 a line inside a block comment without a leading * too */
     hardcoded_date(ev) {
       const RX =
         /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}|\b20\d{2}-\d{2}-\d{2}\b|\b(?:январ|феврал|март|апрел|ма[йя]|июн|июл|август|сентябр|октябр|ноябр|декабр)\w*\s+\d{4}/i;
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        for (const ln of e.new_content.split("\n"))
+        for (const ln of linesOf(e).split("\n"))
           if (!/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && /expect|assert|toHaveText|getByText/.test(ln) && RX.test(ln))
             out.push(F("hardcoded_date", "medium", e.seq, T("hard_date", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })));
       }
@@ -2079,7 +2100,7 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const at = body.indexOf(".then()"),
             scope = at >= 0 ? body.slice(at) : body;
           const as = scope.split("\n").filter((l) => isAssertLine(l, cfg) || (at >= 0 && /^\s*\.(?:header|headers|contentType|time|cookie)\s*\(/.test(l)));
@@ -2142,7 +2163,7 @@
       // a runner's config file is where the base URL belongs (baseURL in playwright.config.ts): what the rule asks for
       for (const e of ev) {
         if (!e.new_content || RUNNER_CONFIG_RX.test(e.file || "")) continue;
-        for (const line of e.new_content.split("\n")) {
+        for (const line of linesOf(e).split("\n")) {
           if (/^\s*(?:#|\/\/|\*)|\$schema|xmlns|href\s*=|@see/.test(line)) continue;
           for (const m of line.matchAll(/https?:\/\/([A-Za-z0-9.-]+|\[[0-9a-f:]+\])(?::\d+)?/gi)) {
             const host = m[1];
@@ -2167,7 +2188,7 @@
       let neg = 0,
         last = -1;
       for (const [file, e] of latest)
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const k = `${file.startsWith("#") ? "" : file}|${name}`;
           if (seen.has(k)) continue;
           seen.add(k);
@@ -2203,7 +2224,7 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const ln = body.split("\n").find((l) => /assert|expect/i.test(l) && TIME.test(l) && CMP.test(l));
           if (ln) out.push(F("response_time_assert", "low", e.seq, T("resp_time", { file: e.file || inMsg(), test: name, line: ln.trim().slice(0, 60) })));
         }
@@ -2255,7 +2276,7 @@
     // ---- test smells (taxonomy: TsDetect / Pynose), per test block ----
     /* A line with a comment is skipped: the comment may explain the number, or the line is commented out. Since 0.1.120
        only a real comment counts: "#" or "//" inside a string (a CSS id, a URL) or `this.#field` is not one, and a line
-       inside a block comment ("* expect(…)") is. */
+       inside a block comment ("* expect(…)", and since 0.1.121 a line there with no leading *) is. */
     magic_number(ev, cfg) {
       const out = [],
         OK = new Set([0, 1, 2, 100, 200, 201, 204, 301, 302, 400, 401, 403, 404, 405, 409, 422, 423, 429, 500, 502, 503]);
@@ -2263,7 +2284,7 @@
       const commented = (ln) => /\/\/|\/\*|(?:^|\s)#|^\s*\*/.test(ln.replace(STRING, '""'));
       for (const e of ev) {
         if (!e.new_content || !cfg.assert_line_patterns) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const nums = new Set();
           for (const ln of body.split("\n"))
             if (cfg.assert_line_patterns.some((p) => p.test(ln)) && !commented(ln))
@@ -2281,7 +2302,7 @@
       if (!["python", "java"].includes(cfg.language)) return out;
       for (const e of ev) {
         if (!e.new_content || !cfg.assert_line_patterns) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const as = body.split("\n").filter((l) => isAssertLine(l, cfg));
           const withMsg = as.filter((l) => (cfg.language === "python" ? /,\s*(?:f?["'])/.test(l) : /assert\w+\s*\("[^"]*",/.test(l))).length;
           if (as.length >= 3 && withMsg === 0)
@@ -2294,7 +2315,7 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content || !cfg.test_fn_pattern) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const inner = body.split("\n").slice(1).join("\n");
           // since 0.1.121 also C#'s foreach and a loop written as a call: rows.forEach(…), list.ForEach(…). A line with no
           // indentation is not read: in Python the block runs on past the test's end into the module's own code.
@@ -2314,7 +2335,7 @@
       const out = [];
       for (const e of ev) {
         if (!e.new_content || !cfg.assert_line_patterns) continue;
-        for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
+        for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const seen = new Map();
           for (const l of body.split("\n")) {
             const t = l.trim();

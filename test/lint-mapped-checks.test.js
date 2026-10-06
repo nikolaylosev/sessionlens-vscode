@@ -6,9 +6,9 @@
    includes the start of the message.
 
    Robot's assertions: see the test of that name (0.1.121; until then only a keyword that started with Should or Must
-   counted). A gap found on 5 Oct 2026, not pinned here: eslint-plugin-cypress's no-async-before (vendored, not
-   changed here) reports only a hook with a title, `before("load", async () => …)`, not the usual
-   `before(async () => …)`. */
+   counted). eslint-plugin-cypress's no-async-before (vendored, not changed here) reports only a hook with a title,
+   `before("load", async () => …)`; the regex cypress_async_test finds the untitled one and after / afterEach (0.1.121,
+   the cypress_async_test cases below). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
