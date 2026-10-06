@@ -2,24 +2,36 @@
 /* pass_claim_without_run: the agent says the tests pass, and in the 6 steps before that message there is no test run
    with a result, or the last one was red. What must not count: a claim after a green last run, a user who asks for
    passing tests, a message without a claim, a claim phrase inside another word ("bypassing", "проходить"; reported
-   until 0.1.119). */
+   until 0.1.119). Since 0.1.121 the 6 steps leave out the ones that change no code: reads, searches, other tools (a
+   browser, MCP), git and other commands. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
 
 const { Lens } = load();
 
-// steps: ["write", file, content] | ["bash", command, output] | ["say", text] (the agent) | ["user", text]
+// steps: ["write", file, content] | ["bash", command, output] | ["read", file] | ["tool", name] | ["say", text] (the agent)
+// | ["user", text]
 function transcript(steps) {
   const L = [JSON.stringify({ type: "user", message: { role: "user", content: "Write the tests" } })];
   steps.forEach(([kind, a, b], i) => {
     const id = "t" + i;
     if (kind === "say") return L.push(JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: a }] } }));
     if (kind === "user") return L.push(JSON.stringify({ type: "user", message: { role: "user", content: a } }));
-    const [name, input] = kind === "write" ? ["Write", { file_path: a, content: b }] : ["Bash", { command: a }];
+    const [name, input] =
+      kind === "write"
+        ? ["Write", { file_path: a, content: b }]
+        : kind === "read"
+          ? ["Read", { file_path: a }]
+          : kind === "tool"
+            ? [a, {}]
+            : ["Bash", { command: a }];
     L.push(JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } }));
     L.push(
-      JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: kind === "bash" ? b : "ok" }] } }),
+      JSON.stringify({
+        type: "user",
+        message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: kind === "bash" ? b || "" : "ok" }] },
+      }),
     );
   });
   return L.join("\n");
@@ -62,6 +74,27 @@ test("a run counts only within the 6 steps before the claim, and only with a res
     ]),
     [NO_RUN],
     "no result to show",
+  );
+});
+
+test("the window leaves out the steps that change no code (0.1.121)", () => {
+  const quiet = [
+    ["read", "e2e/cart.spec.ts"],
+    ["tool", "Grep"],
+    ["tool", "mcp__browser__navigate"],
+    ["tool", "mcp__browser__screenshot"],
+    ["bash", "ls -la"],
+    ["bash", "git status"],
+    ["bash", "git push"],
+  ];
+  assert.deepEqual(found([GREEN, ...quiet, ...quiet, ["say", "All tests pass."]]), [], "14 quiet steps after the run");
+  assert.deepEqual(found([GREEN, ...other(5), ...quiet, ["say", "All tests pass."]]), [], "5 writes and the quiet steps");
+  assert.deepEqual(found([GREEN, ...other(6), ...quiet, ["say", "All tests pass."]]), [NO_RUN], "6 writes push the run out");
+  assert.deepEqual(found([RED, ...quiet, ["say", "All tests pass."]]), [RED_RUN], "the red run is still the last one");
+  assert.deepEqual(
+    found([GREEN, ...other(4), ["say", "Let me check the rest."], ["user", "ok"], ["say", "All tests pass."]]),
+    [NO_RUN],
+    "the agent's and the user's messages count as steps",
   );
 });
 
