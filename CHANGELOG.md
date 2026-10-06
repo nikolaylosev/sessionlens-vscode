@@ -40,6 +40,11 @@
   setting `sessionlens.claudeCliPath`" instead of "the VS Code setting", "this editor window is remote".
 
 ### Fixed
+- **No assertion after action** in Robot Framework took only a keyword that starts with `Should` or `Must` for an
+  assertion, so most UI tests got a high "nothing is actually verified": SeleniumLibrary's `Page Should Contain`,
+  `Element Should Be Visible` or `Title Should Be`, a Browser `Get Text    id=total    ==    42`, or a call of the
+  file's own keyword with an assertion inside. Now these count, and so do `Wait Until …`, `Run Keyword And Expect
+  Error`, and keywords named `Verify …`, `Check …`, `Assert …`, `Validate …`, `Expect …` or `Ensure …`.
 - **Commented-out code no longer gives findings** in the checks that look for a pattern anywhere in a file: a
   commented-out sleep, skip or retry (**Sleep or skip added**), `networkidle` (**Fragile wait**), `.only`, a debugger
   call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without
