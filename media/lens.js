@@ -976,21 +976,24 @@
             /* leave cmd null */
           }
         } else if (typeof p.input === "string") {
-          // codex_vscode's REPL harness wraps the real shell command as JSON inside a JS call, e.g.
-          // tools.exec_command({"cmd":"...", ...}) — the cmd value itself is plain JSON-escaped text.
-          const m = p.input.match(/"cmd"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-          if (m) {
+          // codex_vscode's REPL harness wraps the real shell command in a JS call: tools.exec_command({"cmd":"..."}),
+          // and from Codex 0.159 tools.exec_command({cmd:"..."}) with an unquoted key (lost until 0.1.121). The value is
+          // JSON-escaped text. A snippet that runs several commands gives them all, joined by "; ".
+          const cmds = [...p.input.matchAll(/(?:"cmd"|(?<![\w$."'])cmd)\s*:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) => {
             try {
-              cmd = JSON.parse('"' + m[1] + '"');
+              return JSON.parse('"' + m[1] + '"');
             } catch {
-              cmd = m[1];
+              return m[1];
             }
-          }
+          });
+          if (cmds.length) cmd = cmds.join("; ");
         }
         const r =
           cmd == null
             ? { seq: seq++, ts, kind: "tool", tool: name }
             : { seq: seq++, ts, kind: cfg.test_runner_patterns.some((pt) => cmd.includes(pt)) ? "run_tests" : /^\s*git /.test(cmd) ? "git" : "run_other", cmd };
+        // a command from the exec harness keeps the tool's name: transcriptMatch pairs it with a stored "tool exec" step
+        if (cmd != null && p.type === "custom_tool_call") r.tool = name;
         out.push(r);
         if (p.call_id) pending[p.call_id] = r;
         continue;
@@ -1468,8 +1471,8 @@
         (0.1.121). */
   const IMPORT_GEN = 3;
   /* A Codex session imported before 0.1.121 with file changes in its transcript: from Codex 0.155 they were skipped,
-     and an edit lost the line after its hunk. Without the kept text, an exec call that ran no command (a patch in the
-     code-mode harness) tells the same. */
+     and an edit lost the line after its hunk. Without the kept text, a bare exec step tells the same: a patch in the
+     code-mode harness, or a Codex 0.159 command that was lost the same way. */
   const codexChangesBefore121 = (s) =>
     (typeof s.source_text === "string" &&
       /"type"\s*:\s*"session_meta"/.test(s.source_text.slice(0, 5000)) &&
@@ -1491,13 +1494,15 @@
      (a newer import may add events, such as Codex deletions), near 0 for another one. */
   function transcriptMatch(stored, fresh) {
     const sig = (e) => [e.kind, e.file || "", e.cmd || "", String(e.text || "").slice(0, 60)].join("|");
-    const a = (stored || []).map(sig),
-      b = (fresh || []).map(sig);
+    // a Codex 0.159 command stored before 0.1.121 as a bare "tool exec" step is the same step as its command now
+    const same = (x, y) => sig(x) === sig(y) || (x.kind === "tool" && x.tool === "exec" && y.tool === "exec");
+    const a = stored || [],
+      b = fresh || [];
     if (!a.length) return b.length ? 0 : 1;
     let j = 0,
       n = 0;
     for (const x of a) {
-      const k = b.indexOf(x, j);
+      const k = b.findIndex((y, i) => i >= j && same(x, y));
       if (k >= 0) {
         n++;
         j = k + 1;

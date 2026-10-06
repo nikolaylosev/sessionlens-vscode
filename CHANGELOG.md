@@ -99,6 +99,10 @@
   had no file changes: Codex now records a change in another form, which SessionLens skipped. The session showed the
   messages and commands, but none of the files the agent wrote or edited, so the checks of the test code found
   nothing. Now both forms are read, and such a session shows **Import again**.
+- **Codex sessions from Codex 0.159 and later** lost most of their commands, test runs included: Codex now writes
+  them in a form SessionLens did not read. Such a session could get a high **Tests never run** although the agent ran
+  them, and the checks that read a run's result saw none. Now every command is read, also when one step runs
+  several. Such a session shows **Import again**.
 - A **Codex** edit lost the line right after the changed lines: Codex ends its diffs with a line break, which was taken
   for one more line of the file. If that line was an assertion, the test seemed to have one fewer (**Assertion
   weakened**). A Codex session with edits shows **Import again** to read them again.

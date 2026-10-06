@@ -393,7 +393,9 @@ flowchart TD
   becomes a `delete` event. Up to Codex 0.154 a change is an `event_msg` `patch_apply_end`; from 0.155 (Sept 2026) it
   is an `event_msg` `item_completed` whose item is a `FileChange` with the same `changes` (read since 0.1.121; one
   that did not complete is skipped, and a change written as both records counts once). Commands come from `shell`
-  calls or, in the code-mode harness, from the `cmd` of `tools.exec_command(…)` inside a `custom_tool_call` `exec`.
+  calls or, in the code-mode harness, from the `cmd` of `tools.exec_command(…)` inside a `custom_tool_call` `exec`
+  (`"cmd":"…"`, and from 0.159 `cmd:"…"` with an unquoted key, read since 0.1.121; several calls in one snippet are
+  joined by `; `). Such a step keeps `tool: "exec"`, so `transcriptMatch` pairs it with a stored bare `exec` step.
 - **Cursor Agent `.jsonl`** (since 0.1.121; `~/.cursor/projects/<workspace>/agent-transcripts/<id>/<id>.jsonl`,
   from the IDE or the CLI) has `role` at the top of a line and tool calls without ids or results. `fromCursorJsonl`
   rewrites each line in the Claude Code shape (`Shell` → `Bash`, `StrReplace` → `Edit`, `path`/`contents` →
