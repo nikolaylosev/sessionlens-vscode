@@ -602,6 +602,7 @@
     $("#c-rules-title").textContent = T("c_rules", { f: rulesTargetLabel() });
     $("#rules-target").value = state.settings.rulesTarget || "claude";
     const stats = calibStatsBySource();
+    const precEmpty = !Object.keys(stats).length;
     const confirmed = [];
     for (const m of metas()) for (const c of m.confirmed || []) confirmed.push({ s: m, f: c, vd: { v: "ok", note: c.note } });
     $("#precision").innerHTML = `<tr>${T("prec_hdr").map((h) => `<th>${esc(h)}</th>`).join("")}</tr>` + // phase 8: one row per check AND source, with the status calibrate() really applies to it
@@ -616,7 +617,7 @@
         why = T("st_by_hand_hint", { p: Math.round(p * 100) });
       }
       return `<tr><td>${esc(k)}</td><td>${esc(srcLabel(src))}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted"${why ? ` title="${esc(why)}"` : ""}>${esc(status)}</td></tr>`;
-    }).join("");
+    }).join("") + (precEmpty ? `<tr><td colspan="${T("prec_hdr").length}" class="muted prec-empty">${esc(T("prec_empty"))}</td></tr>` : "");
     const min = +$("#min-count").value || 1, by = {};
     for (const c of confirmed) (by[c.f.check] = by[c.f.check] || []).push(c);
     const rules = Object.entries(by).filter(([k, l]) => l.length >= min && !state.rulesDismissed[k]).sort((a, b) => b[1].length - a[1].length);

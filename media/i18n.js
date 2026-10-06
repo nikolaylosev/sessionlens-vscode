@@ -281,6 +281,7 @@
       md_btn: "PR report (.md)",
       del_confirm: "Delete the session and its verdicts?",
       prec_hdr: ["check", "source", "total", "confirmed", "false", "precision", "status"],
+      prec_empty: "No sessions of your own yet. The demo session's verdicts do not count here: they are about a made-up session.",
       st_off: "disabled",
       st_demoted: "demoted",
       st_need: "need {n} more",
