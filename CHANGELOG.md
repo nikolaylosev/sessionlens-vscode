@@ -22,6 +22,11 @@
   weakened** and **Test deleted** could not compare them with the version before. Now the move is an edit of the new
   name, and a test moved with its file is not reported as deleted. A Codex session imported before gets this after
   **Import again**.
+- A **Cursor Agent** session showed every file by its full path (`/Users/<you>/…/tests/cart.spec.ts`): the transcript
+  has no workspace folder. A transcript picked with **Choose file** is in `~/.cursor/projects/<workspace>/`, and that
+  folder's name now gives the workspace, so the paths under it are relative to it, as in a Claude Code or Codex
+  session. A screenshot of a review no longer shows your user name. A file dropped onto the panel or pasted still
+  shows full paths, and so does a session imported before: import its file again with **Choose file**.
 
 ## 0.1.121
 

@@ -412,7 +412,11 @@ flowchart TD
   import runs without output. `fromCursorJsonl` gives a `Shell` call the next output with the same command as its
   `tool_result`, so its tests are parsed as for Claude Code; a run with none keeps `output_missing`. The session
   keeps the output's ends (`source_outputs`, 20 000 characters each) with `source_text`, for Back to regex parsing
-  and Import again. A transcript dropped onto the panel or pasted has no output. **Choose file** → Cursor Agent opens
+  and Import again. The host also returns the name of the transcript's folder in `~/.cursor/projects`
+  (`cursorProject`, since 0.1.122; kept as `source_project`): the transcript's paths are absolute, and
+  `fromCursorJsonl` makes them relative to the folder above them whose name, made by the same rule
+  (`Lens.cursorProjectSlug`), is that name. A transcript dropped onto the panel or pasted has no output and keeps
+  absolute paths. **Choose file** → Cursor Agent opens
   the dialog at the workspace's `agent-transcripts` folder: the folder's name is the workspace path with every
   character that is not a Latin letter or a digit made `-` (`guessTranscriptDefaultUri` in `extension.js`, the rule
   of Cursor's CLI; Windows not checked); with no such folder, at `~/.cursor/projects`.

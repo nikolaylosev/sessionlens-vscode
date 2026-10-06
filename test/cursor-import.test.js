@@ -2,7 +2,8 @@
 /* The Cursor Agent import (0.1.121): agent-transcripts/<id>/<id>.jsonl from the Cursor IDE or its CLI. A line has `role`
    at the top and `message.content`; a tool_use has no id and no result. What is checked: detection (and Claude Code and
    Codex files staying on their paths), the user's text and timestamp, each tool as the event the checks read, files
-   rebuilt across Write and StrReplace, a deleted test, and test runs without output. Made-up content only. */
+   rebuilt across Write and StrReplace, a deleted test, test runs without output, and paths made relative to the
+   workspace when the transcript's folder is known (0.1.122). Made-up content only. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -160,4 +161,33 @@ test("a Shell call takes the next output with the same command; one with no matc
       ["npx playwright test --headed", "", null, true],
     ],
   );
+});
+
+/* The transcript's paths are absolute. Picked in its folder (~/.cursor/projects/<workspace>/…), the folder's name gives
+   the workspace, and the paths under it are relative (0.1.122; before, the session showed /Users/<name>/… everywhere). */
+test("with the transcript's folder name, the paths in the workspace are relative; others stay as they are (0.1.122)", () => {
+  const lines = [
+    user("Write the cart tests"),
+    call("Read", { path: "/Users/me/my_shop/src/cart.ts" }),
+    call("Write", { path: "/Users/me/my_shop/" + SPEC, contents: TWO }),
+    call("StrReplace", { path: "/Users/me/my_shop/" + SPEC, old_string: "TOTAL", new_string: "'3'" }),
+    call("Read", { path: "/Users/me/notes.md" }),
+  ];
+  const files = (project) =>
+    Lens.importAny(jsonl(...lines), cfg, { cursorProject: project })
+      .filter((e) => e.file)
+      .map((e) => `${e.kind} ${e.file}`);
+  assert.deepEqual(files("Users-me-my-shop"), ["read src/cart.ts", `write ${SPEC}`, `edit ${SPEC}`, "read /Users/me/notes.md"]);
+  const abs = ["read /Users/me/my_shop/src/cart.ts", `write /Users/me/my_shop/${SPEC}`, `edit /Users/me/my_shop/${SPEC}`, "read /Users/me/notes.md"];
+  assert.deepEqual(files(undefined), abs, "dropped or pasted: no folder");
+  assert.deepEqual(files("Users-me-other"), abs, "a folder name that no path gives");
+  const ev = Lens.importAny(jsonl(...lines), cfg, { cursorProject: "Users-me-my-shop" });
+  assert.equal(ev.find((e) => e.kind === "edit").new_content, TWO.replace("TOTAL", "'3'"), "the file is still rebuilt across the edit");
+});
+
+test("the folder name is made by the rule of Cursor's CLI, the same as cli.js's", () => {
+  const { cursorProjectSlug } = require("../cli.js");
+  for (const p of ["/Users/me/my_app", "/Users/me/Projects/sessionlens-vscode", "/home/a b/x.y__z/", "/Users/me/проект/app"])
+    assert.equal(Lens.cursorProjectSlug(p), cursorProjectSlug(p), p);
+  assert.equal(Lens.cursorProjectSlug("/Users/me/my_app"), "Users-me-my-app");
 });

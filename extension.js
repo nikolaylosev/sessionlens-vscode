@@ -780,7 +780,10 @@ function wireMessages(
         if (uri.scheme === "file" && Lens.isCursorJsonl(text.trimStart())) {
           const r = cursorOutputs(uri.fsPath);
           host.log(r.outputs ? `cursor: the output of ${r.outputs.length} commands from the ${r.source} database` : `cursor: no command output (${r.reason})`);
-          reply({ name: path.basename(uri.fsPath), text, cursorOutputs: r.outputs || undefined });
+          // ~/.cursor/projects/<workspace>/agent-transcripts/…: the folder's name gives the workspace's path (0.1.122)
+          const parts = uri.fsPath.split(/[\\/]/),
+            at = parts.lastIndexOf("agent-transcripts");
+          reply({ name: path.basename(uri.fsPath), text, cursorOutputs: r.outputs || undefined, cursorProject: at > 0 ? parts[at - 1] : undefined });
         } else reply({ name: path.basename(uri.fsPath), text });
       } else if (msg.type === "claude:run") {
         // the user's own Claude Code CLI, see cli.js; the path is the machine setting, never the payload's

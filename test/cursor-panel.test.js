@@ -2,7 +2,8 @@
 /* A Cursor Agent transcript picked in the panel (0.1.121), end to end through the real panel and host
    (test/host-panel.js), with the CLI's database in a temporary home: the host finds the command output for the picked
    file, the import parses the runs with it, the session keeps the output with its text, and Back to regex parsing
-   parses it the same way. The Output channel names the database, never the transcript. */
+   parses it the same way. The session's paths are relative to the workspace its folder names (0.1.122). The Output
+   channel names the database, never the transcript. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
@@ -12,7 +13,7 @@ const { bootHost, openPage } = require("./host-panel");
 const { createStore } = require("../store.js");
 const { S, home, transcript, cliDb, shell, result } = require("./cursor-fixtures");
 
-const SPEC = "/w/e2e/cart.spec.ts";
+const SPEC = "/Users/me/shop/e2e/cart.spec.ts"; // in the workspace of the fixture's folder, Users-me-shop
 const TWO =
   "import { test, expect } from '@playwright/test';\n\ntest('total', async ({ page }) => {\n  await expect(page.getByTestId('total')).toHaveText(TOTAL);\n});\n";
 const MARK = "cursor-panel-mark";
@@ -94,6 +95,8 @@ test(
       );
       assert.ok(checks(s).includes("fix_after_fail_without_triage"), checks(s).join(", "));
       assert.equal(s.source_outputs.length, 2, "kept with the text");
+      assert.equal(s.source_project, "Users-me-shop", "the transcript's folder, kept with the text");
+      assert.deepEqual([...new Set(s.events.filter((e) => e.file).map((e) => e.file))], ["e2e/cart.spec.ts"], "relative to the workspace (0.1.122)");
       const log = host.calls.output.join("\n");
       assert.match(log, /cursor: the output of 2 commands from the cli database/);
       assert.equal(log.includes(MARK), false, "nothing from the transcript in the Output channel");
@@ -109,6 +112,7 @@ test(
       await tab.idle();
       s = await store();
       assert.ok(checks(s).includes("fix_after_fail_without_triage"), "still there after Back to regex parsing");
+      assert.deepEqual([...new Set(s.events.filter((e) => e.file).map((e) => e.file))], ["e2e/cart.spec.ts"], "still relative");
       assert.deepEqual(tab.errors, []);
       tab.close();
     } finally {

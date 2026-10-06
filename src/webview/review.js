@@ -110,7 +110,8 @@ export function initReview() {
     await updateSession(state.current, (x) => {
       const cfg = Lens.profile(x.profile);
       // the session's own conversation of the file, not the first one (fixed in 0.1.115)
-      x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, { cursorOutputs: x.source_outputs })) || x.events;
+      const from = { cursorOutputs: x.source_outputs, cursorProject: x.source_project };
+      x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, from)) || x.events;
       x.seg = null;
       x.importGen = Lens.IMPORT_GEN;
       analyze(x);
@@ -207,7 +208,8 @@ export async function reimport() {
     s = curS();
   if (!s) return;
   let text = s.source_text,
-    cursorOutputs = s.source_outputs;
+    cursorOutputs = s.source_outputs,
+    cursorProject = s.source_project;
   if (!text) {
     const source = await chooseDialog(T("reimport_pick"), [
       { label: T("pick_source_claude"), value: "claude", primary: true },
@@ -220,10 +222,11 @@ export async function reimport() {
     if (!r) return;
     text = r.text;
     cursorOutputs = r.cursorOutputs;
+    cursorProject = r.cursorProject;
   }
   const cfg = Lens.profile(s.profile);
   // a file with several conversations: the one closest to this session
-  const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs }));
+  const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs, cursorProject }));
   if (!events) {
     await alertDialog(T("no_events"));
     return;
@@ -248,6 +251,7 @@ export async function reimport() {
     if (!x.source_text && text.length < 400000) {
       x.source_text = text;
       x.source_outputs = keptOutputs(cursorOutputs);
+      x.source_project = cursorProject;
     }
     x.importGen = Lens.IMPORT_GEN;
     analyze(x, "import");
