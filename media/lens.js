@@ -2359,35 +2359,61 @@
      touches, whatever profile is active (see stripNonSource above, which never drops .feature content).
      No tree-sitter/WASM needed — the grammar is regular enough for a plain line parser. */
   const GHERKIN_BG_MAX_STEPS = 6;
+  /* Gherkin's keywords in English and Russian (Cucumber's own i18n table), with their synonyms: Example for Scenario,
+     Scenario Template for Scenario Outline, Scenarios for Examples (0.1.121; until then English only, without synonyms,
+     so a feature in Russian gave no scenario and none of the checks ran). A step keyword becomes its English name. */
+  const GH_HEAD = (words) => new RegExp("^(?:" + words.join("|") + ")\\s*:\\s*(.*)$");
+  const GH_BACKGROUND = GH_HEAD(["Background", "Предыстория", "Контекст"]);
+  const GH_OUTLINE = GH_HEAD(["Scenario Outline", "Scenario Template", "Структура сценария", "Шаблон сценария"]);
+  const GH_SCENARIO = GH_HEAD(["Scenario", "Example", "Сценарий", "Пример"]);
+  const GH_EXAMPLES = GH_HEAD(["Examples", "Scenarios", "Примеры"]);
+  const GH_STEP_WORDS = {
+    Given: ["Given", "Дано", "Допустим", "Пусть"],
+    When: ["When", "Когда", "Если"],
+    Then: ["Then", "Тогда", "Затем", "То"],
+    And: ["And", "К тому же", "Также", "И"],
+    But: ["But", "Иначе", "Но", "А"],
+  };
+  const GH_STEP_KW = new Map(Object.entries(GH_STEP_WORDS).flatMap(([en, words]) => words.map((w) => [w, en])));
+  const GH_STEP = new RegExp("^(" + [...GH_STEP_KW.keys()].join("|") + "|\\*)\\s+(.+)$");
   function parseFeature(text) {
     const scenarios = [];
     let background = null,
       cur = null,
-      inExamples = false;
+      inExamples = false,
+      docString = null; // the fence of an open doc string: its lines are text, not steps
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const t = lines[i].trim();
+      if (docString) {
+        if (t.startsWith(docString)) docString = null;
+        continue;
+      }
+      if (t.startsWith('"""') || t.startsWith("```")) {
+        docString = t.slice(0, 3);
+        continue;
+      }
       if (!t || t.startsWith("#") || t.startsWith("@")) continue;
       let m;
-      if ((m = t.match(/^Background:\s*(.*)$/))) {
+      if ((m = t.match(GH_BACKGROUND))) {
         background = { steps: [], line: i + 1 };
         cur = background;
         inExamples = false;
         continue;
       }
-      if ((m = t.match(/^Scenario Outline:\s*(.*)$/))) {
+      if ((m = t.match(GH_OUTLINE))) {
         cur = { name: m[1] || `#${scenarios.length + 1}`, outline: true, steps: [], line: i + 1, hasExamples: false, exampleRows: 0, exHeaderSeen: false };
         scenarios.push(cur);
         inExamples = false;
         continue;
       }
-      if ((m = t.match(/^Scenario:\s*(.*)$/))) {
+      if ((m = t.match(GH_SCENARIO))) {
         cur = { name: m[1] || `#${scenarios.length + 1}`, outline: false, steps: [], line: i + 1 };
         scenarios.push(cur);
         inExamples = false;
         continue;
       }
-      if (/^Examples:/.test(t)) {
+      if (GH_EXAMPLES.test(t)) {
         if (cur && cur.outline) {
           cur.hasExamples = true;
           inExamples = true;
@@ -2399,8 +2425,8 @@
         else cur.exHeaderSeen = true;
         continue;
       }
-      if ((m = t.match(/^(Given|When|Then|And|But)\s+(.+)$/))) {
-        if (cur) cur.steps.push({ kw: m[1], text: m[2] });
+      if ((m = t.match(GH_STEP))) {
+        if (cur) cur.steps.push({ kw: GH_STEP_KW.get(m[1]) || "*", text: m[2] });
         inExamples = false;
         continue;
       }
@@ -2431,7 +2457,9 @@
       for (const sc of scenarios) {
         if (sc.outline && (!sc.hasExamples || !sc.exampleRows))
           out.push(F("outline_no_examples", "high", seq, T("outline_no_examples_msg", { file, scenario: sc.name })));
-        if (!sc.steps.some((s) => s.kw === "Then")) out.push(F("scenario_no_then", "high", seq, T("scenario_no_then_msg", { file, scenario: sc.name })));
+        // a "*" step may stand for Then: without a Then, a scenario that has one cannot be judged
+        if (!sc.steps.some((s) => s.kw === "Then" || s.kw === "*"))
+          out.push(F("scenario_no_then", "high", seq, T("scenario_no_then_msg", { file, scenario: sc.name })));
       }
       if (background && background.steps.length > GHERKIN_BG_MAX_STEPS)
         out.push(F("bloated_background", "medium", seq, T("bloated_background_msg", { file, n: background.steps.length, max: GHERKIN_BG_MAX_STEPS })));

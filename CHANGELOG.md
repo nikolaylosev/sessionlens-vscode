@@ -48,6 +48,10 @@
 - **Requirement without a test** (`spec_uncovered`, high) no longer reports every requirement of a specification
   without IDs: written as plain sentences, its requirements cannot be named by a test. A test now names a requirement
   in a name written the language's way too: `test_r1_total` (Python), `testR1Total` (Java), `R1_Total` (C#).
+- **Gherkin checks** read `.feature` files in Russian too (`# language: ru`: Функция, Сценарий, Структура сценария,
+  Примеры, Дано, Когда, Тогда…): before, such a file gave no scenario and none of the four checks ran. The synonyms
+  `Example:`, `Scenario Template:` and `Scenarios:` are read, the lines of a doc string are no longer taken for steps,
+  and a scenario written with `*` steps is no longer reported for a missing Then, since `*` may stand for one.
 - **Commented-out code no longer gives findings** in the checks that look for a pattern anywhere in a file: a
   commented-out sleep, skip or retry (**Sleep or skip added**), `networkidle` (**Fragile wait**), `.only`, a debugger
   call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without
