@@ -1569,6 +1569,58 @@
       !TEST_FILE_RX.test(f || "") &&
       !TEST_SIDE_RX.test(f || "") &&
       !/(?:^|\/)node_modules\//.test(f || ""));
+  /* A shell command that only reads (0.1.121): cat, sed -n, head, rg, ls, find… is how Codex reads a file, and Claude
+     Code and Cursor often do too. Each part, split at an unquoted &&, ||, ;, | or line break, must start with such a
+     command; sed -i, find -delete / -exec and an unquoted > write. The event stays a run_other step: its kind and step
+     number keep verdicts and Import again's match, and a stored session gets it on the next analysis. Returns the
+     paths the command names (unquoted words with a / or a dot, or one of the profile's source folders), or null. */
+  const READ_CMD = /^(?:cat|head|tail|nl|less|more|bat|sed|rg|grep|egrep|ls|find|tree|wc|stat|file|pwd|cd|echo|sort|uniq|cut)$/;
+  function shellReads(e, cfg) {
+    if (e.kind !== "run_other" || !e.cmd) return null;
+    const parts = [[]];
+    let word = "",
+      quoted = false,
+      q = "";
+    const end = () => {
+      if (word || quoted) parts[parts.length - 1].push({ word, quoted });
+      word = "";
+      quoted = false;
+    };
+    const c = e.cmd;
+    for (let i = 0; i < c.length; i++) {
+      const ch = c[i];
+      if (q) {
+        if (ch === q) q = "";
+        else word += ch;
+      } else if (ch === "'" || ch === '"') {
+        q = ch;
+        quoted = true;
+      } else if (ch === ">") return null;
+      else if (/[;|&\n]/.test(ch)) {
+        end();
+        if (parts[parts.length - 1].length) parts.push([]);
+      } else if (/\s/.test(ch)) end();
+      else word += ch;
+    }
+    end();
+    const files = [];
+    for (const p of parts.filter((x) => x.length)) {
+      const cmd = p[0].word,
+        args = p.slice(1);
+      if (p[0].quoted || !READ_CMD.test(cmd)) return null;
+      if (cmd === "sed" && args.some((a) => !a.quoted && /^-[a-zA-Z]*i/.test(a.word))) return null;
+      if (cmd === "find" && args.some((a) => /^-(?:delete|exec|execdir|ok|fprint)/.test(a.word))) return null;
+      for (const a of args)
+        if (
+          !a.quoted &&
+          !a.word.startsWith("-") &&
+          !/[*?$]/.test(a.word) &&
+          (/^[^\d].*[/.]|^\.\.?\//.test(a.word) || (cfg.src_dirs || []).includes(a.word.replace(/\/$/, "")))
+        )
+          files.push(a.word);
+    }
+    return files;
+  }
   // the last test run before seq, if it was red; null if it was green or there was none
   const redRunBefore = (ev, seq) => {
     const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
@@ -1674,9 +1726,14 @@
       const p = planSeq(ev, cfg),
         a = approvalSeq(ev, p);
       const cut = a ?? p ?? 1e9;
-      return ev
-        .filter((e) => ["read", "search"].includes(e.kind) && productPath(e.file, cfg) && e.seq < cut)
-        .map((e) => F("peeked_at_src_before_plan", "high", e.seq, T("peeked", { file: e.file })));
+      const out = [];
+      for (const e of ev) {
+        if (e.seq >= cut) continue;
+        // since 0.1.121 also a shell command that only reads (cat src/cart.ts, sed -n '1,80p' src/cart.ts)
+        const file = ["read", "search"].includes(e.kind) ? e.file : (shellReads(e, cfg) || []).find((f) => productPath(f, cfg));
+        if (file && productPath(file, cfg)) out.push(F("peeked_at_src_before_plan", "high", e.seq, T("peeked", { file })));
+      }
+      return out;
     },
     /* A claim phrase counts as whole words (0.1.119): "bypassing" is not "passing", "проходить" is not "проходит".
        An English phrase may end in -es, -ed or -ing ("tests passed", "all passes"). Since 0.1.121 a claim after a run
@@ -2643,8 +2700,9 @@
     const pri = (f) => (C().CHECKS[f.check] || {}).sortPriority || 0;
     return out.sort((a, b) => pri(a) - pri(b) || o[a.severity] - o[b.severity] || a.seq - b.seq);
   }
-  function metrics(ev) {
-    const reads = ev.filter((e) => ["read", "search"].includes(e.kind)).length,
+  // cfg: the session's profile (its source folders for shellReads); a shell command that only reads counts (0.1.121)
+  function metrics(ev, cfg) {
+    const reads = ev.filter((e) => ["read", "search"].includes(e.kind) || shellReads(e, cfg || {})).length,
       edits = ev.filter((e) => ["edit", "write"].includes(e.kind)).length;
     const runs = ev.filter((e) => e.kind === "run_tests" && e.tests);
     const green = runs.find((r) => !(r.tests.failed || r.tests.errors));
