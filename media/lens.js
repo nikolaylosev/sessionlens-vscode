@@ -2820,6 +2820,16 @@
      the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order; started is
      sessionStarted() (0.1.116), what a rule's effect compares with the day the rule was moved; hiddenCount is how
      many findings calibration hides (calibHidden, 0.1.116), so the Sessions tree can say a green session has some. */
+  /* A text cut to at most n characters at a word break, ending in "…" (0.1.121: a confirmed finding's message was cut
+     at exactly 90 characters, mid-word, so the evidence on the Calibration tab read ".getByRole() o"). A text that
+     fits stays as it is; a word longer than half of n is cut where it is. */
+  function clip(text, n) {
+    const t = String(text || "");
+    if (t.length <= n) return t;
+    const cut = t.slice(0, n - 1),
+      sp = cut.lastIndexOf(" ");
+    return (sp > n / 2 ? cut.slice(0, sp) : cut).replace(/[\s,;:.·/—–-]+$/, "") + "…";
+  }
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
       verdicts = s.verdicts && typeof s.verdicts === "object" ? s.verdicts : {};
@@ -2839,7 +2849,7 @@
         vd = verdicts[k];
       count(f, vd);
       if (vd && vd.v === "ok")
-        confirmed.push({ key: k, check: f.check, seq: f.seq, message: String(f.message || "").slice(0, 90), snippet: snippet(f), note: String(vd.note || "") });
+        confirmed.push({ key: k, check: f.check, seq: f.seq, message: clip(f.message, 90), snippet: snippet(f), note: String(vd.note || "") });
     }
     for (const f of Array.isArray(s.calibHidden) ? s.calibHidden : []) count(f, verdicts[fkey(f)]);
     return {

@@ -131,3 +131,16 @@ test("the day the rule was moved can be set by hand: the sessions that ran from 
   assert.equal(v.day, "2026-09-10");
   assert.equal(v.precEmpty, false, "sessions of one's own: the precision table has rows and no note");
 });
+
+test("a confirmed finding's message in the summary is cut at a word, with … (0.1.121; cut mid-word before)", () => {
+  const long = "tests/e2e/login.spec.ts:7 — Usage of raw locator detected. Use methods like .getByRole() or .getByText() instead";
+  const s = session("s", { created: "2026-09-20T00:00:00.000Z", sleeps: 1, confirm: true });
+  s.findings[0].message = long;
+  s.verdicts = { [Lens.fkey(s.findings[0])]: { v: "ok", note: "", at: "2026-09-20T00:00:00.000Z" } };
+  const m = Lens.sessionSummary(s).confirmed[0].message;
+  assert.equal(m, "tests/e2e/login.spec.ts:7 — Usage of raw locator detected. Use methods like .getByRole()…");
+  assert.ok(m.length <= 90);
+  s.findings[0].message = "Code written without a plan";
+  s.verdicts = { [Lens.fkey(s.findings[0])]: { v: "ok", note: "", at: "2026-09-20T00:00:00.000Z" } };
+  assert.equal(Lens.sessionSummary(s).confirmed[0].message, "Code written without a plan", "a short one stays as it is");
+});
