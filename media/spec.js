@@ -202,9 +202,15 @@
   const COMMON =
     /^(?:about|above|after|again|along|among|before|being|below|between|could|every|other|their|there|these|those|through|under|until|where|which|while|within|without|would|should|через|между|после|перед|также|кроме|только|более|менее|когда|чтобы|потом|который|которая|которые|всегда|никогда)$/i;
   const REF_RE = /\b(?:[A-Z]{2,10}-\d+\/)?([RS]\d{1,3})\b/g;
+  /* The IDs a test's title or comment names. Since 0.1.121 also in a name written the way the language writes names:
+     test_r1_total (snake_case) and testR1Total (camelCase) name R1. */
   function refs(text) {
     const s = new Set();
-    for (const m of (text || "").matchAll(REF_RE)) s.add(m[1]);
+    const t = (text || "")
+      .replace(/_/g, " ")
+      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+      .replace(/\b([rs])(\d{1,3})\b/g, (m, l, d) => l.toUpperCase() + d);
+    for (const m of t.matchAll(REF_RE)) s.add(m[1]);
     return s;
   }
 
@@ -237,10 +243,13 @@
     const cov = coverage(spec, events, language);
     const out = [];
     if (!cov) return { findings: [], coverage: null };
-    for (const id of cov.uncovered) {
-      const r = spec.requirements.find((x) => x.id === id);
-      out.push(F("spec_uncovered", "high", lastCode.seq, T("uncovered", { id, text: r.text.slice(0, 90) })));
-    }
+    // a specification without IDs (R1, R2… numbered by the parser) cannot be named by a test: no uncovered requirement
+    // to report, as with test_without_requirement (0.1.121; until then every requirement was reported)
+    if (cov.hasIds)
+      for (const id of cov.uncovered) {
+        const r = spec.requirements.find((x) => x.id === id);
+        out.push(F("spec_uncovered", "high", lastCode.seq, T("uncovered", { id, text: r.text.slice(0, 90) })));
+      }
     if (cov.hasIds) for (const t of cov.unlinked) out.push(F("test_without_requirement", "medium", lastCode.seq, T("unlinked", { name: t.name })));
     /* An out-of-scope item's keywords: its first two words longer than four letters that are not common words and that
        no requirement uses ("payment" in "Payment by PayPal" when R1 is about the payment total). A test touches the

@@ -4,12 +4,9 @@
    names a requirement by its ID in the title or in a comment above (a ticket prefix, CART-12/R1, too); in Python, in
    its docstring. The last version of a file counts, and tests in several files add up. R10 does not cover R1.
 
-   Detector gaps found on 5 Oct 2026, not pinned here, for the owner to decide:
-   - a specification without IDs (plain sentences, numbered R1, R2… by the parser) gets a high spec_uncovered for every
-     requirement whatever the tests are: no test can name an ID it was never given (test_without_requirement is already
-     off for such a specification);
-   - a Python test that names its requirement the Python way, `def test_r1_total()`, is not linked: the ID has to be
-     upper case and stand alone, so only a docstring or a comment links it. */
+   Since 0.1.121 (gaps found on 5 Oct 2026): a specification without IDs gets no spec_uncovered, since no test can
+   name an ID it was never given; and a test name written the language's way names its requirement: test_r1_total,
+   testR1Total, R1_Total. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -55,4 +52,31 @@ test("spec_uncovered in Python: the ID in the docstring links the test", () => {
   assert.deepEqual(facts(SPEC, [write('def test_total():\n    """R1"""\n    assert x\n', 1, "tests/test_cart.py")], "python"), [
     UNCOVERED(1, "R2", "An empty cart shows a hint"),
   ]);
+});
+
+test("a specification without IDs gets no spec_uncovered: no test can name an ID it was never given (0.1.121)", () => {
+  assert.deepEqual(facts("The cart shows the total\nAn empty cart shows a hint\n", [write(t("total") + t("empty"))]), []);
+});
+
+test("an ID in a test name written the language's way: snake_case, camelCase, lower case (0.1.121)", () => {
+  assert.deepEqual(facts(SPEC, [write("def test_r1_total():\n    assert x\n\ndef test_R2_hint():\n    assert y\n", 1, "tests/test_cart.py")], "python"), []);
+  const java =
+    "class CartTest {\n  @Test\n  void testR1Total() {\n    assertEquals(1, x);\n  }\n\n  @Test\n  void testR2Hint() {\n    assertEquals(1, y);\n  }\n}\n";
+  assert.deepEqual(facts(SPEC, [write(java, 1, "src/test/java/CartTest.java")], "java"), []);
+  const cs =
+    "public class CartTests {\n  [Test]\n  public void R1_Total() {\n    Assert.AreEqual(1, x);\n  }\n  [Test]\n  public void R2_Hint() {\n    Assert.AreEqual(1, y);\n  }\n}\n";
+  assert.deepEqual(facts(SPEC, [write(cs, 1, "tests/CartTests.cs")], "csharp"), []);
+  assert.deepEqual(facts(SPEC, [write(t("r1 total") + t("r2 hint"))]), []);
+  // still not a link: R1 inside a longer ID or a word
+  assert.deepEqual(facts(SPEC, [write(t("R1 total") + t("R20 hint") + t("Mr2 hint"))]), [UNCOVERED(1, "R2", "An empty cart shows a hint")]);
+});
+
+test("refs: the IDs named, in each way", () => {
+  const ids = (x) => [...LensSpec.refs(x)];
+  assert.deepEqual(ids("CART-12/R1 total"), ["R1"]);
+  assert.deepEqual(ids("test_r1_total"), ["R1"]);
+  assert.deepEqual(ids("testR1Total"), ["R1"]);
+  assert.deepEqual(ids("test_s2_login"), ["S2"]);
+  assert.deepEqual(ids("HTTP2 R10"), ["R10"]);
+  assert.deepEqual(ids("r2d2 mr2 R1x"), []);
 });

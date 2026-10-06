@@ -45,6 +45,9 @@
   `Element Should Be Visible` or `Title Should Be`, a Browser `Get Text    id=total    ==    42`, or a call of the
   file's own keyword with an assertion inside. Now these count, and so do `Wait Until …`, `Run Keyword And Expect
   Error`, and keywords named `Verify …`, `Check …`, `Assert …`, `Validate …`, `Expect …` or `Ensure …`.
+- **Requirement without a test** (`spec_uncovered`, high) no longer reports every requirement of a specification
+  without IDs: written as plain sentences, its requirements cannot be named by a test. A test now names a requirement
+  in a name written the language's way too: `test_r1_total` (Python), `testR1Total` (Java), `R1_Total` (C#).
 - **Commented-out code no longer gives findings** in the checks that look for a pattern anywhere in a file: a
   commented-out sleep, skip or retry (**Sleep or skip added**), `networkidle` (**Fragile wait**), `.only`, a debugger
   call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without
