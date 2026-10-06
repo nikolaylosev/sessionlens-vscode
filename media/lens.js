@@ -1549,8 +1549,10 @@
      records the IMPORT_GEN it was imported with (importGen); none means an import before 0.1.114.
      2: prev_content and Codex delete events (0.1.113), which test_deleted and config_weakened read.
      3: Codex 0.155+ file changes (item_completed FileChange), and Codex edits without the line lost after a hunk
-        (0.1.121). */
-  const IMPORT_GEN = 3;
+        (0.1.121).
+     4: a command that only lists the tests is not a run, a file moved by a Codex patch is an edit of its new name, and
+        a weakened assertion shows the change, not 40 characters of each line (0.1.122). */
+  const IMPORT_GEN = 4;
   /* A Codex session imported before 0.1.121 with file changes in its transcript: from Codex 0.155 they were skipped,
      and an edit lost the line after its hunk. Without the kept text, a bare exec step tells the same: a patch in the
      code-mode harness, or a Codex 0.159 command that was lost the same way. */
@@ -1559,12 +1561,27 @@
       /"type"\s*:\s*"session_meta"/.test(s.source_text.slice(0, 5000)) &&
       /"(?:FileChange|unified_diff)"/.test(s.source_text)) ||
     s.events.some((e) => e.kind === "tool" && e.tool === "exec");
+  /* A session imported before 0.1.122 that a new import reads differently: a step taken for a test run that only listed
+     the tests, a Codex patch that moved a file (seen in the kept text), or a weakened assertion whose message cut a line
+     at 40 characters (a line of exactly 40 is asked about too; importing it again changes nothing there). */
+  function changedBy122(s) {
+    const cfg = profile(s.profile);
+    if (s.events.some((e) => e.kind === "run_tests" && typeof e.cmd === "string" && !isTestRun(e.cmd, cfg))) return true;
+    if (typeof s.source_text === "string" && /"move_path"\s*:\s*"/.test(s.source_text)) return true;
+    const cut = (w) =>
+      String(w.reason || "")
+        .replace(/^comparison → truthiness: /, "")
+        .split(" → ")
+        .some((half) => half.length === 40);
+    return s.events.some((e) => e.assert_delta && Array.isArray(e.assert_delta.weakened) && e.assert_delta.weakened.some(cut));
+  }
   /* A session imported before 0.1.113 may hide test_deleted and config_weakened findings that a new import shows: it
      wrote or edited a test file or a runner config and has none of what the 0.1.113 import keeps for them. A session
      imported with 0.1.113 that only wrote new files looks the same; importing it again changes nothing there. */
   function needsReimport(s) {
     if (!s || !Array.isArray(s.events) || s.importGen >= IMPORT_GEN) return false;
     if ((s.importGen || 0) < 3 && codexChangesBefore121(s)) return true;
+    if (changedBy122(s)) return true;
     if ((s.importGen || 0) >= 2) return false;
     const cfg = profile(s.profile);
     if (!cfg.checks.includes("test_deleted") && !cfg.checks.includes("config_weakened")) return false;

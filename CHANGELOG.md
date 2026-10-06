@@ -26,7 +26,7 @@
   session showed `await expect(page.getByRole("alert")).to → await expect(page.getByRole("alert")).to`. Now a pair
   that does not fit drops the start the two share and shows what changed: `….toHaveText("Invalid email or password");
   → ….toBeVisible();`. A short pair is shown whole as before. A session imported before shows it after **Import
-  again**; the demo session, after it is deleted and **Try a demo session** is pressed again.
+  again**, the demo session too.
 - A **Cursor Agent** session showed every file by its full path (`/Users/<you>/…/tests/cart.spec.ts`): the transcript
   has no workspace folder. A transcript picked with **Choose file** is in `~/.cursor/projects/<workspace>/`, and that
   folder's name now gives the workspace, so the paths under it are relative to it, as in a Claude Code or Codex
@@ -36,6 +36,10 @@
   "ESLint: 3 findings in 1 block", "1 locator", "2 API tests", "1 rule hidden via Delete — it stays hidden", "1 secret
   masked". When ESLint could not parse anything, the note says "could not parse any code block (2 in all)". A
   verdict on a finding whose text changed stays with it.
+- **Import again** is offered on a session imported with 0.1.121 or earlier where the new import reads it differently:
+  a command that only lists the tests was taken for a run, a Codex patch moved a file, or a weakened assertion was cut
+  at 40 characters. Before, the button showed only on sessions from before 0.1.113 and Codex sessions from before
+  0.1.121, so these fixes could not reach a saved session. Other sessions do not get the button.
 
 ## 0.1.121
 
