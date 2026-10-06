@@ -1,6 +1,6 @@
 {
   "displayName": "SessionLens: AI Agent Test Review",
-  "description": "Review Claude Code and Codex sessions that write autotests: tests never run, weakened asserts, sleeps. Turn your verdicts into rules for CLAUDE.md and AGENTS.md.",
+  "description": "Review Claude Code, Codex and Cursor Agent sessions that write autotests: tests never run, weakened asserts, sleeps. Turn your verdicts into rules for CLAUDE.md, AGENTS.md and Cursor.",
   "container.title": "SessionLens",
   "view.sessions": "Sessions",
   "view.panel": "Calibration & Settings",

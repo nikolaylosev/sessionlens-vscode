@@ -1,6 +1,8 @@
 # SessionLens
 
-SessionLens is built for QA automation (AQA) engineers who write autotests with Claude Code or Codex. It reviews what the agent actually did in a session: reads the transcript, flags where the agent went wrong, lets you record a verdict on each finding, and turns the findings you confirm into rules for `CLAUDE.md`, `AGENTS.md` (Codex's equivalent), or both.
+SessionLens is built for QA automation (AQA) engineers who write autotests with Claude Code, Codex or Cursor's Agent. It reviews what the agent actually did in a session: reads the transcript, flags where the agent went wrong, lets you record a verdict on each finding, and turns the findings you confirm into rules for `CLAUDE.md`, `AGENTS.md` (read by Codex and Cursor) or Cursor's `.cursor/rules/sessionlens.mdc`.
+
+It runs in VS Code and in Cursor, VSCodium and other editors that install extensions from [Open VSX](https://open-vsx.org/extension/nikolaylosev/sessionlens-vscode).
 
 It is built for sessions in which an agent writes or fixes automated tests, but the process checks work for any coding session.
 
@@ -149,7 +151,7 @@ Only the instruction part is editable. The specification, code and transcript ar
 - **Minimum gap between requests:** in milliseconds. The default 6500 keeps you under the free Gemini limit of about 10 requests a minute. Rate-limit errors are retried automatically.
 - **Code limit in the prompt:** how many characters of code are sent to the model (40000 by default). Lower it for small local models.
 - **Verification call:** on by default. It doubles the number of requests and makes model findings noticeably more precise.
-- **Static analysis:** on by default. `qa-ts` (ESLint via eslint-plugin-playwright), `qa-cypress` (ESLint via eslint-plugin-cypress), `qa-detox` (ESLint, hand-authored rules — see [Detox](#detox-only-for-the-qa-detox-profile)), `qa-java`/`qa-c#`/`qa-python` (a real parse tree via tree-sitter, also hand-authored — see [Java](#java-only-for-the-qa-java-profile), [C#](#c-only-for-the-qa-c-profile), [Python](#python-only-for-the-qa-python-profile)), and `qa-robot` (a small hand-written parser — see [Robot Framework](#robot-framework-only-for-the-qa-robot-profile)). Each engine is loaded the first time a session of its profile is analyzed, and only in the page that analyzes it (a session tab, or the sidebar during an import); until then the finding list says "static analysis: engine loading…". With static analysis off, nothing is loaded.
+- **Static analysis:** on by default. `qa-ts` (ESLint via eslint-plugin-playwright), `qa-cypress` (ESLint via eslint-plugin-cypress), `qa-detox` (ESLint, hand-authored rules — see [Detox](#detox)), `qa-java`/`qa-c#`/`qa-python` (a real parse tree via tree-sitter, also hand-authored — see [Java](#java), [C#](#c), [Python](#python)), and `qa-robot` (a small hand-written parser — see [Robot Framework](#robot-framework)). Each engine is loaded the first time a session of its profile is analyzed, and only in the page that analyzes it (a session tab, or the sidebar during an import); until then the finding list says "static analysis: engine loading…". With static analysis off, nothing is loaded.
 - **Hide the "Try a demo session" button:** off by default. Tick it once you have sessions of your own and no longer need the demo on the Sessions tab. It applies at once; a demo session you already opened stays in the list until you delete it.
 - **Debug model:** off by default. Turn it on to see **Model request and reply** — the exact prompt sent to the model and its raw reply — in a session (below Transcript) and on the Calibration tab. It's meant for troubleshooting a request, not everyday use: the prompts include the session's code and transcript excerpts.
 - **Reset settings:** **Reset settings to defaults** puts every setting on this page back to what a fresh install has: theme (it follows VS Code again), all configured models and their keys, the model per request, the local server and Qwen addresses, request pacing, code limit, ESLint, verification, the debug model toggle and the Hide the "Try a demo session" button checkbox. The four VS Code settings above are set back to their defaults too. It asks for confirmation first, because saved keys are removed. Sessions, verdicts, rule wording, prompts and the profile are kept. The Claude Code, Codex and Cursor CLI paths are VS Code settings and are not changed.
@@ -186,14 +188,14 @@ Editing **never changes what a check looks for**. It changes wording, loudness a
 
 Checks are grouped as the tab shows them. "Default" is the built-in severity.
 
-**Methodology**
+#### Methodology
 
 | Check | Default | Raised when |
 |---|---|---|
 | `peeked_at_src_before_plan` | High | The agent read product code before the plan was approved |
 | `stop_markers_missing` | Medium | Code was written without a plan, or a plan was produced without stopping for approval |
 
-**Process**
+#### Process
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -208,7 +210,7 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `snapshot_overwritten` | High | Snapshots were rewritten instead of read: a run with `-u`, `--update-snapshots`, `--snapshot-update` or `UPDATE_SNAPSHOTS=1`, or a snapshot or baseline file (`__snapshots__`, `*.snap`, `*-snapshots/`, `*.approved.*`, `*.verified.*`) written by hand. High right after a failing run, medium otherwise |
 | `config_weakened` | High | The test runner's config was loosened compared with its previous version: more retries, a longer timeout, tests excluded (`testIgnore`, `testPathIgnorePatterns`, `--deselect`, surefire `<excludes>`, Gradle `excludeTestsMatching`, `TestCaseFilter` …) or failures ignored (`testFailureIgnore`, `skipTests`, `ignoreFailures`). Reads JS/TS configs, pytest's files, Maven's surefire and failsafe, Gradle's test tasks and `.runsettings`. High right after a failing run, medium otherwise. A config written for the first time counts only for its retries |
 
-**Code**
+#### Code
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -233,7 +235,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `hardcoded_secret` | High | A token, key or credential is written in the code. The report shows only its first four characters (TypeScript, Cypress, Detox, API and mobile profiles) |
 | `hardcoded_base_url` | Medium | A real host is written in a test instead of coming from configuration. A runner's config file, where the base URL belongs, does not count (same profiles) |
 
-**API** (only for the `qa-api` profile)
+#### API
+
+Only for the `qa-api` profile.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -243,7 +247,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `test_data_no_cleanup` | Low | A test creates data with `POST` and nothing removes it |
 | `response_time_assert` | Low | A functional test asserts a response-time limit |
 
-**Mobile** (only for the `qa-mobile` profile)
+#### Mobile
+
+Only for the `qa-mobile` profile.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -251,7 +257,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `hardcoded_coordinates` | Medium | A tap, swipe or long-press uses a literal screen coordinate instead of acting on the element |
 | `no_driver_teardown` | Medium | A driver session is created with no matching `quit()`/teardown found in the same file |
 
-**Detox** (only for the `qa-detox` profile, via ESLint static analysis — hand-authored rules, since `eslint-plugin-detox` has none)
+#### Detox
+
+Only for the `qa-detox` profile, via ESLint static analysis — hand-authored rules, since `eslint-plugin-detox` has none.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -261,7 +269,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `no_assertion_after_action` | High | A test taps, types or swipes but has no `expect(...)` anywhere — nothing is actually verified |
 | `no_app_reset` | Medium | A `describe` block has tests but no `beforeEach(device.reloadReactNative())` / `launchApp({ newInstance: true })` — app state can leak between tests |
 
-**Java** (only for the `qa-java` profile, via a real parse tree — [tree-sitter](https://tree-sitter.github.io/), not ESLint — since Java isn't JavaScript; hand-authored rules, as no existing JUnit/TestNG rule set was available to bundle)
+#### Java
+
+Only for the `qa-java` profile, via a real parse tree — [tree-sitter](https://tree-sitter.github.io/), not ESLint — since Java isn't JavaScript; hand-authored rules, as no existing JUnit/TestNG rule set was available to bundle.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -272,7 +282,9 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 
 Applies to `.java` files only — `.kt` (Kotlin) files in the same profile are not parsed by this grammar and simply produce no tree-sitter findings; the language-agnostic checks (sleeps, skips, weak assertions) still apply to them as before.
 
-**C#** (only for the `qa-c#` profile, via tree-sitter, same recipe as Java — same four checks, same meaning, NUnit/xUnit/MSTest attributes instead of JUnit/TestNG annotations)
+#### C#
+
+Only for the `qa-c#` profile, via tree-sitter, same recipe as Java — same four checks, same meaning, NUnit/xUnit/MSTest attributes instead of JUnit/TestNG annotations.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -281,7 +293,9 @@ Applies to `.java` files only — `.kt` (Kotlin) files in the same profile are n
 | `swallowed_exception` | High | An empty (or comment-only) `catch` block |
 | `assert_args_reversed` | Medium | `Assert.AreEqual(actualValue, 200)` or `Assert.Equal(actualValue, 200)` — the literal usually goes first (expected). Only the unambiguous 2-argument form is checked |
 
-**Python** (only for the `qa-python` profile, via tree-sitter — three of the four Java/C# checks, since pytest's name-based test discovery has no missing-annotation smell to detect, and a plain `assert a == b` has no argument order to get backwards)
+#### Python
+
+Only for the `qa-python` profile, via tree-sitter — three of the four Java/C# checks, since pytest's name-based test discovery has no missing-annotation smell to detect, and a plain `assert a == b` has no argument order to get backwards.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -289,7 +303,9 @@ Applies to `.java` files only — `.kt` (Kotlin) files in the same profile are n
 | `swallowed_exception` | High | An `except:` block whose body is only `pass` or `...` |
 | `assert_args_reversed` | Medium | unittest-style `self.assertEqual(actualValue, 5)` — the literal usually goes first. Does not apply to a plain `assert` statement, which has no fixed argument order |
 
-**Robot Framework** (only for the `qa-robot` profile, via a small hand-written parser — Robot's tabular, keyword-driven syntax is not a general-purpose language, and no usable tree-sitter grammar was found: the one that exists is a small, ~2-month-old, single-maintainer package built with an incompatible WASM ABI, which would mean bundling a whole second tree-sitter runtime just for it)
+#### Robot Framework
+
+Only for the `qa-robot` profile, via a small hand-written parser — Robot's tabular, keyword-driven syntax is not a general-purpose language, and no usable tree-sitter grammar was found: the one that exists is a small, ~2-month-old, single-maintainer package built with an incompatible WASM ABI, which would mean bundling a whole second tree-sitter runtime just for it.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -298,7 +314,9 @@ Applies to `.java` files only — `.kt` (Kotlin) files in the same profile are n
 | `sleep_or_skip_added` | High | A step calls `Sleep` (a fixed delay) or `Skip`/`Skip If` |
 | `duplicate_step_text` | Low | Two or more test cases in the same file have the exact same sequence of steps — same lower-confidence hint as Gherkin's version; a single shared setup step (e.g. `Open Browser`) repeating across many tests is normal and does not trigger this |
 
-**Specification** (needs a specification on the Review tab)
+#### Specification
+
+Needs a specification on the Review tab.
 
 | Check | Default | Raised when |
 |---|---|---|
@@ -309,9 +327,11 @@ Applies to `.java` files only — `.kt` (Kotlin) files in the same profile are n
 
 Coverage links a requirement to a test when the test's name, the comment above it, its docstring or its first lines mention the requirement's ID (`R1`, `AUTH-142/R3`). Tests are found in TypeScript/JavaScript (`it`, `test`: also in qa-cypress and qa-detox), Python (`def test_…`), Java (`@Test void …`), Kotlin (`@Test fun …`, also names in backticks), C# (`[Test]`, `[Fact]`, `[Theory]`, `[TestMethod]`, `[TestCase]`), Go (`func Test…`), Karate/Gherkin (`Scenario:`) and Robot Framework (`*** Test Cases ***` and `*** Tasks ***`; `[Documentation]` and `[Tags]` count). qa-api, qa-mobile and qa-generic pick the syntax by the file's extension. Files SessionLens cannot read tests from (for example `.swift`, `.resource`) do not count: if a session has only such files, coverage is not computed and no `spec_uncovered` is raised. The profile's details under **Profile** show which file types count.
 
-**Model findings** (from the semantic review)
+#### Model findings
 
-`ai_purpose` (what a test really checks), `ai_coverage`, `ai_fragility`, `ai_missing` (a missing case), `ai_questions` (a question should have been asked instead of assuming), `ai_fix_justification` and `ai_spec_defect`.
+From the semantic review.
+
+`ai_purpose` (what a test really checks), `ai_coverage`, `ai_fragility`, `ai_missing` (a missing case), `ai_questions` (a question should have been asked instead of assuming), `ai_fix_justification` and `ai_spec_defect`; `ai_other` for a finding outside these categories.
 
 Language-specific checks (sleeps, skips, weak assertions, test names) use the patterns of the selected [profile](#profiles).
 
@@ -326,12 +346,12 @@ Choose the profile that matches the code the agent was writing:
 | `qa-ts` | TypeScript / JavaScript, Jest, Vitest, Playwright (also runs ESLint static analysis) |
 | `qa-cypress` | TypeScript / JavaScript, Cypress (also runs ESLint static analysis via eslint-plugin-cypress) |
 | `qa-detox` | TypeScript / JavaScript, Detox (React Native e2e) — also runs ESLint static analysis via our own Detox rules |
-| `qa-python` | Python, pytest (also runs tree-sitter static analysis — see [Python](#python-only-for-the-qa-python-profile)) |
-| `qa-java` | Java / Kotlin, JUnit (also runs tree-sitter static analysis on `.java` files — see [Java](#java-only-for-the-qa-java-profile)) |
-| `qa-c#` | C#, xUnit, NUnit, MSTest (`dotnet test`) (also runs tree-sitter static analysis — see [C#](#c-only-for-the-qa-c-profile)) |
+| `qa-python` | Python, pytest (also runs tree-sitter static analysis — see [Python](#python)) |
+| `qa-java` | Java / Kotlin, JUnit (also runs tree-sitter static analysis on `.java` files — see [Java](#java)) |
+| `qa-c#` | C#, xUnit, NUnit, MSTest (`dotnet test`) (also runs tree-sitter static analysis — see [C#](#c)) |
 | `qa-api` | API tests in any common stack, with checks specific to HTTP APIs. See [Testing APIs](#testing-apis-qa-api) |
 | `qa-mobile` | Appium tests in any common stack (Java, Python, TypeScript/JavaScript, C#) — locator strategy, gesture coordinates, driver teardown |
-| `qa-robot` | Robot Framework (`.robot`/`.resource`) — also runs its own structural checks (no tree-sitter grammar — see [Robot Framework](#robot-framework-only-for-the-qa-robot-profile)) |
+| `qa-robot` | Robot Framework (`.robot`/`.resource`) — also runs its own structural checks (no tree-sitter grammar — see [Robot Framework](#robot-framework)) |
 | `qa-generic` | Any language, process checks only |
 
 Profiles marked as unvalidated have fewer than five recorded verdicts, so treat their code findings as hints.
@@ -518,14 +538,19 @@ transcript text, prompts, model replies or keys.
 
 ## Install
 
-From the Visual Studio Marketplace: search for **SessionLens** in the Extensions view, or run
+In VS Code, from the Visual Studio Marketplace: search for **SessionLens** in the Extensions view, or run
 `code --install-extension nikolaylosev.sessionlens-vscode`.
+
+In Cursor, VSCodium and other editors that use [Open VSX](https://open-vsx.org/extension/nikolaylosev/sessionlens-vscode):
+search for **SessionLens** in the Extensions view and press **Install**. Cursor takes extensions from Open VSX, so a
+new version can reach it a little later than VS Code.
 
 From a `.vsix` file (each [GitHub release](https://github.com/nikolaylosev/sessionlens-vscode/releases) has one):
 
-1. Open the Extensions view in VS Code.
+1. Open the Extensions view.
 2. Click **⋯** at the top of the view and choose **Install from VSIX…**.
-3. Select the `.vsix` file and reload the window if VS Code asks.
+3. Select the `.vsix` file, then run **Developer: Reload Window** from the Command Palette. A window that is not
+   reloaded keeps running the previous version, and some buttons may do nothing until it is.
 
 To build it from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
