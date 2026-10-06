@@ -137,3 +137,39 @@ test("a command that only lists the tests is not a test run (0.1.122)", () => {
     ["run_other npx playwright test --list"],
   );
 });
+
+/* "*** Move to:" in a Codex patch: an update with move_path, the file's new absolute name (0.1.122; until then the
+   file kept its old name, and the next edit under the new one had no text to apply to). */
+const MOVED = "e2e/checkout/cart.spec.ts";
+test("a file moved by a patch is an edit of its new name, and the next edit applies to the whole file (0.1.122)", () => {
+  for (const record of [patchEnd, fileChange]) {
+    const ev = importText([
+      record({ "/w/e2e/cart.spec.ts": { type: "add", content: V1 } }),
+      record({ "/w/e2e/cart.spec.ts": { type: "update", unified_diff: "", move_path: "/w/" + MOVED } }),
+      record({ ["/w/" + MOVED]: { type: "update", unified_diff: DIFF, move_path: null } }),
+    ]);
+    assert.deepEqual(steps(ev), [`write ${SPEC}`, `edit ${MOVED}`, `edit ${MOVED}`], record.name);
+    const [, moved, edited] = ev.filter((e) => e.kind === "edit" || e.kind === "write");
+    assert.equal(moved.new_content, V1, "a move with no hunk keeps the text");
+    assert.equal(edited.new_content, V2, "the edit after the move has the whole file");
+    assert.ok(!edited.fragment_only);
+    assert.deepEqual(
+      Lens.runChecks(ev, Lens.profile("qa-ts"))
+        .filter((f) => f.check === "assert_weakened")
+        .map((f) => f.message.split(":")[0]),
+      [MOVED],
+      "assert_weakened sees the edit under the new name",
+    );
+  }
+});
+
+test("a test moved with its file is not deleted; an edit made during the move is read (0.1.122)", () => {
+  const ev = importText([
+    fileChange({ "/w/e2e/cart.spec.ts": { type: "add", content: V1 } }),
+    fileChange({ "/w/e2e/cart.spec.ts": { type: "update", unified_diff: DIFF, move_path: "/w/" + MOVED } }),
+  ]);
+  assert.deepEqual(steps(ev), [`write ${SPEC}`, `edit ${MOVED}`]);
+  const found = Lens.runChecks(ev, Lens.profile("qa-ts")).map((f) => f.check);
+  assert.ok(!found.includes("test_deleted"), found.join(", "));
+  assert.ok(found.includes("assert_weakened"), "the old text is the edit's before");
+});

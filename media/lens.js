@@ -943,7 +943,12 @@
         if (ch.type === "add" && typeof ch.content === "string") after = ch.content;
         else if (ch.type === "update" && typeof ch.unified_diff === "string") after = applyUnifiedDiff(before, ch.unified_diff);
         if (after == null) continue;
-        const f = short(path),
+        /* "*** Move to:" in a patch: the update's move_path is the file's new name (until 0.1.122 it was skipped, so the
+           file kept its old name and the next edit under the new one had no text to apply to). The step is an edit of the
+           new name from the old text: a test moved with its file is not deleted. */
+        const to = ch.type === "update" && typeof ch.move_path === "string" && ch.move_path ? ch.move_path : path;
+        if (to !== path) delete files[path];
+        const f = short(to),
           r = { seq: seq++, ts, kind: ch.type === "add" ? "write" : "edit", file: f, new_content: after.slice(0, 200000) };
         keepBefore(r, f, before, cfg);
         if (before == null) r.fragment_only = true;
@@ -951,7 +956,7 @@
           const d = compareAsserts(before, after, cfg, f);
           if (d) r.assert_delta = d;
         }
-        files[path] = after;
+        files[to] = after;
         out.push(r);
       }
     };

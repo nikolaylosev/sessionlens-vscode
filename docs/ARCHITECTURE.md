@@ -391,7 +391,8 @@ flowchart TD
   the runner's output is parsed into
   passed/failed counts by `runners.*` (pytest, jest/Playwright, JUnit, dotnet, go, newman, karate).
 - **Codex `rollout-*.jsonl`** gives file changes as unified diffs, applied to the last known content; a deleted file
-  becomes a `delete` event. Up to Codex 0.154 a change is an `event_msg` `patch_apply_end`; from 0.155 (Sept 2026) it
+  becomes a `delete` event, and a moved file (an update with `move_path`, since 0.1.122) an `edit` of its new name
+  from the old text. Up to Codex 0.154 a change is an `event_msg` `patch_apply_end`; from 0.155 (Sept 2026) it
   is an `event_msg` `item_completed` whose item is a `FileChange` with the same `changes` (read since 0.1.121; one
   that did not complete is skipped, and a change written as both records counts once). Commands come from `shell`
   calls or, in the code-mode harness, from the `cmd` of `tools.exec_command(…)` inside a `custom_tool_call` `exec`

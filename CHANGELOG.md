@@ -17,6 +17,11 @@
 - **Test data not cleaned up** (`test_data_no_cleanup`, low) read comments as code: a commented-out `.post(…)` gave the
   finding, and a commented-out `afterEach`, `.delete(…)` or `yield`, or just the word "cleanup" in a comment, hid it.
   Now only code counts, as in the other checks since 0.1.121.
+- A **Codex** patch that moves a file (`*** Move to:`) kept the file under its old name. The agent's next edits of
+  the file under its new name had no text to apply to, so they held only the changed lines, and **Assertion
+  weakened** and **Test deleted** could not compare them with the version before. Now the move is an edit of the new
+  name, and a test moved with its file is not reported as deleted. A Codex session imported before gets this after
+  **Import again**.
 
 ## 0.1.121
 
