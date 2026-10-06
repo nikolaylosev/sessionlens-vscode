@@ -371,6 +371,9 @@ export function renderCalib() {
   $("#c-rules-title").textContent = T("c_rules", { f: rulesTargetLabel() });
   $("#rules-target").value = state.settings.rulesTarget || "claude";
   const stats = calibStatsBySource();
+  // 0.1.121: an empty table says why. A first try is often the demo alone, and its verdicts never count here, so the
+  // table had only its header and looked broken
+  const precEmpty = !Object.keys(stats).length;
   const confirmed = [];
   // the confirmed findings as the summaries keep them (message cut to 90 characters, snippet precomputed): all this list shows
   for (const m of metas()) for (const c of m.confirmed || []) confirmed.push({ s: m, f: c, vd: { v: "ok", note: c.note } });
@@ -396,7 +399,8 @@ export function renderCalib() {
         }
         return `<tr><td>${esc(k)}</td><td>${esc(srcLabel(src))}</td><td>${esc(st.total)}</td><td>${esc(st.ok)}</td><td>${esc(st.fp)}</td><td style="color:${p == null ? "var(--muted)" : p < 0.5 ? "var(--red)" : p < 0.8 ? "var(--amber)" : "var(--green)"}">${p == null ? "—" : Math.round(p * 100) + "%"}</td><td class="muted"${why ? ` title="${esc(why)}"` : ""}>${esc(status)}</td></tr>`;
       })
-      .join("");
+      .join("") +
+    (precEmpty ? `<tr><td colspan="${T("prec_hdr").length}" class="muted prec-empty">${esc(T("prec_empty"))}</td></tr>` : "");
   const min = +$("#min-count").value || 1,
     by = {};
   for (const c of confirmed) (by[c.f.check] = by[c.f.check] || []).push(c);

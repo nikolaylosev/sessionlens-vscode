@@ -97,15 +97,25 @@ test("Try a demo session twice: the second click opens the one already there, no
   sb.close();
 });
 
-test("the demo does not count for calibration: its checks are not in the precision table", async () => {
+test("the demo does not count for calibration: its checks are not in the precision table, which says why (0.1.121)", async () => {
   const sb = await demoPage();
   click(sb, "#demo-go");
   await until(() => demoPuts(sb).length);
   await sb.idle();
   click(sb, '.tab[data-view="calib"]');
   await sb.idle();
-  const rows = [...sb.document.querySelectorAll("#precision tr")].slice(1).map((tr) => tr.firstElementChild.textContent);
+  const rows = [...sb.document.querySelectorAll("#precision tr")]
+    .slice(1)
+    .filter((tr) => !tr.querySelector(".prec-empty"))
+    .map((tr) => tr.firstElementChild.textContent);
   assert.deepEqual(rows, []);
+  const note = sb.document.querySelector("#precision .prec-empty");
+  assert.equal(
+    note && note.textContent,
+    "No sessions of your own yet. The demo session's verdicts do not count here: they are about a made-up session.",
+    "until 0.1.121 the table had only its header",
+  );
+  assert.equal(note.colSpan, 7);
   sb.close();
 });
 

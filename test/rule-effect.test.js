@@ -62,9 +62,10 @@ async function effectView(sessions, act) {
       })
     : [];
   const day = eff && eff.closest(".rule").querySelector(".applied-at");
+  const precEmpty = !!p.document.querySelector("#precision .prec-empty");
   assert.deepEqual(p.errors, []);
   p.close();
-  return { note: note && note.textContent, rows, day: day && day.value };
+  return { note: note && note.textContent, rows, day: day && day.value, precEmpty };
 }
 const effectText = async (sessions) => (await effectView(sessions)).note;
 
@@ -128,4 +129,5 @@ test("the day the rule was moved can be set by hand: the sessions that ran from 
   const future = await effectView(sessions, setDay("2999-01-01"));
   assert.equal(future.day, "2026-09-15", "a day in the future is refused: the mark stays");
   assert.equal(v.day, "2026-09-10");
+  assert.equal(v.precEmpty, false, "sessions of one's own: the precision table has rows and no note");
 });

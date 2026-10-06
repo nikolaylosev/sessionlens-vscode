@@ -36,6 +36,8 @@
   by Cursor too, which it is.
 
 ### Changed
+- **Check precision** on the Calibration tab says why it is empty: "No sessions of your own yet. The demo session's
+  verdicts do not count here". Before, a first try with the demo showed only the table's header, which looked broken.
 - The effect of a rule marked **Moved** on the Calibration tab shows its before / after chart from the start: until
   the first session after the move, the "after" row is empty. Before, only a line of text was shown then.
 - The day a rule was moved can be changed next to its **Moved** mark. A session counts as "after" by when the agent
