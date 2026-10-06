@@ -9,6 +9,11 @@
   class or function is read as a comment, and so is a `"""` or `'''` string used as a block comment. A `"""` string
   that is a value (assigned, passed to a call, or an f-string) is still read as code. Saved sessions get this on their
   next analysis.
+- **A command that only lists the tests is no longer a test run**: `npx playwright test --list`, `npm run test:e2e --
+  --list`, `jest --listTests`, `vitest list`, `pytest --collect-only` (`--co`) and `dotnet test --list-tests` run
+  nothing. Such a command counted as a run whose result was unknown, so **Tests never run** stayed silent when the agent
+  only listed the tests. A list followed by a run (`… --list && npx playwright test`) is still a run. A session imported
+  before gets this after **Import again**.
 
 ## 0.1.121
 

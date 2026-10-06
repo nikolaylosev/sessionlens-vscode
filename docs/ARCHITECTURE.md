@@ -387,7 +387,8 @@ flowchart TD
 
 - **Claude Code `.jsonl`** is the richest source: each `Write`/`Edit` becomes an event with the whole file
   (rebuilt from `toolUseResult.originalFile` when the edit came as a fragment), each `Bash` call becomes
-  `run_tests` (it matches the profile's runner) or `run_other`, and the runner's output is parsed into
+  `run_tests` (it matches the profile's runner and does not only list the tests, `isTestRun`) or `run_other`, and
+  the runner's output is parsed into
   passed/failed counts by `runners.*` (pytest, jest/Playwright, JUnit, dotnet, go, newman, karate).
 - **Codex `rollout-*.jsonl`** gives file changes as unified diffs, applied to the last known content; a deleted file
   becomes a `delete` event. Up to Codex 0.154 a change is an `event_msg` `patch_apply_end`; from 0.155 (Sept 2026) it

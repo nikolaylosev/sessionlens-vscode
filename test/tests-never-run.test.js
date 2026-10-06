@@ -101,3 +101,22 @@ test("a test script run through npm, pnpm or yarn is a run of the runner (0.1.12
   assert.deepEqual(ran("qa-api", "tests/cart.test.ts", "npm run test:api"), [], "qa-api");
   assert.deepEqual(ran("qa-ts", "e2e/cart.spec.ts", "npm run build"), [never(1)], "another script is not a run");
 });
+
+test("a command that only lists the tests is not a run (0.1.122; before, a run with no result)", () => {
+  const after = (profile, file, content, cmd, out) =>
+    found(profile, [
+      ["write", file, content],
+      ["bash", cmd, out],
+    ]);
+  const ts = (cmd) => after("qa-ts", "e2e/cart.spec.ts", TS, cmd, "  [chromium] › cart.spec.ts:1:1 › total\nTotal: 1 test in 1 file");
+  const py = (cmd) => after("qa-python", "tests/test_cart.py", PY, cmd, "tests/test_cart.py::test_total\n\n1 test collected in 0.01s");
+  for (const cmd of ["npx playwright test --list", "npm run test:e2e -- --list", "npx jest --listTests", "npx vitest list"])
+    assert.deepEqual(ts(cmd), [never(1)], cmd);
+  for (const cmd of ["pytest --collect-only -q", "pytest --co"]) assert.deepEqual(py(cmd), [never(1)], cmd);
+  const cs = "public class CartTests {\n  [Fact]\n  public void Total() { Assert.Equal(3, cart.Total()); }\n}\n";
+  assert.deepEqual(after("qa-c#", "tests/CartTests.cs", cs, "dotnet test --list-tests", "The following Tests are available:\n    Total"), [never(1)]);
+  // still a run: a list and then a run, a pipe after a run, a flag that only looks alike
+  for (const cmd of ["npx playwright test --list && npx playwright test", "npx playwright test --grep list | tail -5", "npx playwright test --reporter=list"])
+    assert.deepEqual(ts(cmd), [], cmd);
+  assert.deepEqual(py("pytest --cov=src -q"), [], "--cov is not --co");
+});
