@@ -100,7 +100,7 @@ Everything about one session. It opens in its own editor tab when you click a se
 
 ### Calibration
 
-![The Calibration tab with only the demo session: Check precision says the demo's verdicts do not count there, and a rule for CLAUDE.md and AGENTS.md is proposed from confirmed findings, with its evidence](media/screenshots/calibration.png)
+![The Calibration tab with only the demo session: Check precision says the demo's verdicts do not count there, and two rules for CLAUDE.md and AGENTS.md are proposed from confirmed findings, the first with its evidence](media/screenshots/calibration.png)
 
 Learning from your verdicts.
 
