@@ -88,3 +88,16 @@ test("not reported: a run of the runner, red or unreadable; no test in the code;
   assert.deepEqual(found("qa-ts", [["write", "e2e/helpers.ts", "export const total = (xs) => xs.length;\n"]]), [], "a helper with no test in it");
   assert.deepEqual(found("qa-ts", [["say", "I will write the tests after the plan is approved."]]), []);
 });
+
+test("a test script run through npm, pnpm or yarn is a run of the runner (0.1.121; before, no run)", () => {
+  const ran = (profile, file, cmd) =>
+    found(profile, [
+      ["write", file, TS],
+      ["bash", cmd, "  2 passed (1.2s)"],
+    ]);
+  for (const cmd of ["npm run test", "npm run test:e2e", "pnpm run test:e2e", "yarn run test:ui"])
+    assert.deepEqual(ran("qa-ts", "e2e/cart.spec.ts", cmd), [], cmd);
+  for (const cmd of ["npm test", "npm run test:e2e", "npm run cypress:run"]) assert.deepEqual(ran("qa-cypress", "cypress/e2e/cart.cy.ts", cmd), [], cmd);
+  assert.deepEqual(ran("qa-api", "tests/cart.test.ts", "npm run test:api"), [], "qa-api");
+  assert.deepEqual(ran("qa-ts", "e2e/cart.spec.ts", "npm run build"), [never(1)], "another script is not a run");
+});

@@ -97,6 +97,11 @@
 - A **Codex** edit lost the line right after the changed lines: Codex ends its diffs with a line break, which was taken
   for one more line of the file. If that line was an assertion, the test seemed to have one fewer (**Assertion
   weakened**). A Codex session with edits shows **Import again** to read them again.
+- A test run through an npm script was not seen as a test run: `npm run test:e2e`, `npm run test`, `pnpm run test`
+  or `yarn run test` in the TypeScript, API, mobile and generic profiles, and `npm test` or `npm run cypress:run` in
+  qa-cypress. The usual way to start Playwright in a project gave a high **Tests never run** or **Claims tests pass**
+  after a run, and **Fix after a failure without triage** could not fire. The runners each profile knows are listed
+  in **What this profile checks**.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
