@@ -99,3 +99,33 @@ test("a diff that ends with a line break keeps the line after each hunk (Codex's
   ]);
   assert.equal(ev.find((e) => e.kind === "edit").new_content, ["a", "B", "c", "d", "E", "f", "g"].join("\n") + "\n");
 });
+
+// 0.159+: the snippet is plain JS, so the key is unquoted: tools.exec_command({cmd:"…"})
+const exec159 = (id, js) => rec("response_item", { type: "custom_tool_call", name: "exec", call_id: id, input: js });
+
+test("0.159+: a command with an unquoted cmd key is a step with its command (a bare tool step before 0.1.121)", () => {
+  const ev = importText([
+    exec159("c1", 'const r = await tools.exec_command({cmd:"npx playwright test","workdir":"/w"});\ntext(r);\n'),
+    output("c1", "  1 failed\n  1 passed (3.1s)\n"),
+  ]);
+  const run = ev.find((e) => e.kind === "run_tests");
+  assert.equal(run.cmd, "npx playwright test");
+  assert.deepEqual([run.tests.passed, run.tests.failed, run.tool], [1, 1, "exec"]);
+});
+
+test("a snippet that runs several commands gives them all", () => {
+  const ev = importText([
+    exec159("c1", 'const a = await tools.exec_command({cmd:"npm install"});\nconst b = await tools.exec_command({cmd:"npx playwright test"});\ntext(b);\n'),
+    output("c1", "  2 passed (1.0s)\n"),
+  ]);
+  assert.deepEqual(
+    ev.filter((e) => e.cmd).map((e) => `${e.kind} ${e.cmd}`),
+    ["run_tests npm install; npx playwright test"],
+  );
+});
+
+test("Import again: a stored bare exec step is the same step as its command now (transcriptMatch)", () => {
+  const fresh = importText([exec159("c1", 'await tools.exec_command({cmd:"ls -la"});'), output("c1", "total 0")]);
+  const stored = fresh.map((e) => (e.tool === "exec" ? { seq: e.seq, ts: e.ts, kind: "tool", tool: "exec" } : e));
+  assert.equal(Lens.transcriptMatch(stored, fresh), 1);
+});
