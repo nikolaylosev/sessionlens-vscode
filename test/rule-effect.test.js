@@ -28,7 +28,8 @@ function session(id, { profile = "qa-ts", created, ts = "", sleeps = 0, confirm 
   const verdicts = confirm ? Object.fromEntries(sleep.map((f) => [Lens.fkey(f), { v: "ok", note: "", at: created }])) : {};
   return { id, name: id, task: "", profile, created, events, findings, verdicts, spec: "" };
 }
-async function effectText(sessions) {
+// the effect block of the moved rule: its note and the rows of its chart ([label, bar width or null, value])
+async function effectView(sessions) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl-eff-"));
   const st = createStore({ dir: path.join(dir, "sessions") });
   await st.open();
@@ -48,11 +49,19 @@ async function effectText(sessions) {
   min.value = "1";
   min.dispatchEvent(new p.window.Event("change", { bubbles: true }));
   await p.idle();
-  const note = p.document.querySelector('.rule[data-k="sleep_or_skip_added"] .effect .eff-note');
+  const eff = p.document.querySelector('.rule[data-k="sleep_or_skip_added"] .effect');
+  const note = eff && eff.querySelector(".eff-note");
+  const rows = eff
+    ? [...eff.querySelectorAll(".eff-row")].map((r) => {
+        const bar = r.querySelector(".eff-bar");
+        return [r.querySelector(".eff-lbl").textContent, bar ? bar.style.width : null, r.querySelector(".eff-val").textContent];
+      })
+    : [];
   assert.deepEqual(p.errors, []);
   p.close();
-  return note && note.textContent;
+  return { note: note && note.textContent, rows };
 }
+const effectText = async (sessions) => (await effectView(sessions)).note;
 
 test("the summary records when the agent ran the session: its first step with a time", () => {
   const s = session("s", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-01T08:30:00Z", sleeps: 1 });
@@ -75,4 +84,17 @@ test("effect: a session counts by when it ran; the demo and a profile without th
     Object.assign(session(LensDemo.ID, { created: "2026-09-23T00:00:00.000Z", ts: "2026-09-23T08:00:00.000Z", sleeps: 3 }), { name: LensDemo.NAME }),
   ]);
   assert.equal(text, "effect: before 1.00 per session (2 sessions) → after 0.00 (1) — −100% · little data");
+});
+
+test("no session after the move yet: the chart is there, its after row empty (0.1.121; only the note before)", async () => {
+  const v = await effectView([
+    // imported after the move, but ran before it: before
+    session("old-run", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-01T08:00:00.000Z", sleeps: 2, confirm: true }),
+    session("older", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-02T08:00:00.000Z", sleeps: 0 }),
+  ]);
+  assert.equal(v.note, "effect: before 1.00 per session (2); no sessions after yet");
+  assert.deepEqual(v.rows, [
+    ["before", "100%", "1.00"],
+    ["after", null, "—"],
+  ]);
 });

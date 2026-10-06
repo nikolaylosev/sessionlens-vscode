@@ -711,7 +711,11 @@ ${good}
       const v = avgNum(a2);
       return v == null ? "—" : v.toFixed(2);
     };
-    if (!after.length) return `<div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
+    if (!after.length)
+      return `<div class="eff-chart">
+      <div class="eff-row"><span class="eff-lbl">${T("eff_before")}</span><div class="eff-track"><div class="eff-bar" style="width:${avgNum(before) ? 100 : 0}%"></div></div><span class="eff-val">${avg(before)}</span></div>
+      <div class="eff-row"><span class="eff-lbl">${T("eff_after")}</span><div class="eff-track"></div><span class="eff-val">—</span></div>
+    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
     const bNum = avgNum(before), aNum = avgNum(after);
     const b = +avg(before), a = +avg(after);
     const d = before.length && b > 0 ? Math.round((1 - a / b) * 100) : null;

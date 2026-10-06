@@ -520,7 +520,14 @@ export function effect(check, since) {
     const v = avgNum(a);
     return v == null ? "—" : v.toFixed(2);
   };
-  if (!after.length) return `<div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
+  // 0.1.121: the chart is drawn before the first session after the move too, its "after" row empty. Until then it
+  // showed only the note, and since 0.1.116 a transcript imported after the move but run before it no longer starts
+  // the "after" row, so a rule could show no chart for a long time.
+  if (!after.length)
+    return `<div class="eff-chart">
+      <div class="eff-row"><span class="eff-lbl">${T("eff_before")}</span><div class="eff-track"><div class="eff-bar" style="width:${avgNum(before) ? 100 : 0}%"></div></div><span class="eff-val">${avg(before)}</span></div>
+      <div class="eff-row"><span class="eff-lbl">${T("eff_after")}</span><div class="eff-track"></div><span class="eff-val">—</span></div>
+    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
   const bNum = avgNum(before),
     aNum = avgNum(after);
   const b = +avg(before),
