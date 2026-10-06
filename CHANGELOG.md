@@ -80,6 +80,10 @@
 - **Focused test** no longer takes a method named `fit` (`model.fit(data)`) for Jasmine's focused test, which gave a
   high finding, and finds Jest's `test.only.each`. **Debugging left in** finds `import pdb; pdb.set_trace()` on one
   line and `if (x) debugger;`, and in qa-python Playwright's `page.pause()`.
+- **Claims tests pass** (`pass_claim_without_run`, high) looks for a test run in the 6 steps before the message, and
+  counted every tool call as a step. After a run, an agent that read files, used a browser or MCP tools, or ran
+  `git push` pushed the run out of the window, and its "all tests pass" got a high "no test run". Now reads, searches,
+  other tools, git and other commands are not counted; writes, edits, test runs and messages are.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.

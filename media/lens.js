@@ -1608,6 +1608,8 @@
     return { text: out, count };
   }
   const F = (check, severity, seq, message) => ({ check, severity, seq, message });
+  // steps that change no code and say nothing: pass_claim_without_run does not count them in its window
+  const QUIET_STEPS = new Set(["read", "search", "tool", "git", "run_other"]);
   const checks = {
     // since 0.1.119 also a src folder deeper in the path, but not test-side code or a dependency under it
     peeked_at_src_before_plan(ev, cfg) {
@@ -1621,7 +1623,10 @@
     /* A claim phrase counts as whole words (0.1.119): "bypassing" is not "passing", "проходить" is not "проходит".
        An English phrase may end in -es, -ed or -ing ("tests passed", "all passes"). Since 0.1.121 a claim after a run
        whose output the transcript does not have (output_missing, a Cursor import) is not reported: its result is unknown.
-       A run whose output is there but not understood (no tests) still counts as no run, as before. */
+       A run whose output is there but not understood (no tests) still counts as no run, as before.
+       Since 0.1.121 the window of pass_claim_lookback steps skips the steps that change no code: reads, searches, other
+       tools (a browser, MCP), git and other commands. A Cursor session with an MCP browser makes dozens of them between
+       a run and the message about it. */
     pass_claim_without_run(ev, cfg) {
       const out = [],
         pats = cfg.pass_claim_patterns.map(
@@ -1638,7 +1643,10 @@
         if (e.kind !== "message") continue;
         const t = e.text.toLowerCase();
         if (!pats.some((rx) => rx.test(t))) continue;
-        const near = ev.filter((x) => x.seq >= e.seq - cfg.pass_claim_lookback && x.seq < e.seq && x.kind === "run_tests");
+        const near = ev
+          .filter((x) => x.seq < e.seq && !QUIET_STEPS.has(x.kind))
+          .slice(-cfg.pass_claim_lookback)
+          .filter((x) => x.kind === "run_tests");
         // the last run's result is not in the transcript (a Cursor transcript keeps no output): unknown, not red, not absent
         if (near.length && near[near.length - 1].output_missing) continue;
         const runs = near.filter((x) => x.tests);
