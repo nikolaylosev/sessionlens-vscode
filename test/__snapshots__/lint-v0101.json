@@ -1,7 +1,7 @@
 {
  "qa-ts": {
   "ran": true,
-  "note": "ESLint: 7 findings in 1 block(s)",
+  "note": "ESLint: 7 findings in 1 block",
   "findings": [
    {
     "check": "sleep_or_skip_added",
@@ -56,7 +56,7 @@
  },
  "qa-cypress": {
   "ran": true,
-  "note": "ESLint: 5 findings in 1 block(s)",
+  "note": "ESLint: 5 findings in 1 block",
   "findings": [
    {
     "check": "sleep_or_skip_added",
@@ -97,7 +97,7 @@
  },
  "qa-detox": {
   "ran": true,
-  "note": "ESLint: 4 findings in 1 block(s)",
+  "note": "ESLint: 4 findings in 1 block",
   "findings": [
    {
     "check": "no_app_reset",
@@ -131,7 +131,7 @@
  },
  "qa-java": {
   "ran": true,
-  "note": "ESLint: 2 findings in 1 block(s)",
+  "note": "ESLint: 2 findings in 1 block",
   "findings": [
    {
     "check": "swallowed_exception",
@@ -151,7 +151,7 @@
  },
  "qa-c#": {
   "ran": true,
-  "note": "ESLint: 2 findings in 1 block(s)",
+  "note": "ESLint: 2 findings in 1 block",
   "findings": [
    {
     "check": "swallowed_exception",
@@ -171,7 +171,7 @@
  },
  "qa-python": {
   "ran": true,
-  "note": "ESLint: 2 findings in 1 block(s)",
+  "note": "ESLint: 2 findings in 1 block",
   "findings": [
    {
     "check": "no_assertion_after_action",
@@ -191,7 +191,7 @@
  },
  "qa-robot": {
   "ran": true,
-  "note": "ESLint: 3 findings in 1 block(s)",
+  "note": "ESLint: 3 findings in 1 block",
   "findings": [
    {
     "check": "empty_test_case",

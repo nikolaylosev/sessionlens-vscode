@@ -16,7 +16,7 @@ const found = (file, content, check) =>
 test("mobile_raw_locator: XPath / className, not accessibility id", () => {
   assert.deepEqual(
     found("tests/cart.spec.ts", "it('opens', async () => {\n  await driver.findElement(By.xpath('//android.widget.TextView'));\n});\n", "mobile_raw_locator"),
-    ["low: tests/cart.spec.ts: 1 locator(s) by XPath/class name — an id or accessibility id survives layout changes"],
+    ["low: tests/cart.spec.ts: 1 locator by XPath/class name — an id or accessibility id survives layout changes"],
   );
   assert.deepEqual(
     found("tests/cart.spec.ts", "it('opens', async () => {\n  await driver.findElement(By.accessibilityId('cart'));\n});\n", "mobile_raw_locator"),

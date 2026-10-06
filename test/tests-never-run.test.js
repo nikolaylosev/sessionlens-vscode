@@ -30,7 +30,7 @@ const found = (profile, steps) => findings(profile, steps).map((f) => `${f.sever
 
 const TS = "test('total', async () => {\n  expect(cart.total()).toBe(3);\n});\n";
 const PY = "def test_total():\n    assert cart.total() == 3\n";
-const never = (n) => `high: Tests written in ${n} message(s), never executed — a hypothesis about tests, not tests`;
+const never = (n) => `high: Tests written in ${n} ${n === 1 ? "message" : "messages"}, never executed — a hypothesis about tests, not tests`;
 
 test("tests written and never run: one finding, at the last step that wrote tests", () => {
   assert.deepEqual(found("qa-ts", [["write", "e2e/cart.spec.ts", TS]]), [never(1)]);

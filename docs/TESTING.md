@@ -166,7 +166,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `spec-extract.test.js` | Which tests the specification coverage finds, for every visible profile and every file extension it declares: Kotlin names in backticks, Robot documentation links, comments above a test, `describe` and hooks that are not tests, `test.skip` after a test. |
 | `profile-info.test.js` | `Lens.profileInfo()` for every profile (snapshot), its agreement with the structures it comes from, and the "What this profile checks" block in the panel. |
 | `book-snapshot.test.js` | `LensRules.book({})`, the rule book, against its snapshot. |
-| `i18n-plural.test.js` | `{n\|one\|other}` picks the right word for a count; no dictionary string puts a plural word right after a placeholder ("1 sessions"). |
+| `i18n-plural.test.js` | `{n\|one\|other}` picks the right word for a count; no dictionary string puts a plural word right after a placeholder ("1 sessions"). No string in the dictionary writes a plural as "(s)" (0.1.122). |
 | `lazy-engines.test.js` | Lint engines load on demand, per language, only where a session is analyzed; with the real engines, `run()` reports exactly what the snapshot recorded; engine failures, pending sessions, the one-time repair of 0.1.101 sessions, ESLint switched off. |
 
 ### 4.2 The panel with the host (jsdom)

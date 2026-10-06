@@ -32,6 +32,10 @@
   folder's name now gives the workspace, so the paths under it are relative to it, as in a Claude Code or Codex
   session. A screenshot of a review no longer shows your user name. A file dropped onto the panel or pasted still
   shows full paths, and so does a session imported before: import its file again with **Choose file**.
+- Counts in messages read as English: "Tests written in 1 message, never executed" instead of "1 message(s)", and
+  "ESLint: 3 findings in 1 block", "1 locator", "2 API tests", "1 rule hidden via Delete — it stays hidden", "1 secret
+  masked". When ESLint could not parse anything, the note says "could not parse any code block (2 in all)". A
+  verdict on a finding whose text changed stays with it.
 
 ## 0.1.121
 

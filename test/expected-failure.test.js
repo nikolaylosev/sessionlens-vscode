@@ -17,7 +17,8 @@ const found = (profile, file, content) =>
   Lens.runChecks([{ seq: 1, kind: file ? "write" : "message", file, text: "", new_content: content }], Lens.profile(profile))
     .filter((f) => f.check === "expected_failure")
     .map((f) => `${f.severity}: ${f.message}`);
-const msg = (file, n) => `medium: ${file}: ${n} test(s) marked as an expected failure — the suite reports green while the bug they document is open`;
+const msg = (file, n) =>
+  `medium: ${file}: ${n} ${n === 1 ? "test" : "tests"} marked as an expected failure — the suite reports green while the bug ${n === 1 ? "it documents" : "they document"} is open`;
 const TS = "e2e/cart.spec.ts",
   PY = "tests/test_cart.py";
 
