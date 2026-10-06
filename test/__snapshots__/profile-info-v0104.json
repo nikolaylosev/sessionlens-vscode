@@ -394,7 +394,7 @@
      {
       "name": "cypress_async_test",
       "off": false,
-      "engineOnly": true
+      "engineOnly": false
      },
      {
       "name": "test_deleted",

@@ -228,7 +228,7 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `lint_valid_title` | Low | A Playwright test or `describe` title is empty, not a string, or starts or ends with a space (ESLint `valid-title`) |
 | `focused_test` | High | `.only`, `fit` or `fdescribe` was left in a test, so only it runs and the rest of the suite is silently skipped (TypeScript, Cypress, Detox, API and mobile profiles) |
 | `debug_leftover` | Medium | Debugging was left in a test: `page.pause()`, `cy.pause()`, `cy.debug()`, `debugger`, `breakpoint()`, `pdb.set_trace()` |
-| `cypress_async_test` | Medium | An `async` test or hook in Cypress, where the commands may not run (`qa-cypress`, via ESLint) |
+| `cypress_async_test` | Medium | An `async` test or hook in Cypress, where the commands may not run (`qa-cypress`: a test and a titled `before`/`beforeEach` via ESLint, other hooks always) |
 | `test_deleted` | High | A test was removed from a file, or a test file was deleted (`rm`, `git rm`, a Codex patch). High right after a failing run, medium otherwise. A test renamed with the same body, moved to another file or restored later does not count |
 | `hardcoded_secret` | High | A token, key or credential is written in the code. The report shows only its first four characters (TypeScript, Cypress, Detox, API and mobile profiles) |
 | `hardcoded_base_url` | Medium | A real host is written in a test instead of coming from configuration. A runner's config file, where the base URL belongs, does not count (same profiles) |

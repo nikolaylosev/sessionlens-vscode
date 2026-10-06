@@ -54,6 +54,9 @@
   and a scenario written with `*` steps is no longer reported for a missing Then, since `*` may stand for one.
 - **Conditional logic** finds C#'s `foreach` and a loop written as a call (`rows.forEach(…)`, `list.ForEach(…)`), and
   no longer reports a Python module's own code after a test (`if __name__ == "__main__":` after a blank line).
+- **Async Cypress test** (`cypress_async_test`, qa-cypress) finds an async hook the ESLint plugin misses: an
+  untitled `before(async () => …)` / `beforeEach`, and any async `after` / `afterEach`. It runs with static analysis
+  off too. An async `it()` and a titled `before("…", async …)` stay ESLint's, so no hook is reported twice.
 - **Commented-out code no longer gives findings** in the checks that look for a pattern anywhere in a file: a
   commented-out sleep, skip or retry (**Sleep or skip added**), `networkidle` (**Fragile wait**), `.only`, a debugger
   call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without

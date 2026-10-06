@@ -354,7 +354,7 @@
       test_runner_patterns: ["cypress run", "cypress open", "npx cypress", "yarn cypress"],
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened", "cypress_async_test"],
       sleep_patterns: [delayCall(String.raw`\bcy\.wait`, String.raw`\d{3,}`)],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
@@ -2316,6 +2316,22 @@
           const dup = [...seen].filter(([, n]) => n > 1);
           if (dup.length) out.push(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })));
         }
+      }
+      return out;
+    },
+    /* An async Cypress hook (0.1.121, qa-cypress): Cypress commands are queued, not awaited, so an async hook runs out of
+       order. ESLint's cypress/no-async-before (vendored) sees only a titled before / beforeEach, before("load", async
+       …), and nothing sees after / afterEach. This sees what it does not: an untitled before / beforeEach, and an after /
+       afterEach with or without a title. So the two never report the same hook, and an async it() stays the engine's. */
+    cypress_async_test(ev) {
+      const RX = /\b(?:(?:before|beforeEach)\s*\(\s*async\b|(?:after|afterEach)\s*\(\s*(?:(['"`])[^'"`\n]*\1\s*,\s*)?async\b)/;
+      const out = [];
+      for (const e of ev) {
+        if (!e.new_content) continue;
+        const ln = codeOf(e)
+          .split("\n")
+          .find((l) => RX.test(l));
+        if (ln) out.push(F("cypress_async_test", "medium", e.seq, T("cypress_async_hook", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
       }
       return out;
     },
