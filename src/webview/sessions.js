@@ -124,10 +124,10 @@ export async function pickAndImport() {
   ]);
   if (source === null) return; // the dialog's own Cancel button
   const r = await pickTranscript(source);
-  if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+  if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), { cursorOutputs: r.cursorOutputs, cursorProject: r.cursorProject });
 }
 
-/* The host's file dialog for `source` (claude | codex | cursor | other). → { name, text, cursorOutputs } or null when
+/* The host's file dialog for `source` (claude | codex | cursor | other). → { name, text, cursorOutputs, cursorProject } or null when
    the person cancelled. A host that refuses or fails says so in a dialog instead of nothing happening: a host older
    than this page (a .vsix installed without reloading the window) refuses a source it does not know. */
 export async function pickTranscript(source) {
@@ -141,11 +141,12 @@ export async function pickTranscript(source) {
 
 /* A file name like 53c39a7e-61e5-… says nothing three days later, so the import stops to ask for a name.
      The suggestion is the task id found in the session when there is one, otherwise the file name. */
-// cursorOutputs: the command output the host found in Cursor's database for a Cursor transcript (0.1.121)
-export function askName(text, fallback, cursorOutputs) {
+/* from, for a Cursor transcript the host read: cursorOutputs, the command output it found in Cursor's database
+   (0.1.121), and cursorProject, the name of the transcript's folder in ~/.cursor/projects (0.1.122) */
+export function askName(text, fallback, from) {
   const guess = Lens.guessTask(text.slice(0, 200000));
   const uuidish = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(fallback) || /^[0-9a-f]{12,}$/i.test(fallback);
-  pendingImport = { text, fallback, cursorOutputs };
+  pendingImport = { text, fallback, from };
   $("#name-input").value = guess || (uuidish ? "" : fallback);
   $("#name-hint").textContent = T("name_from_file", { f: fallback.slice(0, 40) });
   $("#name-row").hidden = false;
@@ -155,10 +156,10 @@ export function askName(text, fallback, cursorOutputs) {
 
 export function confirmName() {
   if (!pendingImport) return;
-  const { text, fallback, cursorOutputs } = pendingImport;
+  const { text, fallback, from } = pendingImport;
   pendingImport = null;
   $("#name-row").hidden = true;
-  importText(text, $("#name-input").value.trim() || fallback, cursorOutputs);
+  importText(text, $("#name-input").value.trim() || fallback, from);
 }
 
 export function readFile(f, cb) {
@@ -174,9 +175,9 @@ export function keptOutputs(outputs) {
   return outputs.map((o) => ({ command: o.command, output: String(o.output || "").slice(-20000), exitCode: o.exitCode }));
 }
 
-export async function importText(text, name, cursorOutputs) {
+export async function importText(text, name, from = {}) {
   const cfg = Lens.profile(state.settings.profile);
-  const res = Lens.importAny(text, cfg, { cursorOutputs });
+  const res = Lens.importAny(text, cfg, from);
   const convs = Array.isArray(res) && res.length && res[0].events ? res : [{ name, events: res }];
   if (!convs.length || !convs[0].events.length) {
     await alertDialog(T("no_events"));
@@ -205,7 +206,8 @@ export async function importText(text, name, cursorOutputs) {
       dropped: [],
       source_text: text.length < 400000 ? text : "",
       // kept with the text, so Back to regex parsing and Import again parse it the same way
-      source_outputs: text.length < 400000 ? keptOutputs(cursorOutputs) : undefined,
+      source_outputs: text.length < 400000 ? keptOutputs(from.cursorOutputs) : undefined,
+      source_project: text.length < 400000 ? from.cursorProject : undefined,
       seg: null,
       importGen: Lens.IMPORT_GEN,
     };

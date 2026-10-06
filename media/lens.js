@@ -1117,9 +1117,26 @@
      exitCode}, read by the host, cursor-db.js): a Shell call takes the next one with the same command and gets it as
      its tool_result, so its test results are parsed as for Claude Code. A test run without one keeps output_missing:
      its result is unknown, not red and not absent (pass_claim_without_run, 0.1.121). */
-  function fromCursorJsonl(text, cfg, outputs) {
+  /* Cursor names a workspace's folder in ~/.cursor/projects after its path: every character that is not a Latin letter
+     or a digit becomes "-", a run of them one "-", none at either end (/Users/me/my_app → Users-me-my-app; the same rule
+     as cursorProjectSlug in cli.js). The transcript's paths are absolute, and the workspace is the folder above them
+     whose name gives that folder's name: the import makes the paths relative to it (0.1.122; before, a session showed
+     /Users/…/tests/cart.spec.ts and the reviewer's user name with it). A dropped or pasted file has no folder. */
+  const cursorProjectSlug = (p) =>
+    p
+      .replace(/[^a-zA-Z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  function cursorRoot(paths, project) {
+    for (const p of paths)
+      for (let d = p.replace(/\/+$/, ""); d.startsWith("/"); d = d.slice(0, d.lastIndexOf("/"))) if (cursorProjectSlug(d) === project) return d;
+    return "";
+  }
+  // project: the name of the transcript's folder in ~/.cursor/projects, when the file was picked there
+  function fromCursorJsonl(text, cfg, outputs, project) {
     const lines = [],
       names = [],
+      paths = [],
       done = new Set(),
       outs = Array.isArray(outputs) ? outputs.filter((o) => o && typeof o.command === "string" && typeof o.output === "string") : [];
     let next = 0;
@@ -1149,6 +1166,7 @@
           const id = "cursor-" + names.length;
           content.push({ type: "tool_use", id, name: as, input });
           names.push(name);
+          if (typeof input.file_path === "string") paths.push(input.file_path);
           if (name !== "Shell" || typeof input.command !== "string") continue;
           const k = outs.findIndex((o, i) => i >= next && o.command.trim() === input.command.trim());
           if (k < 0) continue;
@@ -1161,6 +1179,8 @@
       if (content.length) lines.push(JSON.stringify({ type: rec.role, timestamp: ts, message: { role: rec.role, content } }));
       if (results.length) lines.push(JSON.stringify({ type: "user", timestamp: "", message: { role: "user", content: results } }));
     }
+    const root = typeof project === "string" && project ? cursorRoot(paths, project) : "";
+    if (root) lines.unshift(JSON.stringify({ type: "system", cwd: root })); // fromClaudeJsonl takes the first cwd
     const out = fromClaudeJsonl(lines.join("\n"), cfg);
     let i = 0;
     for (const e of out) {
@@ -1477,7 +1497,8 @@
     return events;
   }
 
-  // opts.cursorOutputs: the commands Cursor's database kept for a Cursor transcript (fromCursorJsonl)
+  /* opts.cursorOutputs: the commands Cursor's database kept for a Cursor transcript (fromCursorJsonl); opts.cursorProject:
+     the name of its folder in ~/.cursor/projects, for the workspace's path */
   function importAny(text, cfg, opts) {
     const t = text.trimStart();
     if (t.startsWith("[") || (t.startsWith("{") && /"chat_messages"/.test(t.slice(0, 5000)))) {
@@ -1487,7 +1508,8 @@
       } catch {}
     }
     if (t.startsWith("{") && isCursorStreamJson(t)) return stripNonSource(diffMessageVersions(fromCursorStreamJson(text, cfg), cfg), cfg);
-    if (t.startsWith("{") && isCursorJsonl(t)) return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg, opts && opts.cursorOutputs), cfg), cfg);
+    if (t.startsWith("{") && isCursorJsonl(t))
+      return stripNonSource(diffMessageVersions(fromCursorJsonl(text, cfg, opts && opts.cursorOutputs, opts && opts.cursorProject), cfg), cfg);
     if (t.startsWith("{") && isCodexJsonl(t)) return stripNonSource(diffMessageVersions(fromCodexJsonl(text, cfg), cfg), cfg);
     const ev = t.startsWith("{") ? fromClaudeJsonl(text, cfg) : fromText(text, cfg);
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
@@ -3019,6 +3041,7 @@
     redactSecrets,
     importAny,
     isCursorJsonl,
+    cursorProjectSlug,
     isCursorStreamJson,
     unreadToolCalls,
     IMPORT_GEN,

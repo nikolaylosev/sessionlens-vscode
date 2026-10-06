@@ -1554,7 +1554,7 @@ ${en.raw}`).join("\n\n\n");
     ]);
     if (source === null) return;
     const r = await pickTranscript(source);
-    if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), r.cursorOutputs);
+    if (r) askName(r.text, r.name.replace(/\.(jsonl|txt|md|log|json)$/i, ""), { cursorOutputs: r.cursorOutputs, cursorProject: r.cursorProject });
   }
   async function pickTranscript(source) {
     const r = await window.__slPickTranscript({ source: source === "other" ? void 0 : source });
@@ -1564,10 +1564,10 @@ ${en.raw}`).join("\n\n\n");
     }
     return r && typeof r.text === "string" ? r : null;
   }
-  function askName(text, fallback, cursorOutputs) {
+  function askName(text, fallback, from) {
     const guess = Lens.guessTask(text.slice(0, 2e5));
     const uuidish = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(fallback) || /^[0-9a-f]{12,}$/i.test(fallback);
-    pendingImport = { text, fallback, cursorOutputs };
+    pendingImport = { text, fallback, from };
     $("#name-input").value = guess || (uuidish ? "" : fallback);
     $("#name-hint").textContent = T("name_from_file", { f: fallback.slice(0, 40) });
     $("#name-row").hidden = false;
@@ -1576,10 +1576,10 @@ ${en.raw}`).join("\n\n\n");
   }
   function confirmName() {
     if (!pendingImport) return;
-    const { text, fallback, cursorOutputs } = pendingImport;
+    const { text, fallback, from } = pendingImport;
     pendingImport = null;
     $("#name-row").hidden = true;
-    importText(text, $("#name-input").value.trim() || fallback, cursorOutputs);
+    importText(text, $("#name-input").value.trim() || fallback, from);
   }
   function readFile(f, cb) {
     const r = new FileReader();
@@ -1590,9 +1590,9 @@ ${en.raw}`).join("\n\n\n");
     if (!Array.isArray(outputs) || !outputs.length) return void 0;
     return outputs.map((o) => ({ command: o.command, output: String(o.output || "").slice(-2e4), exitCode: o.exitCode }));
   }
-  async function importText(text, name, cursorOutputs) {
+  async function importText(text, name, from = {}) {
     const cfg = Lens.profile(state.settings.profile);
-    const res = Lens.importAny(text, cfg, { cursorOutputs });
+    const res = Lens.importAny(text, cfg, from);
     const convs = Array.isArray(res) && res.length && res[0].events ? res : [{ name, events: res }];
     if (!convs.length || !convs[0].events.length) {
       await alertDialog(T("no_events"));
@@ -1621,7 +1621,8 @@ ${en.raw}`).join("\n\n\n");
         dropped: [],
         source_text: text.length < 4e5 ? text : "",
         // kept with the text, so Back to regex parsing and Import again parse it the same way
-        source_outputs: text.length < 4e5 ? keptOutputs(cursorOutputs) : void 0,
+        source_outputs: text.length < 4e5 ? keptOutputs(from.cursorOutputs) : void 0,
+        source_project: text.length < 4e5 ? from.cursorProject : void 0,
         seg: null,
         importGen: Lens.IMPORT_GEN
       };
@@ -1810,7 +1811,8 @@ ${en.raw}`).join("\n\n\n");
       await needEngine(s.profile);
       await updateSession(state.current, (x) => {
         const cfg = Lens.profile(x.profile);
-        x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, { cursorOutputs: x.source_outputs })) || x.events;
+        const from = { cursorOutputs: x.source_outputs, cursorProject: x.source_project };
+        x.events = Lens.pickConversation(x.events, Lens.importAny(x.source_text, cfg, from)) || x.events;
         x.seg = null;
         x.importGen = Lens.IMPORT_GEN;
         analyze(x);
@@ -1889,7 +1891,7 @@ ${en.raw}`).join("\n\n\n");
   async function reimport() {
     const sid = state.current, s = curS();
     if (!s) return;
-    let text = s.source_text, cursorOutputs = s.source_outputs;
+    let text = s.source_text, cursorOutputs = s.source_outputs, cursorProject = s.source_project;
     if (!text) {
       const source = await chooseDialog(T("reimport_pick"), [
         { label: T("pick_source_claude"), value: "claude", primary: true },
@@ -1902,9 +1904,10 @@ ${en.raw}`).join("\n\n\n");
       if (!r) return;
       text = r.text;
       cursorOutputs = r.cursorOutputs;
+      cursorProject = r.cursorProject;
     }
     const cfg = Lens.profile(s.profile);
-    const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs }));
+    const events = Lens.pickConversation(s.events, Lens.importAny(text, cfg, { cursorOutputs, cursorProject }));
     if (!events) {
       await alertDialog(T("no_events"));
       return;
@@ -1927,6 +1930,7 @@ ${en.raw}`).join("\n\n\n");
       if (!x.source_text && text.length < 4e5) {
         x.source_text = text;
         x.source_outputs = keptOutputs(cursorOutputs);
+        x.source_project = cursorProject;
       }
       x.importGen = Lens.IMPORT_GEN;
       analyze(x, "import");
