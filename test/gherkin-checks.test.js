@@ -2,12 +2,9 @@
 /* The Gherkin checks: outline_no_examples, bloated_background, duplicate_step_text, scenario_no_then (also one case in
    finding-pipeline.test.js).
 
-   scenario_no_then gaps found on 5 Oct 2026, not pinned here, for the owner to decide:
-   - a feature in another language (`# language: ru`, Функция / Сценарий / Тогда) is not parsed at all, so none of the
-     four Gherkin checks runs on it;
-   - `Example:`, a synonym of `Scenario:`, is not parsed as a scenario;
-   - the lines of a doc string (""""" … """"") are read as steps, so a "Then" inside one counts;
-   - open question: a scenario written with "*" steps only gets a high "no Then step", though "*" may stand for Then. */
+   Since 0.1.121 (gaps found on 5 Oct 2026): the keywords in Russian too, the synonyms Example, Scenario Template and
+   Scenarios, a doc string's lines are text and not steps, and a scenario with "*" steps is not reported for a missing
+   Then ("*" may stand for it). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -81,4 +78,40 @@ test("scenario_no_then: a Then in the Background or in a comment does not count"
     [NO_THEN("pay")],
   );
   assert.deepEqual(found("features/pay.feature", pay(["Given a cart", "# Then paid"]), "scenario_no_then"), [NO_THEN("pay")]);
+});
+
+test("Gherkin in Russian: scenarios, steps, outlines and examples are read (0.1.121)", () => {
+  const ru = (body) => `# language: ru\nФункция: Оплата\n${body}`;
+  assert.deepEqual(found("features/pay.feature", ru("  Сценарий: оплата\n    Дано корзина\n    Когда она платит\n"), "scenario_no_then"), [NO_THEN("оплата")]);
+  assert.deepEqual(
+    found(
+      "features/pay.feature",
+      ru("  Сценарий: оплата\n    Допустим корзина\n    Если она платит\n    То заказ оплачен\n    И письмо отправлено\n"),
+      "scenario_no_then",
+    ),
+    [],
+  );
+  const outline = ru("  Структура сценария: оплата <карта>\n    Дано корзина\n    Тогда оплачено картой <карта>\n");
+  assert.deepEqual(found("features/pay.feature", outline, "outline_no_examples"), [
+    "high: features/pay.feature: оплата <карта> — Scenario Outline with no Examples rows, so it never actually runs",
+  ]);
+  assert.deepEqual(found("features/pay.feature", outline + "    Примеры:\n      | карта |\n      | visa |\n", "outline_no_examples"), []);
+  const bg = ru("  Предыстория:\n" + Array.from({ length: 7 }, (_, k) => `    Дано шаг ${k + 1}`).join("\n") + "\n  Сценарий: a\n    Тогда b\n");
+  assert.deepEqual(found("features/pay.feature", bg, "bloated_background").length, 1);
+});
+
+test("the synonyms: Example, Scenario Template, Scenarios (0.1.121)", () => {
+  assert.deepEqual(found("features/pay.feature", "Feature: Pay\n  Example: pay\n    Given a cart\n    When she pays\n", "scenario_no_then"), [NO_THEN("pay")]);
+  const tpl = "Feature: Pay\n  Scenario Template: pay with <card>\n    Given a cart\n    Then paid with <card>\n";
+  assert.deepEqual(found("features/pay.feature", tpl, "outline_no_examples").length, 1);
+  assert.deepEqual(found("features/pay.feature", tpl + "  Scenarios:\n    | card |\n    | visa |\n", "outline_no_examples"), []);
+});
+
+test("a doc string's lines are text, not steps (0.1.121)", () => {
+  assert.deepEqual(found("features/pay.feature", pay(["Given a note", '  """', "  Then nothing", '  """']), "scenario_no_then"), [NO_THEN("pay")]);
+  assert.deepEqual(found("features/pay.feature", pay(["Given a note", "  ```json", "  Then nothing", "  ```", "Then it is read"]), "scenario_no_then"), []);
+});
+
+test('a scenario with "*" steps is not reported for a missing Then: "*" may stand for it (0.1.121)', () => {
+  assert.deepEqual(found("features/pay.feature", pay(["* a cart", "* she pays", "* the order is paid"]), "scenario_no_then"), []);
 });
