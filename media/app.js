@@ -156,7 +156,7 @@
     s.suppressed = cal.suppressed;
     s.calibHidden = cal.hidden;
     Lens.carryVerdicts(s);
-    s.metrics = Lens.metrics(s.events);
+    s.metrics = Lens.metrics(s.events, cfg);
     s.task = s.task || Lens.taskId(s.events);
     state.gens[s.id] = s.lintPending ? "" : genNow();
   }
@@ -1912,7 +1912,7 @@ ${en.raw}`).join("\n\n\n");
     $("#review-empty").hidden = !!s;
     $("#review").hidden = !s;
     if (!s) return;
-    const v = Lens.verdict(s.findings), m = s.metrics || Lens.metrics(s.events);
+    const v = Lens.verdict(s.findings), m = s.metrics || Lens.metrics(s.events, Lens.profile(s.profile));
     const runs = s.events.filter((e) => e.kind === "run_tests" && e.tests), last = runs[runs.length - 1];
     $("#hdr").style.setProperty("--v", VCOL[v]);
     const unv = !Lens.isValidated(s.profile, profileVerdicts(s.profile));

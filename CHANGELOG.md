@@ -36,8 +36,10 @@
   by Cursor too, which it is.
 
 ### Changed
-- The extension's description and keywords name Cursor, and the README tells how to install SessionLens in Cursor
-  and VSCodium (from Open VSX) and to reload the window after installing a `.vsix`. The README's links to the Detox,
+- The empty Sessions list asks for a Claude Code, Codex or Cursor Agent transcript, and the note under a generated
+  skill says Cursor reads the shared rules file too. The extension's description and keywords name Cursor, and the
+  README tells how to install SessionLens in Cursor
+  and VSCodium (from Open VSX) and to reload the window after installing a `.vsix`. The roadmap lists Cursor support as done. The README's links to the Detox,
   Java, C#, Python and Robot Framework checks lead to them again.
 - Messages and hints no longer say "VS Code" where they mean the editor, since SessionLens also runs in Cursor: "the
   setting `sessionlens.claudeCliPath`" instead of "the VS Code setting", "this editor window is remote".
@@ -105,6 +107,12 @@
   qa-cypress. The usual way to start Playwright in a project gave a high **Tests never run** or **Claims tests pass**
   after a run, and **Fix after a failure without triage** could not fire. The runners each profile knows are listed
   in **What this profile checks**.
+- A shell command that only reads a file (`cat`, `sed -n`, `head`, `rg`, `ls`, `find`) was not counted as a read.
+  Codex reads files that way, so a Codex session showed **reads 0** and a Read:Edit warning, and **Read product code
+  before the plan** (`peeked_at_src_before_plan`) never fired for it, nor for `cat src/…` in a Claude Code or Cursor
+  session. Now such a command is a read in the metrics, and reading product code with it before the plan is reported.
+  A command that writes (`sed -i`, `>`, `find -delete`), one mixed with another command, and `curl` do not count.
+  Saved sessions get this on their next analysis, without importing them again.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.

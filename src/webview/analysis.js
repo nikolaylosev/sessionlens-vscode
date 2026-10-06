@@ -46,7 +46,7 @@ export function analyzeNow(s) {
   s.suppressed = cal.suppressed;
   s.calibHidden = cal.hidden; // what an "off" check found: counted for calibration, never shown
   Lens.carryVerdicts(s); // a verdict on a finding the new version words differently stays with it (0.1.116)
-  s.metrics = Lens.metrics(s.events);
+  s.metrics = Lens.metrics(s.events, cfg);
   s.task = s.task || Lens.taskId(s.events);
   // which rules these findings were computed with; "" (not analyzed) while the lint engine was still loading, so
   // ensureFresh() and the background pass analyze it again (phase 5)

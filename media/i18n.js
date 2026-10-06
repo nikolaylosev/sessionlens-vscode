@@ -346,7 +346,7 @@
       gen_skill_stub_note_cursor:
         "Save this as .cursor/rules/sessionlens.mdc in the project. With alwaysApply: true, Cursor's Agent (in the editor and in the CLI) reads it in every chat of that project.",
       gen_skill_stub_note:
-        "Keep {f} thin: instead of pasting the rules into each one, add this one line to every entry-point file you use. Both Claude Code and Codex read it as a plain instruction, so one shared file works for both — no vendor-specific skills folder required.",
+        "Keep {f} thin: instead of pasting the rules into each one, add this one line to every entry-point file you use. Claude Code, Codex and Cursor read it as a plain instruction, so one shared file works for all of them — no vendor-specific skills folder required.",
       gen_skill_save: "Save to folder…",
       gen_skill_saved: "Saved to {p}",
       gen_skill_saved_files: "Downloaded each file separately.",
