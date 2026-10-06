@@ -2339,8 +2339,10 @@
         /\.delete\s*\(|\bDeleteAsync\s*\(|(?:Method|HttpMethod)\.Delete\b|\bmethod\s+delete\b|\bteardown\w*|\btearDown\b|@After(?:Each|All|Class|Method)?\b|\bafterEach\s*\(|\bafterAll\s*\(|\[(?:OneTime)?TearDown\]|\bDispose\s*\(|\byield\b|addfinalizer|\bclean_?up\b/i;
       const out = [];
       for (const e of ev) {
-        const code = e.new_content;
-        if (!code || !Object.keys(blocksByTest(code, cfg.test_fn_pattern)).length) continue;
+        if (!e.new_content) continue;
+        // without comments (since 0.1.122): a commented-out .post( creates nothing, a commented-out afterEach cleans nothing
+        const code = codeOf(e);
+        if (!Object.keys(blocksByTest(code, cfg.test_fn_pattern)).length) continue;
         const paths = [...code.matchAll(/\.post\s*\(\s*([^,)\n]+)/g)]
           .map((m) => m[1])
           .concat([...code.matchAll(/\bPost(?:AsJson)?Async\s*\(\s*([^,)\n]+)/g)].map((m) => m[1]));

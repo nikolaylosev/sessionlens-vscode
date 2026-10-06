@@ -14,6 +14,9 @@
   nothing. Such a command counted as a run whose result was unknown, so **Tests never run** stayed silent when the agent
   only listed the tests. A list followed by a run (`… --list && npx playwright test`) is still a run. A session imported
   before gets this after **Import again**.
+- **Test data not cleaned up** (`test_data_no_cleanup`, low) read comments as code: a commented-out `.post(…)` gave the
+  finding, and a commented-out `afterEach`, `.delete(…)` or `yield`, or just the word "cleanup" in a comment, hid it.
+  Now only code counts, as in the other checks since 0.1.121.
 
 ## 0.1.121
 

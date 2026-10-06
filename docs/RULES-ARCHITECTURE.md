@@ -932,6 +932,8 @@ Status at v0.1.98. Closed items are kept for the record.
    own (a docstring, or a string used as a block comment) is blanked like a comment by `withoutComments()`, so both
    `codeOf()` and `commentLinesBlanked()` skip it: it starts a line outside brackets, the line before does not end
    with `\`, and it has no `f` prefix. Any other triple-quoted string is a string that spans lines and stays code.
+   `test_data_no_cleanup` reads `codeOf()` since 0.1.122: a commented-out `.post(` creates nothing, and a
+   commented-out `afterEach` or the word "cleanup" in a comment cleans nothing.
 
 ## 12. How to add a new check safely (a practical checklist)
 

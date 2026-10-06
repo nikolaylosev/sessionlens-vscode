@@ -114,6 +114,27 @@ test("test_data_no_cleanup: POST that creates, with no delete or teardown", () =
   );
 });
 
+test("test_data_no_cleanup reads code, not comments (0.1.122): a commented-out POST or cleanup does not count", () => {
+  const F = "tests/users.spec.ts";
+  const post = "  await client.post('/users', { name: 'Ada' });\n";
+  const it = (body) => `it('creates a user', async () => {\n${body}  expect(user.id).toBeTruthy();\n});\n`;
+  assert.deepEqual(found(F, it("  // " + post.trim() + "\n"), "test_data_no_cleanup"), [], "a commented-out POST creates nothing");
+  assert.deepEqual(found(F, it("  /*\n" + post + "  */\n"), "test_data_no_cleanup"), [], "nor one in a block comment");
+  const after = (cleanup) => it(post) + cleanup;
+  assert.deepEqual(found(F, after("afterEach(async () => { await client.delete('/users/1'); });\n"), "test_data_no_cleanup"), []);
+  assert.equal(
+    found(F, after("// afterEach(async () => { await client.delete('/users/1'); });\n"), "test_data_no_cleanup").length,
+    1,
+    "a commented-out cleanup",
+  );
+  assert.equal(found(F, after("// TODO: cleanup the users\n"), "test_data_no_cleanup").length, 1, "the word in a comment");
+  const P = "tests/test_users.py";
+  const py = "def test_create(api):\n    api.post('/users', json={'name': 'Ada'})\n";
+  assert.equal(found(P, py + "    # yield the user, then api.delete(...)\n", "test_data_no_cleanup").length, 1, "Python: # comment");
+  assert.equal(found(P, py.replace("):\n", '):\n    """Was: yield user; api.delete(user)."""\n'), "test_data_no_cleanup").length, 1, "Python: docstring");
+  assert.deepEqual(found(P, py + "    yield\n    api.delete('/users/1')\n", "test_data_no_cleanup"), []);
+});
+
 test("response_time_assert: elapsed / lessThan on an assertion line", () => {
   assert.deepEqual(found("tests/orders.spec.ts", "it('is fast', async () => {\n  expect(r.elapsed).toBeLessThan(200);\n});\n", "response_time_assert"), [
     "low: tests/orders.spec.ts: is fast — asserts response time (expect(r.elapsed).toBeLessThan(200);); this fails on a slow CI runner",
