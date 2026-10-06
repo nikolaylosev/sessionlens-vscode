@@ -928,7 +928,10 @@ Status at v0.1.98. Closed items are kept for the record.
    line with code kept whole): `weak_assert`, `hardcoded_date`, `magic_number`, `duplicate_assert`,
    `assertion_roulette`, `status_only_assert`, `no_negative_cases`, `response_time_assert`, `conditional_logic`,
    `hardcoded_base_url` and `assert_weakened`. `hardcoded_secret` still reads comments (a token in a comment is still
-   in the file), and so does `test_deleted`. A Python docstring is a string and is read as code.
+   in the file), and so does `test_deleted`. Since 0.1.122 a Python `"""`/`'''` string that is a statement of its
+   own (a docstring, or a string used as a block comment) is blanked like a comment by `withoutComments()`, so both
+   `codeOf()` and `commentLinesBlanked()` skip it: it starts a line outside brackets, the line before does not end
+   with `\`, and it has no `f` prefix. Any other triple-quoted string is a string that spans lines and stays code.
 
 ## 12. How to add a new check safely (a practical checklist)
 

@@ -582,18 +582,36 @@
      floor division, not a comment); // and /* … *\/ in the C-like ones; both for code
      with no file (in a message). # counts at the start of a line or after a space. Inside a string none of them is one
      ("#total", "https://…"); a ' or " string ends with its line, so a quote in plain text or a regex literal cannot hide
-     the rest of the file. */
+     the rest of the file.
+     In Python a """ or ''' string spans lines. One that is a statement of its own never runs: a docstring, or a string
+     used as a block comment. Its text is blanked like a comment (until 0.1.122 "assert ok" or "time.sleep(2)" in a
+     docstring gave findings). It is one when it starts a line outside brackets and the line before does not go on
+     with "\\"; an f-string is not, since its {…} runs. Any other """ string (an assigned SQL query) stays code. */
   const HASH_COMMENTS = /\.(?:py|pyi|robot|resource|feature|ya?ml|sh|rb|toml|ini|cfg|r)$/i;
   function withoutComments(text, file) {
     const hash = !file || HASH_COMMENTS.test(file),
-      slash = !file || !HASH_COMMENTS.test(file);
+      slash = !file || !HASH_COMMENTS.test(file),
+      py = !!file && /\.pyi?$/i.test(file);
     let out = "",
       q = "", // the open string's quote, or "/*" in a block comment, or "//" in a line comment
-      prev = "\n";
+      prev = "\n",
+      depth = 0; // open ( [ { in Python code: a """ inside them is an argument or a value, not a statement
     for (let i = 0; i < text.length; i++) {
       const c = text[i],
         n = text[i + 1];
-      if (q === "//") {
+      if (q.length === 3 || q.length === 4) {
+        // a Python triple-quoted string: q is its quote, with a leading "-" when it is a statement of its own (blanked)
+        const blank = q.length === 4,
+          hide = (s) => (blank ? s.replace(/[^\n]/g, " ") : s);
+        if (text.startsWith(q.slice(-3), i)) {
+          out += hide(q.slice(-3));
+          i += 2;
+          q = "";
+        } else if (c === "\\" && n !== undefined) {
+          out += hide(c + n);
+          i++;
+        } else out += hide(c);
+      } else if (q === "//") {
         if (c === "\n") q = "";
         out += c === "\n" ? c : " ";
       } else if (q === "/*") {
@@ -616,8 +634,18 @@
       } else if (hash && c === "#" && /\s/.test(prev)) {
         q = "//";
         out += " ";
+      } else if (py && (text.startsWith('"""', i) || text.startsWith("'''", i))) {
+        const line = out.slice(out.lastIndexOf("\n") + 1),
+          prefix = /^\s*([rRuUbB]{0,2})$/.exec(line), // not f: an f-string's {…} runs
+          own = depth === 0 && !!prefix && !/\\\s*$/.test(out.slice(0, out.length - line.length));
+        if (own) out = out.slice(0, out.length - prefix[1].length) + " ".repeat(prefix[1].length);
+        q = (own ? "-" : "") + text.slice(i, i + 3);
+        out += own ? "   " : q;
+        i += 2;
       } else {
         if (c === '"' || c === "'" || c === "`") q = c;
+        else if (py && "([{".includes(c)) depth++;
+        else if (py && ")]}".includes(c)) depth = Math.max(0, depth - 1);
         out += c;
       }
       prev = c;
@@ -633,7 +661,7 @@
   /* The text with every line that is all comment left empty, for the checks that read a file line by line: a line
      inside a block comment is one even without a leading "*" (until 0.1.121 it was read as code). The lines stay where
      they are, and a line with code keeps its comment: magic_number takes one at the end of a line for the number's
-     explanation. A Python docstring is a string, not a comment, and stays. */
+     explanation. A Python docstring is left empty too (since 0.1.122, see withoutComments). */
   function commentLinesBlanked(text, file) {
     const code = withoutComments(text, file).split("\n");
     return text
@@ -2754,7 +2782,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.121";
+  const ANALYSIS_VERSION = "0.1.122";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")

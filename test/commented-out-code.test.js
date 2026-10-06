@@ -4,7 +4,8 @@
    test.fail() that are commented out never run. Each case has its live twin, which is still reported. What stays code:
    "#" and "//" inside a string, a URL, and Python's // (floor division). Assertion checks skip comments since 0.1.120.
    The checks that read a file line by line skip a line inside a block comment that does not start with "*" too
-   (0.1.121; until then it was read as code). */
+   (0.1.121; until then it was read as code). In Python a docstring, or any """ string that is a statement of its own,
+   never runs either, so code inside one gives no finding (0.1.122); a """ string that is a value stays code. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -129,4 +130,38 @@ test("a line with code keeps its comment: magic_number still takes it for the nu
   const ts = (body) => `test("total", async ({ page }) => {\n${body}\n});\n`;
   assert.ok(!checks("qa-ts", TS, ts("  expect(sum).toBe(4217); // the order's total in cents")).includes("magic_number"));
   assert.ok(!checks("qa-ts", TS, ts("  expect(sum).toBe(4217); /* cents */")).includes("magic_number"));
+});
+
+/* Python docstrings (0.1.122): old code kept in a docstring, or in a """ string used as a block comment, never runs. Each
+   case has its live twin, and the code after the docstring is still read where it is. */
+const DOC = [
+  ["weak_assert", "    assert ok"],
+  ["sleep_or_skip_added", "    time.sleep(2)"],
+  ["hardcoded_date", '    assert page.locator("#date").inner_text() == "2026-03-15"'],
+  ["magic_number", "    assert cart.total() == 4217"],
+  ["debug_leftover", "    breakpoint()"],
+];
+const pyTest = (body) => `def test_total(page):\n    page.goto("/cart")\n${body}\n`;
+for (const [check, live] of DOC)
+  test(`${check} (qa-python): code inside a docstring or a """ block comment is not code (0.1.122)`, () => {
+    assert.ok(checks("qa-python", PY, pyTest(live)).includes(check), "live: " + live);
+    const docstring = `def test_total(page):\n    """Old version:\n${live}\n    """\n    page.goto("/cart")\n`;
+    assert.ok(!checks("qa-python", PY, docstring).includes(check), "in the docstring: " + live);
+    assert.ok(!checks("qa-python", PY, pyTest(`    '''\n${live}\n    '''`)).includes(check), "in a ''' block comment: " + live);
+    assert.ok(!checks("qa-python", PY, pyTest(`    r'''${live.trim()}'''`)).includes(check), "in a raw one-line string: " + live);
+  });
+
+test("a module's and a class's docstring are not code; the test after them is read where it is (0.1.122)", () => {
+  const body =
+    'class TestCart:\n    """Was:\n    time.sleep(2)\n    assert ok\n    """\n\n    def test_total(self, page):\n        assert cart.total() == 4217\n';
+  const found = checks("qa-python", PY, '"""Cart tests.\n\nassert ok\n"""\n' + body);
+  assert.ok(!found.includes("sleep_or_skip_added") && !found.includes("weak_assert"), found.join(", "));
+  assert.ok(found.includes("magic_number"), "the live assertion after the docstrings");
+});
+
+test('a """ string that is a value is still code: in brackets, after "\\", an f-string (0.1.122)', () => {
+  const has = (body) => checks("qa-python", PY, pyTest(body)).includes("sleep_or_skip_added");
+  assert.ok(has('    page.evaluate(\n        """\n    time.sleep(2)\n        """\n    )'), "an argument inside ( )");
+  assert.ok(has('    script = \\\n    """\n    time.sleep(2)\n    """'), 'the line before goes on with "\\"');
+  assert.ok(has('    f"""{time.sleep(2)}"""'), "an f-string's {…} runs");
 });
