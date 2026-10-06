@@ -541,7 +541,7 @@ const merge = (regexFindings, lintFindings, language) => {
   about hooks, not assertions, and is no longer run (phase 10, "every finding under its own name").
 - **An important asymmetry**: `raw_locator`/`positional_locator`/
   `no_assertion_after_action`/`no_app_reset`/`unannotated_test_method`/
-  `swallowed_exception`/`assert_args_reversed`/`cypress_async_test`/`empty_test_case` are
+  `swallowed_exception`/`assert_args_reversed`/`empty_test_case` are
   **not in `SUPERSEDES`**, because they **have no regex function anyway**
   (see §5.2) — there is nothing to duplicate. `test/rules-consistency.test.js` ties `SUPERSEDES` to the registry's
   `sources`: every check in `SUPERSEDES` must be emitted by both a regex and an engine, and every check emitted by
@@ -550,6 +550,9 @@ const merge = (regexFindings, lintFindings, language) => {
   `toBeTruthy()` and `expect(true).toBe(true)`; the engines map other rules to
   the same name (a useless `.not`, a malformed `expect`, a standalone `expect`).
   Superseding it would drop the regex findings the engines do not make.
+- **`cypress_async_test` keeps both** (0.1.121, qa-cypress): ESLint's `cypress/no-async-tests` finds an async `it()`
+  and the vendored `cypress/no-async-before` only a titled `before` / `beforeEach`; the regex finds what they miss, an
+  untitled `before` / `beforeEach` and any `after` / `afterEach`. They never report the same hook.
 - **Engine rules no longer run** (0.1.113): `playwright/max-nested-describe`, `playwright/no-nested-step`,
   `cypress/no-and` (style) and `playwright/no-duplicate-hooks`. An engine runs only the rules of its `*_RULE_MAP`
   (`rulesConfig()`), plus the user's `lintExtraRules`, which report as `lint_<rule>`.
@@ -782,7 +785,7 @@ The reference is `media/checks.js`; this table is a readable copy of it, generat
 | lint_valid_title | code | low | engines only (ESLint Playwright) |
 | focused_test | code | high | regex (lens.js) + engines (ESLint Playwright), an engine replaces the kinds it finds itself (§6.3) |
 | debug_leftover | code | medium | regex (lens.js) + engines (ESLint Playwright, ESLint Cypress), an engine replaces the kinds it finds itself (§6.3) |
-| cypress_async_test | code | medium | engines only (ESLint Cypress) |
+| cypress_async_test | code | medium | ESLint Cypress (async `it`, titled `before`/`beforeEach`) + regex in qa-cypress (other hooks), both kept (§6.3) |
 | test_deleted | code | high | regex (lens.js) |
 | hardcoded_secret | code | high | regex (lens.js) |
 | hardcoded_base_url | code | medium | regex (lens.js) |

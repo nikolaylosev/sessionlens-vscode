@@ -253,7 +253,7 @@
       severity: "medium",
       ruleKey: "r_cypress_async",
       good: "it('total', () => { cy.contains('Total').should('be.visible'); })",
-      sources: ["lint"],
+      sources: ["regex", "lint"],
     },
     test_deleted: {
       group: "code",

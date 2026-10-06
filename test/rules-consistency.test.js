@@ -83,6 +83,7 @@ test("every registry entry is named in another test file", () => {
    different things under one name, so dropping the regex ones would lose findings (RULES-ARCHITECTURE.md §6.3). */
 const KEEP_BOTH = {
   weak_assert: "regex: toBeDefined()/toBeTruthy()/expect(true).toBe(true); engines: no expect at all, a useless .not, a malformed expect",
+  cypress_async_test: "regex: an untitled before/beforeEach and any after/afterEach; engine: an async it() and a titled before/beforeEach",
 };
 
 test("SUPERSEDES agrees with the registry's sources (§6.3, §11.5)", () => {

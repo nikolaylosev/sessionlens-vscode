@@ -2319,6 +2319,22 @@
       }
       return out;
     },
+    /* An async Cypress hook (0.1.121, qa-cypress): Cypress commands are queued, not awaited, so an async hook runs out of
+       order. ESLint's cypress/no-async-before (vendored) sees only a titled before / beforeEach, before("load", async
+       …), and nothing sees after / afterEach. This sees what it does not: an untitled before / beforeEach, and an after /
+       afterEach with or without a title. So the two never report the same hook, and an async it() stays the engine's. */
+    cypress_async_test(ev) {
+      const RX = /\b(?:(?:before|beforeEach)\s*\(\s*async\b|(?:after|afterEach)\s*\(\s*(?:(['"`])[^'"`\n]*\1\s*,\s*)?async\b)/;
+      const out = [];
+      for (const e of ev) {
+        if (!e.new_content) continue;
+        const ln = codeOf(e)
+          .split("\n")
+          .find((l) => RX.test(l));
+        if (ln) out.push(F("cypress_async_test", "medium", e.seq, T("cypress_async_hook", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
+      }
+      return out;
+    },
     /* test.fail() keeps the suite green while the bug it documents is still open in production. Defensible,
        but it must be a decision someone made, not a detail buried in a spec file. A test that does not run at all
        (@Disabled, t.Skip) is a skip: sleep_or_skip_added, not this (0.1.113). Since 0.1.121: Jest's it.failing /

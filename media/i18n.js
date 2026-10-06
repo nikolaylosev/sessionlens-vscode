@@ -41,6 +41,7 @@
       never_run: "Tests written in {n} message(s), never executed — a hypothesis about tests, not tests",
       hard_date: "{file}: date in an assertion “{line}” — will go red when content changes",
       networkidle: "{file}: waitUntil: 'networkidle' on a live site — a flakiness source (Playwright advises against it)",
+      cypress_async_hook: "{file}: async Cypress hook “{line}” — Cypress queues its commands, so an async hook runs out of order",
       networkidle_wait: "{file}: waits for 'networkidle' on a live site — a flakiness source (Playwright advises against it)",
       exact_count: "{file}: exact element count in an assertion — brittle when content changes",
       magic: "{file}: {test} — unexplained numbers in assertions: {nums} (Magic Number)",
