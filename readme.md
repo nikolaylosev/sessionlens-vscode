@@ -100,7 +100,7 @@ Everything about one session. It opens in its own editor tab when you click a se
 
 ### Calibration
 
-![The Calibration tab: the check precision table, and a rule for CLAUDE.md and AGENTS.md proposed from a confirmed finding, with its evidence](media/screenshots/calibration.png)
+![The Calibration tab with only the demo session: Check precision says the demo's verdicts do not count there, and a rule for CLAUDE.md and AGENTS.md is proposed from confirmed findings, with its evidence](media/screenshots/calibration.png)
 
 Learning from your verdicts.
 
@@ -544,6 +544,8 @@ In VS Code, from the Visual Studio Marketplace: search for **SessionLens** in th
 In Cursor, VSCodium and other editors that use [Open VSX](https://open-vsx.org/extension/nikolaylosev/sessionlens-vscode):
 search for **SessionLens** in the Extensions view and press **Install**. Cursor takes extensions from Open VSX, so a
 new version can reach it a little later than VS Code.
+
+![SessionLens in Cursor: the SessionLens sidebar with the Sessions tab, Choose file, Paste text, Try a demo session and the profile, and the Sessions list under it](media/screenshots/cursor.png)
 
 From a `.vsix` file (each [GitHub release](https://github.com/nikolaylosev/sessionlens-vscode/releases) has one):
 
