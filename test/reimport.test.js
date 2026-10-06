@@ -148,6 +148,40 @@ test("needsReimport: a Codex session imported before 0.1.121 with file changes; 
   assert.equal(Lens.needsReimport(s({ events: newFile })), false, "a Claude session of 0.1.113+ that wrote a new test file");
 });
 
+test("needsReimport: a session of 0.1.121 that the 0.1.122 import reads differently, and no other", () => {
+  const s = (events, o) => Object.assign({ profile: "qa-ts", importGen: 3, events }, o);
+  const run = (cmd) => [{ seq: 0, kind: "run_tests", cmd }];
+  assert.equal(Lens.needsReimport(s(run("npx playwright test --list"))), true, "a list taken for a test run");
+  assert.equal(Lens.needsReimport(s(run("npx playwright test"))), false, "a real run");
+  const moved = '{"type":"event_msg","payload":{"type":"patch_apply_end","changes":{"/w/a.ts":{"type":"update","unified_diff":"","move_path":"/w/b.ts"}}}}';
+  assert.equal(Lens.needsReimport(s([], { source_text: moved })), true, "a Codex patch that moved a file");
+  assert.equal(Lens.needsReimport(s([], { source_text: moved.replace('"/w/b.ts"', "null") })), false, "move_path null: no move");
+  const weak = (reason) => [{ seq: 1, kind: "write", file: "e2e/a.spec.ts", assert_delta: { old: 1, new: 1, weakened: [{ test: "t", reason }], removed: [] } }];
+  const forty = 'await expect(page.getByRole("alert")).to';
+  assert.equal(forty.length, 40);
+  assert.equal(Lens.needsReimport(s(weak(`${forty} → ${forty}`))), true, "both lines cut at 40 characters");
+  assert.equal(Lens.needsReimport(s(weak(`comparison → truthiness: ${forty}`))), true, "a truthiness line cut at 40");
+  assert.equal(Lens.needsReimport(s(weak("expect(total).toBe(3); → expect(total).toBeDefined();"))), false, "a short pair is the same now");
+  assert.equal(Lens.needsReimport(s(run("npx playwright test --list"), { importGen: Lens.IMPORT_GEN })), false, "imported with 0.1.122");
+});
+
+test("the demo session of 0.1.121 is offered Import again, and its kept text gives the new message", () => {
+  const D = require(path.join(__dirname, "..", "media", "demo-session.js"));
+  const dcfg = Lens.profile(D.PROFILE);
+  const events = Lens.importAny(D.TRANSCRIPT, dcfg);
+  const old = events.map((e) =>
+    e.assert_delta
+      ? Object.assign({}, e, {
+          assert_delta: Object.assign({}, e.assert_delta, {
+            weakened: e.assert_delta.weakened.map((w) => Object.assign({}, w, { reason: "a".repeat(40) + " → " + "a".repeat(40) })),
+          }),
+        })
+      : e,
+  );
+  assert.equal(Lens.needsReimport({ profile: D.PROFILE, importGen: 3, events: old, source_text: D.TRANSCRIPT }), true);
+  assert.equal(Lens.needsReimport({ profile: D.PROFILE, importGen: Lens.IMPORT_GEN, events, source_text: D.TRANSCRIPT }), false);
+});
+
 test("transcriptMatch: 1 for the same transcript, also with events added; low for another one", () => {
   const a = Lens.importAny(transcript(), cfg);
   assert.equal(Lens.transcriptMatch(a, a), 1);

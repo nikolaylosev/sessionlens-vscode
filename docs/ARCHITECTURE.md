@@ -726,8 +726,10 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **Fragments.** A file first seen as an edit fragment, with no `toolUseResult`, cannot be compared: deletions and
   loosened configs in it are not reported.
 - **Stored sessions** keep the events they were imported with: findings that need `prev_content` or a Codex
-  `delete` event, and a Codex 0.155+ session's file changes (0.1.121), appear only after the transcript is imported
-  again (**Import again** in the session's tab, since 0.1.114).
+  `delete` event, a Codex 0.155+ session's file changes (0.1.121), and the 0.1.122 import's changes (a list-only
+  command is not a run, a Codex move, a weakened assertion's message) appear only after the transcript is imported
+  again (**Import again** in the session's tab, since 0.1.114; `Lens.needsReimport` offers it where a new import
+  differs, `IMPORT_GEN` 4).
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **Secret masking works by pattern** (`Lens.redactSecrets`): a secret of an unusual shape can still reach a
   model or an export.
