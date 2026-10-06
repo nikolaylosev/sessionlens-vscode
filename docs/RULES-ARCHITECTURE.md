@@ -1381,9 +1381,12 @@ What the import keeps for them:
   (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first
   edit of a file, which needs `prev_content`, like `config_weakened` for a config the session only edited; a Codex
   deletion needs the `delete` event. These come with a new import.
-- **Import again (since 0.1.114).** A session records the `importGen` it was imported with (`Lens.IMPORT_GEN`, 2;
-  none for an import before 0.1.114). `Lens.needsReimport(s)` is true for a session without it that wrote or edited
-  a test file or a runner config and has no `prev_content` and no `delete` event; the session's tab then shows
+- **Import again (since 0.1.114).** A session records the `importGen` it was imported with (`Lens.IMPORT_GEN`, 3
+  since 0.1.121; none for an import before 0.1.114). `Lens.needsReimport(s)` is true for a session without it that
+  wrote or edited a test file or a runner config and has no `prev_content` and no `delete` event, and (since 0.1.121)
+  for a Codex session imported before 0.1.121 whose kept transcript has file changes (`FileChange`, `unified_diff`)
+  or whose steps have an `exec` call that ran no command (Codex 0.155+ changes were skipped, and an edit lost the line
+  after its hunk); the session's tab then shows
   **Import again** (`reimport()` in `src/webview/review.js`). It parses `source_text`, or a file picked again when
   the transcript was too large to keep (400 KB), into the same session (`Lens.pickConversation()` takes the session's
   own conversation of a file with several; "Back to regex parsing" uses it too since 0.1.115): id, name, spec and verdicts stay, `events`

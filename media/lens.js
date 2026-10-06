@@ -851,6 +851,9 @@
       const pos = parseInt(head[1], 10) - 1 + offset;
       const block = [],
         body = h.split("\n").slice(1);
+      // a diff that ends with a line break (Codex's always does) leaves an empty last line: not a context line, which
+      // starts with a space (until 0.1.121 it replaced the line after the hunk with an empty one)
+      if (body.length && body[body.length - 1] === "") body.pop();
       let consumed = 0;
       for (const line of body) {
         if (line.startsWith("\\")) continue;
@@ -873,6 +876,36 @@
     let seq = 0,
       cwd = "";
     const short = (f) => (cwd && f.startsWith(cwd + "/") ? f.slice(cwd.length + 1) : f);
+    // a set of changes already applied: a version that writes both records of one patch must not apply it twice
+    const applied = new Set();
+    const applyChanges = (changes, ts) => {
+      const key = JSON.stringify(changes);
+      if (applied.has(key)) return;
+      applied.add(key);
+      for (const [path, ch] of Object.entries(changes)) {
+        if (!ch) continue;
+        if (ch.type === "delete") {
+          out.push({ seq: seq++, ts, kind: "delete", file: short(path) }); // test_deleted looks for a deleted test file
+          delete files[path];
+          continue;
+        }
+        const before = Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null;
+        let after = null;
+        if (ch.type === "add" && typeof ch.content === "string") after = ch.content;
+        else if (ch.type === "update" && typeof ch.unified_diff === "string") after = applyUnifiedDiff(before, ch.unified_diff);
+        if (after == null) continue;
+        const f = short(path),
+          r = { seq: seq++, ts, kind: ch.type === "add" ? "write" : "edit", file: f, new_content: after.slice(0, 200000) };
+        keepBefore(r, f, before, cfg);
+        if (before == null) r.fragment_only = true;
+        else if (isCode(f, cfg)) {
+          const d = compareAsserts(before, after, cfg, f);
+          if (d) r.assert_delta = d;
+        }
+        files[path] = after;
+        out.push(r);
+      }
+    };
     for (const line of text.split("\n")) {
       if (!line.trim()) continue;
       let rec;
@@ -891,31 +924,10 @@
         // The authoritative, structured record of a completed file change — full content for a new
         // file, a unified diff for an edit — regardless of which tool call produced it (a direct
         // apply_patch call, or one wrapped in a JS snippet, as the VS Code extension's harness does).
-        if (p && p.type === "patch_apply_end" && p.changes) {
-          for (const [path, ch] of Object.entries(p.changes)) {
-            if (!ch) continue;
-            if (ch.type === "delete") {
-              out.push({ seq: seq++, ts, kind: "delete", file: short(path) }); // test_deleted looks for a deleted test file
-              delete files[path];
-              continue;
-            }
-            const before = Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null;
-            let after = null;
-            if (ch.type === "add" && typeof ch.content === "string") after = ch.content;
-            else if (ch.type === "update" && typeof ch.unified_diff === "string") after = applyUnifiedDiff(before, ch.unified_diff);
-            if (after == null) continue;
-            const f = short(path),
-              r = { seq: seq++, ts, kind: ch.type === "add" ? "write" : "edit", file: f, new_content: after.slice(0, 200000) };
-            keepBefore(r, f, before, cfg);
-            if (before == null) r.fragment_only = true;
-            else if (isCode(f, cfg)) {
-              const d = compareAsserts(before, after, cfg, f);
-              if (d) r.assert_delta = d;
-            }
-            files[path] = after;
-            out.push(r);
-          }
-        }
+        // Codex 0.155+ writes it as an item_completed FileChange (same `changes`) instead of patch_apply_end.
+        if (p && p.type === "patch_apply_end" && p.changes) applyChanges(p.changes, ts);
+        else if (p && p.type === "item_completed" && p.item && p.item.type === "FileChange" && p.item.changes)
+          if (p.item.status == null || p.item.status === "completed") applyChanges(p.item.changes, ts);
         continue;
       }
       if (rec.type !== "response_item" || !p) continue;
@@ -1437,13 +1449,25 @@
 
   /* What the import keeps changes now and then; a stored session keeps the events it was imported with. A session
      records the IMPORT_GEN it was imported with (importGen); none means an import before 0.1.114.
-     2: prev_content and Codex delete events (0.1.113), which test_deleted and config_weakened read. */
-  const IMPORT_GEN = 2;
+     2: prev_content and Codex delete events (0.1.113), which test_deleted and config_weakened read.
+     3: Codex 0.155+ file changes (item_completed FileChange), and Codex edits without the line lost after a hunk
+        (0.1.121). */
+  const IMPORT_GEN = 3;
+  /* A Codex session imported before 0.1.121 with file changes in its transcript: from Codex 0.155 they were skipped,
+     and an edit lost the line after its hunk. Without the kept text, an exec call that ran no command (a patch in the
+     code-mode harness) tells the same. */
+  const codexChangesBefore121 = (s) =>
+    (typeof s.source_text === "string" &&
+      /"type"\s*:\s*"session_meta"/.test(s.source_text.slice(0, 5000)) &&
+      /"(?:FileChange|unified_diff)"/.test(s.source_text)) ||
+    s.events.some((e) => e.kind === "tool" && e.tool === "exec");
   /* A session imported before 0.1.113 may hide test_deleted and config_weakened findings that a new import shows: it
      wrote or edited a test file or a runner config and has none of what the 0.1.113 import keeps for them. A session
      imported with 0.1.113 that only wrote new files looks the same; importing it again changes nothing there. */
   function needsReimport(s) {
     if (!s || !Array.isArray(s.events) || s.importGen >= IMPORT_GEN) return false;
+    if ((s.importGen || 0) < 3 && codexChangesBefore121(s)) return true;
+    if ((s.importGen || 0) >= 2) return false;
     const cfg = profile(s.profile);
     if (!cfg.checks.includes("test_deleted") && !cfg.checks.includes("config_weakened")) return false;
     if (s.events.some((e) => e.prev_content != null || e.kind === "delete")) return false;

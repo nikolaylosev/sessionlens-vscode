@@ -90,6 +90,13 @@
   counted every tool call as a step. After a run, an agent that read files, used a browser or MCP tools, or ran
   `git push` pushed the run out of the window, and its "all tests pass" got a high "no test run". Now reads, searches,
   other tools, git and other commands are not counted; writes, edits, test runs and messages are.
+- **Codex sessions from Codex 0.155 and later** (the VS Code extension and the desktop app, since September 2026)
+  had no file changes: Codex now records a change in another form, which SessionLens skipped. The session showed the
+  messages and commands, but none of the files the agent wrote or edited, so the checks of the test code found
+  nothing. Now both forms are read, and such a session shows **Import again**.
+- A **Codex** edit lost the line right after the changed lines: Codex ends its diffs with a line break, which was taken
+  for one more line of the file. If that line was an assertion, the test seemed to have one fewer (**Assertion
+  weakened**). A Codex session with edits shows **Import again** to read them again.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.

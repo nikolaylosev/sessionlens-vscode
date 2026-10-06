@@ -174,7 +174,7 @@
       seg_use_spec: "Use the found specification",
       seg_reset: "Back to regex parsing",
       reimport_msg:
-        "Imported with an older version of SessionLens: deleted tests and loosened runner configs may be missing. Import the transcript again to check; the session keeps its name, specification and verdicts.",
+        "Imported with an older version of SessionLens: some steps may be missing, such as deleted tests, loosened runner configs or a Codex session's file changes. Import the transcript again to check; the session keeps its name, specification and verdicts.",
       reimport_go: "Import again",
       reimport_pick: "Pick the transcript of this session. Where is it?",
       reimport_other: "This file does not look like this session: {p}% of its steps are in it. Replace the session's steps with it anyway?",

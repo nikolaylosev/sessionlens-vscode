@@ -1,7 +1,8 @@
 "use strict";
 /* "Import again" (0.1.114): a session imported before 0.1.113 has no prev_content, so a test deleted in the first Edit
-   of a file is not reported. The session tab says so and parses the transcript again into the same session: from the
-   text kept at import, or from the file picked again. The real panel and host (test/host-panel.js). */
+   of a file is not reported; a Codex session imported before 0.1.121 may lack its file changes (Codex 0.155+). The
+   session tab says so and parses the transcript again into the same session: from the text kept at import, or from
+   the file picked again. The real panel and host (test/host-panel.js). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
@@ -122,6 +123,29 @@ test("needsReimport: an old session that touched a test file or a runner config,
   assert.equal(Lens.needsReimport({ profile: "qa-ts", events: notTests }), false, "product code only");
   const config = [{ seq: 0, kind: "edit", file: "playwright.config.ts", new_content: "retries: 2" }];
   assert.equal(Lens.needsReimport({ profile: "qa-ts", events: config }), true, "a runner config");
+});
+
+test("needsReimport: a Codex session imported before 0.1.121 with file changes; not a Claude session of 0.1.113+", () => {
+  const rec = (type, payload) => JSON.stringify({ timestamp: "", type, payload });
+  const meta = rec("session_meta", { cwd: "/w" });
+  const change = rec("event_msg", {
+    type: "item_completed",
+    item: { type: "FileChange", id: "x", status: "completed", changes: { "/w/e2e/cart.spec.ts": { type: "add", content: PW(TOTAL) } } },
+  });
+  const say = rec("response_item", { type: "message", role: "assistant", content: [{ type: "output_text", text: "Done." }] });
+  const codex = [meta, change, say].join("\n");
+  const s = (o) => Object.assign({ profile: "qa-ts", importGen: 2 }, o);
+  assert.equal(Lens.needsReimport(s({ events: Lens.importAny(codex, cfg), source_text: codex })), true, "its file changes were skipped");
+  assert.equal(Lens.needsReimport(s({ events: Lens.importAny(codex, cfg), source_text: codex, importGen: Lens.IMPORT_GEN })), false);
+  const exec = [
+    { seq: 0, kind: "user", text: "Write tests" },
+    { seq: 1, kind: "tool", tool: "exec" },
+  ];
+  assert.equal(Lens.needsReimport(s({ events: exec })), true, "no kept text: an exec call that ran no command");
+  const chat = [meta, say].join("\n");
+  assert.equal(Lens.needsReimport(s({ events: Lens.importAny(chat, cfg), source_text: chat })), false, "a Codex session without file changes");
+  const newFile = [{ seq: 0, kind: "write", file: "e2e/cart.spec.ts", new_content: PW(TOTAL) }];
+  assert.equal(Lens.needsReimport(s({ events: newFile })), false, "a Claude session of 0.1.113+ that wrote a new test file");
 });
 
 test("transcriptMatch: 1 for the same transcript, also with events added; low for another one", () => {
