@@ -376,7 +376,7 @@ flowchart TD
   IN[Text of a file, a paste or the demo] --> D{importAny}
   D -->|a JSON array or chat_messages| CA[fromClaudeAiExport<br/>claude.ai conversations.json<br/>several conversations]
   D -->|Cursor agent-transcripts jsonl| CU[fromCursorJsonl<br/>rewritten as Claude lines]
-  D -->|Codex rollout jsonl| CX[fromCodexJsonl<br/>patch_apply_end, shell calls]
+  D -->|Codex rollout jsonl| CX[fromCodexJsonl<br/>patch_apply_end / FileChange, shell calls]
   D -->|other JSON lines| CL[fromClaudeJsonl<br/>tool_use / tool_result / toolUseResult]
   D -->|anything else| TX[fromText<br/>/export, chat text, code blocks]
   CU --> CL
@@ -389,8 +389,11 @@ flowchart TD
   (rebuilt from `toolUseResult.originalFile` when the edit came as a fragment), each `Bash` call becomes
   `run_tests` (it matches the profile's runner) or `run_other`, and the runner's output is parsed into
   passed/failed counts by `runners.*` (pytest, jest/Playwright, JUnit, dotnet, go, newman, karate).
-- **Codex `rollout-*.jsonl`** gives file changes as unified diffs (`patch_apply_end`), applied to the last known
-  content; a deleted file becomes a `delete` event.
+- **Codex `rollout-*.jsonl`** gives file changes as unified diffs, applied to the last known content; a deleted file
+  becomes a `delete` event. Up to Codex 0.154 a change is an `event_msg` `patch_apply_end`; from 0.155 (Sept 2026) it
+  is an `event_msg` `item_completed` whose item is a `FileChange` with the same `changes` (read since 0.1.121; one
+  that did not complete is skipped, and a change written as both records counts once). Commands come from `shell`
+  calls or, in the code-mode harness, from the `cmd` of `tools.exec_command(…)` inside a `custom_tool_call` `exec`.
 - **Cursor Agent `.jsonl`** (since 0.1.121; `~/.cursor/projects/<workspace>/agent-transcripts/<id>/<id>.jsonl`,
   from the IDE or the CLI) has `role` at the top of a line and tool calls without ids or results. `fromCursorJsonl`
   rewrites each line in the Claude Code shape (`Shell` → `Bash`, `StrReplace` → `Edit`, `path`/`contents` →
@@ -715,8 +718,8 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **Fragments.** A file first seen as an edit fragment, with no `toolUseResult`, cannot be compared: deletions and
   loosened configs in it are not reported.
 - **Stored sessions** keep the events they were imported with: findings that need `prev_content` or a Codex
-  `delete` event appear only after the transcript is imported again (**Import again** in the session's tab, since
-  0.1.114).
+  `delete` event, and a Codex 0.155+ session's file changes (0.1.121), appear only after the transcript is imported
+  again (**Import again** in the session's tab, since 0.1.114).
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **Secret masking works by pattern** (`Lens.redactSecrets`): a secret of an unusual shape can still reach a
   model or an export.
