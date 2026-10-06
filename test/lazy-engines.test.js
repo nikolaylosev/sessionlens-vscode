@@ -246,7 +246,7 @@ test("one-time repair: a session saved in 0.1.101 while tree-sitter was booting 
   sb.close();
   // what 0.1.101 saved: lint_failed with "still loading", no lint findings, a current gen
   const s = Object.assign({}, put.session, {
-    lintNote: "ESLint could not parse any of 1 block(s) — regex checks kept. First error: CartTest.java: tree-sitter-java: still loading",
+    lintNote: "ESLint could not parse any code block (1 in all) — regex checks kept. First error: CartTest.java: tree-sitter-java: still loading",
     lintWhy: ["src/test/java/CartTest.java: tree-sitter-java: still loading"],
     findings: put.session.findings.filter((f) => f.source !== "lint"),
   });

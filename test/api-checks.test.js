@@ -44,7 +44,7 @@ test("a commented-out assertion does not count: status_only_assert and no_negati
   const negOut =
     "it('creates', async () => {\n  expect(r.status).toBe(201);\n});\nit('checks a token', async () => {\n  expect(r.status).toBe(200);\n  // expect(r.status).toBe(401);\n});\n";
   assert.deepEqual(found("tests/orders.spec.ts", negOut, "no_negative_cases"), [
-    "medium: 2 API test(s) written, none checks an error response (401/403/404/400/422) — only the happy path is covered",
+    "medium: 2 API tests written, none checks an error response (401/403/404/400/422) — only the happy path is covered",
   ]);
 });
 
@@ -79,7 +79,7 @@ test("mocked_service: nock / jest.mock of an HTTP client", () => {
 test("no_negative_cases: two happy-path tests and no error status", () => {
   const twoHappy = "it('creates', async () => {\n  expect(r.status).toBe(201);\n});\nit('lists', async () => {\n  expect(r.status).toBe(200);\n});\n";
   assert.deepEqual(found("tests/orders.spec.ts", twoHappy, "no_negative_cases"), [
-    "medium: 2 API test(s) written, none checks an error response (401/403/404/400/422) — only the happy path is covered",
+    "medium: 2 API tests written, none checks an error response (401/403/404/400/422) — only the happy path is covered",
   ]);
   const with401 =
     "it('creates', async () => {\n  expect(r.status).toBe(201);\n});\nit('rejects a missing token', async () => {\n  expect(r.status).toBe(401);\n});\n";
