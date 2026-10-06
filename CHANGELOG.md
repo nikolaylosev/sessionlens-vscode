@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.122
+
+### Fixed
+- **Code inside a Python docstring no longer gives findings.** Old code an agent keeps in a test's docstring (`"""Was:
+  assert ok, time.sleep(2) …"""`) never runs, but it gave a high **Weak assertion** and **Sleep or skip added**, and
+  **Hard-coded date**, **Magic number**, **Assertion roulette** or **Debugging left in**. Now a docstring of a module,
+  class or function is read as a comment, and so is a `"""` or `'''` string used as a block comment. A `"""` string
+  that is a value (assigned, passed to a call, or an f-string) is still read as code. Saved sessions get this on their
+  next analysis.
+
 ## 0.1.121
 
 ### Added
