@@ -42,6 +42,8 @@
   ran it (since 0.1.116), so when the rule went into the file earlier than you pressed **Moved**, for example before
   you reviewed old sessions, every session stayed "before". While the "after" row is empty, the note says how many
   sessions imported after the mark ran before it.
+- The hint under **Drop a transcript here** names Claude Code next to `~/.claude/projects`, as it names Codex and
+  Cursor next to theirs.
 - The empty Sessions list asks for a Claude Code, Codex or Cursor Agent transcript, and the note under a generated
   skill says Cursor reads the shared rules file too. The extension's description and keywords name Cursor, and the
   README tells how to install SessionLens in Cursor

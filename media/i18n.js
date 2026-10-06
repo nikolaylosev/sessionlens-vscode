@@ -425,7 +425,7 @@
 
       drop_title: "Drop a transcript here",
       drop_sub:
-        ".jsonl from ~/.claude/projects, Codex's ~/.codex/sessions or Cursor's ~/.cursor/projects, conversations.json from claude.ai, /export or chat text",
+        ".jsonl from Claude Code's ~/.claude/projects, Codex's ~/.codex/sessions or Cursor's ~/.cursor/projects, conversations.json from claude.ai, /export or chat text",
       name_ph: "session name, e.g. AUTH-142 Ivan",
       name_go: "Load",
       name_from_file: "file: {f}",
