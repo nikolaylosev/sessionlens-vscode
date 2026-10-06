@@ -12,9 +12,12 @@
    "jest",
    "vitest",
    "npm test",
+   "npm run test",
    "playwright test",
    "pnpm test",
-   "yarn test"
+   "pnpm run test",
+   "yarn test",
+   "yarn run test"
   ],
   "groups": [
    {
@@ -250,7 +253,10 @@
    "cypress run",
    "cypress open",
    "npx cypress",
-   "yarn cypress"
+   "yarn cypress",
+   "cypress:run",
+   "npm test",
+   "npm run test"
   ],
   "groups": [
    {
@@ -1340,6 +1346,7 @@
   "runners": [
    "pytest",
    "npm test",
+   "npm run test",
    "jest",
    "vitest",
    "playwright test",
@@ -1605,6 +1612,7 @@
   "runners": [
    "pytest",
    "npm test",
+   "npm run test",
    "jest",
    "vitest",
    "mvn test",
@@ -1983,6 +1991,7 @@
   "runners": [
    "pytest",
    "npm test",
+   "npm run test",
    "jest",
    "vitest",
    "mvn test",
