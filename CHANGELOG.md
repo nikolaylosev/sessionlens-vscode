@@ -62,6 +62,12 @@
   call, `test.fail()`, a mocked service, a raw mobile locator, hard-coded coordinates, or a driver created without
   teardown never runs. Each of them gave a finding before, often high. Comments are read the way the file's language
   writes them (`#` in Python, `//` and `/* */` in TypeScript, Java and C#), and `#` or `//` inside a string is code.
+- **A line inside a block comment** (`/* … */`) that does not start with `*` was read as code by the checks that
+  read assertions line by line: a commented-out `expect(ok).toBeTruthy()` gave a high **Weak assertion** (`weak_assert`), and a date,
+  a number or a repeated assertion in the comment gave **Hard-coded date**, **Magic number** or **Duplicate
+  assertion**. Now it is a comment there too, as in **Conditional logic**, **Hard-coded base URL**, **Response time
+  assertion**, **Assertion roulette**, **Status-only assertion**, **No negative cases** and **Assertion weakened**,
+  where an assertion moved into a block comment now counts as removed (after **Import again** for a stored session).
 - **Sleep or skip added** no longer reports product code: a delay or a retry in a file under the profile's source
   folders (for example `setTimeout` in `src/debounce.ts`) belongs to the product, not to a test. Page objects and other
   test-side code under `src` are still checked. In qa-python and qa-api, pytest's reruns count only with a number above

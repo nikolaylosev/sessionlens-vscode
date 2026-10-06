@@ -146,6 +146,26 @@ test("an assertion commented out counts as removed: TypeScript, Java, C#, Cypres
   );
 });
 
+test("an assertion inside a block comment counts as removed, also on a line without a leading * (0.1.121)", () => {
+  const two = ts("  expect(a).toBe(1);\n  expect(b).toBe(2);");
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, two],
+      ["write", F, ts("  expect(a).toBe(1);\n  /*\n  expect(b).toBe(2);\n  */")],
+    ]),
+    [`high: ${F}: total — fewer assertions (2 → 1)`],
+  );
+  const J = "src/test/java/CartTest.java";
+  assert.deepEqual(
+    found("qa-java", [
+      ["write", J, java("    assertEquals(1, cart.a());\n    assertEquals(2, cart.b());")],
+      ["edit", J, "    assertEquals(2, cart.b());", "    /*\n    assertEquals(2, cart.b());\n    */"],
+    ]),
+    [`high: ${J}: total — fewer assertions (2 → 1)`],
+    "by an Edit",
+  );
+});
+
 test("not reported: an assertion commented out in both versions, or one brought back from a comment (0.1.120)", () => {
   const was = ts("  expect(a).toBe(1);\n  // expect(b).toBe(2);");
   assert.deepEqual(

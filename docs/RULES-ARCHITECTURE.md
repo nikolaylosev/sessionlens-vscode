@@ -923,7 +923,12 @@ Status at v0.1.98. Closed items are kept for the record.
     `assert_weakened` (`compareAsserts`, so an assertion commented out is "fewer assertions"), `assertion_roulette`,
     `duplicate_assert`, `status_only_assert`, `no_negative_cases`. `magic_number` has its own test, because a comment
     at the end of a line explains its number; there a `#` or `//` inside a string is not a comment (0.1.120). A line in
-    the middle of a block comment that does not start with `*` is still read as code.
+    the middle of a block comment that does not start with `*` was read as code until 0.1.121. Since then the checks
+   that read a file line by line take it from `commentLinesBlanked()` (each line that is all comment left empty, a
+   line with code kept whole): `weak_assert`, `hardcoded_date`, `magic_number`, `duplicate_assert`,
+   `assertion_roulette`, `status_only_assert`, `no_negative_cases`, `response_time_assert`, `conditional_logic`,
+   `hardcoded_base_url` and `assert_weakened`. `hardcoded_secret` still reads comments (a token in a comment is still
+   in the file), and so does `test_deleted`. A Python docstring is a string and is read as code.
 
 ## 12. How to add a new check safely (a practical checklist)
 

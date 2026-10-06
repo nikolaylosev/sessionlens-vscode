@@ -2,7 +2,9 @@
 /* Commented-out code gives no finding in the checks that look for a pattern anywhere in a file (0.1.121): a sleep, a
    skip, .only, a debugger call, networkidle, a mock, a raw mobile locator, coordinates, a driver without teardown and
    test.fail() that are commented out never run. Each case has its live twin, which is still reported. What stays code:
-   "#" and "//" inside a string, a URL, and Python's // (floor division). Assertion checks skip comments since 0.1.120. */
+   "#" and "//" inside a string, a URL, and Python's // (floor division). Assertion checks skip comments since 0.1.120.
+   The checks that read a file line by line skip a line inside a block comment that does not start with "*" too
+   (0.1.121; until then it was read as code). */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -80,4 +82,51 @@ test("Python's // is floor division, not a comment; a C-like file's # is not a c
 test("code in a message (no file): both kinds of comment are comments", () => {
   assert.ok(!checks("qa-ts", undefined, "// await page.waitForTimeout(2000);\n# time.sleep(2)").includes("sleep_or_skip_added"));
   assert.ok(checks("qa-ts", undefined, "await page.waitForTimeout(2000);").includes("sleep_or_skip_added"));
+});
+
+/* The checks that read a file line by line (0.1.121): the live line is reported, the same line inside a block comment,
+   on a line of its own with no leading "*", is not. */
+const BLOCK = [
+  ["weak_assert", "qa-ts", TS, "  expect(ok).toBeTruthy();"],
+  ["hardcoded_date", "qa-ts", TS, '  await expect(page.getByText("Date")).toHaveText("2026-03-15");'],
+  ["magic_number", "qa-ts", TS, "  expect(sum).toBe(4217);"],
+  ["conditional_logic", "qa-ts", TS, "  if (banner) await banner.close();"],
+  ["hardcoded_base_url", "qa-ts", TS, '  await page.goto("https://staging.shop.io/cart");'],
+  ["response_time_assert", "qa-api", "tests/cart.test.ts", "  expect(res.elapsed).toBeLessThan(500);"],
+];
+for (const [check, profile, file, live] of BLOCK)
+  test(`${check} (${profile}): a line inside a block comment is not code (0.1.121)`, () => {
+    const wrap = (body) => `test("total", async ({ page }) => {\n  await page.goto("/");\n${body}\n});\n`;
+    assert.ok(checks(profile, file, wrap(live)).includes(check), "live: " + live);
+    assert.ok(!checks(profile, file, wrap(`  /*\n${live}\n  */`)).includes(check), "in a block comment: " + live);
+  });
+
+test("duplicate_assert and assertion_roulette do not count an assertion inside a block comment (0.1.121)", () => {
+  const ts = (body) => `test("total", async ({ page }) => {\n${body}\n});\n`;
+  const line = "  expect(cart.total()).toBe(3);";
+  assert.ok(checks("qa-ts", TS, ts(`${line}\n${line}`)).includes("duplicate_assert"));
+  assert.ok(!checks("qa-ts", TS, ts(`${line}\n  /*\n${line}\n  */`)).includes("duplicate_assert"));
+  const J = "src/test/java/CartTest.java";
+  const java = (body) => `class CartTest {\n  @Test\n  void total() {\n${body}\n  }\n}\n`;
+  const three = "    assertEquals(1, cart.a());\n    assertEquals(2, cart.b());\n";
+  assert.ok(checks("qa-java", J, java(three + "    assertEquals(3, cart.c());")).includes("assertion_roulette"));
+  assert.ok(!checks("qa-java", J, java(three + "    /*\n    assertEquals(3, cart.c());\n    */")).includes("assertion_roulette"));
+});
+
+test("an assertion inside a block comment is not one: status_only_assert and no_negative_cases see what runs (0.1.121)", () => {
+  const F = "tests/cart.test.ts";
+  const api = (name, body) => `test("${name}", async () => {\n  const res = await api.get("/cart");\n${body}\n});\n`;
+  const status = "  expect(res.status).toBe(200);";
+  const total = "  expect(res.body.total).toBe(3);";
+  assert.ok(!checks("qa-api", F, api("total", `${status}\n${total}`)).includes("status_only_assert"));
+  assert.ok(checks("qa-api", F, api("total", `${status}\n  /*\n${total}\n  */`)).includes("status_only_assert"), "only the status is checked");
+  const two = (second) => api("total", status) + api("items", second);
+  assert.ok(!checks("qa-api", F, two("  expect(res.status).toBe(404);")).includes("no_negative_cases"));
+  assert.ok(checks("qa-api", F, two("  /*\n  expect(res.status).toBe(404);\n  */")).includes("no_negative_cases"), "the 404 never runs");
+});
+
+test("a line with code keeps its comment: magic_number still takes it for the number's explanation (0.1.121)", () => {
+  const ts = (body) => `test("total", async ({ page }) => {\n${body}\n});\n`;
+  assert.ok(!checks("qa-ts", TS, ts("  expect(sum).toBe(4217); // the order's total in cents")).includes("magic_number"));
+  assert.ok(!checks("qa-ts", TS, ts("  expect(sum).toBe(4217); /* cents */")).includes("magic_number"));
 });
