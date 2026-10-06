@@ -29,7 +29,7 @@ function session(id, { profile = "qa-ts", created, ts = "", sleeps = 0, confirm 
   return { id, name: id, task: "", profile, created, events, findings, verdicts, spec: "" };
 }
 // the effect block of the moved rule: its note and the rows of its chart ([label, bar width or null, value])
-async function effectView(sessions) {
+async function effectView(sessions, act) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sl-eff-"));
   const st = createStore({ dir: path.join(dir, "sessions") });
   await st.open();
@@ -49,6 +49,10 @@ async function effectView(sessions) {
   min.value = "1";
   min.dispatchEvent(new p.window.Event("change", { bubbles: true }));
   await p.idle();
+  if (act) {
+    await act(p);
+    await p.idle();
+  }
   const eff = p.document.querySelector('.rule[data-k="sleep_or_skip_added"] .effect');
   const note = eff && eff.querySelector(".eff-note");
   const rows = eff
@@ -57,9 +61,10 @@ async function effectView(sessions) {
         return [r.querySelector(".eff-lbl").textContent, bar ? bar.style.width : null, r.querySelector(".eff-val").textContent];
       })
     : [];
+  const day = eff && eff.closest(".rule").querySelector(".applied-at");
   assert.deepEqual(p.errors, []);
   p.close();
-  return { note: note && note.textContent, rows };
+  return { note: note && note.textContent, rows, day: day && day.value };
 }
 const effectText = async (sessions) => (await effectView(sessions)).note;
 
@@ -83,7 +88,7 @@ test("effect: a session counts by when it ran; the demo and a profile without th
     // the demo is made up, whatever it contains
     Object.assign(session(LensDemo.ID, { created: "2026-09-23T00:00:00.000Z", ts: "2026-09-23T08:00:00.000Z", sleeps: 3 }), { name: LensDemo.NAME }),
   ]);
-  assert.equal(text, "effect: before 1.00 per session (2 sessions) → after 0.00 (1) — −100% · little data");
+  assert.equal(text, "effect: before 1.00 per session (2 sessions) → after 0.00 (1) — −100% · little data", "with a session after, no hint about the date");
 });
 
 test("no session after the move yet: the chart is there, its after row empty (0.1.121; only the note before)", async () => {
@@ -92,9 +97,35 @@ test("no session after the move yet: the chart is there, its after row empty (0.
     session("old-run", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-01T08:00:00.000Z", sleeps: 2, confirm: true }),
     session("older", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-02T08:00:00.000Z", sleeps: 0 }),
   ]);
-  assert.equal(v.note, "effect: before 1.00 per session (2); no sessions after yet");
+  assert.equal(
+    v.note,
+    "effect: before 1.00 per session (2); no sessions after yet · 2 sessions imported after the move ran before it: if the rule was already there, change the date",
+  );
   assert.deepEqual(v.rows, [
     ["before", "100%", "1.00"],
     ["after", null, "—"],
   ]);
+});
+
+test("the day the rule was moved can be set by hand: the sessions that ran from then on count as after (0.1.121)", async () => {
+  // reviewed in October, the rule went into CLAUDE.md on Sep 10, between the two runs
+  const sessions = [
+    session("first", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-05T08:00:00.000Z", sleeps: 2, confirm: true }),
+    session("second", { created: "2026-09-20T00:00:00.000Z", ts: "2026-09-12T08:00:00.000Z", sleeps: 0 }),
+  ];
+  const setDay = (day) => async (p) => {
+    const inp = p.document.querySelector('.rule[data-k="sleep_or_skip_added"] .applied-at');
+    assert.equal(inp.value, "2026-09-15", "the day of the mark");
+    inp.value = day;
+    inp.dispatchEvent(new p.window.Event("change", { bubbles: true }));
+  };
+  const v = await effectView(sessions, setDay("2026-09-10"));
+  assert.equal(v.note, "effect: before 2.00 per session (1 session) → after 0.00 (1) — −100% · little data");
+  assert.deepEqual(
+    v.rows.map((r) => r[0] + " " + r[2]),
+    ["before 2.00", "after 0.00"],
+  );
+  const future = await effectView(sessions, setDay("2999-01-01"));
+  assert.equal(future.day, "2026-09-15", "a day in the future is refused: the mark stays");
+  assert.equal(v.day, "2026-09-10");
 });

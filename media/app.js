@@ -656,7 +656,7 @@ ${good}
         <details class="sec-d ev-d" data-check="${esc(k)}" ${evOpen ? "open" : ""}><summary class="h2">${T("ev_summary")}</summary><div class="ev">${l.slice(0, 5).map(
         (x) => `${esc(x.s.task || x.s.name)}, seq ${esc(x.f.seq)}: ${esc(String(x.f.message || "").slice(0, 90))}${x.vd.note ? ` — «${esc(x.vd.note)}»` : ""}`
       ).join("<br>")}</div></details>
-        <div class="row actions rule-actions">${ap ? `<span class="applied">${esc(T("applied", { f: rulesTargetLabel(), d: String(ap).slice(0, 10) }))}</span><button class="btn tiny ghost unmark-applied">${T("unmark_applied")}</button>` : `<button class="btn tiny ghost mark-applied">${esc(T("mark_applied", { f: rulesTargetLabel() }))}</button>`}<button class="btn tiny ghost danger del-rule">${T("delete")}</button></div>
+        <div class="row actions rule-actions">${ap ? `<span class="applied">${esc(T("applied", { f: rulesTargetLabel() }))}</span><input type="date" class="applied-at" value="${esc(String(ap).slice(0, 10))}" title="${esc(T("applied_at_title", { f: rulesTargetLabel() }))}"><button class="btn tiny ghost unmark-applied">${T("unmark_applied")}</button>` : `<button class="btn tiny ghost mark-applied">${esc(T("mark_applied", { f: rulesTargetLabel() }))}</button>`}<button class="btn tiny ghost danger del-rule">${T("delete")}</button></div>
         ${ap ? `<div class="effect">${eff}</div>` : ""}</div>`;
     }).join("") : `<p class="muted">${T("no_rules")}</p>`;
     $("#rules").querySelectorAll(".ev-d").forEach((d) => {
@@ -668,6 +668,24 @@ ${good}
     $("#rules").querySelectorAll(".mark-applied").forEach(
       (b) => b.addEventListener("click", async () => {
         state.rulesApplied[b.closest(".rule").dataset.k] = (/* @__PURE__ */ new Date()).toISOString();
+        await save();
+        renderCalib();
+      })
+    );
+    $("#rules").querySelectorAll(".applied-at").forEach(
+      (inp) => inp.addEventListener("change", async () => {
+        const el = (
+          /** @type {HTMLInputElement} */
+          inp
+        ), k = (
+          /** @type {HTMLElement} */
+          el.closest(".rule").dataset.k
+        ), at = Date.parse(el.value + "T00:00:00.000Z");
+        if (isNaN(at) || at > Date.now()) {
+          el.value = String(state.rulesApplied[k]).slice(0, 10);
+          return;
+        }
+        state.rulesApplied[k] = new Date(at).toISOString();
         await save();
         renderCalib();
       })
@@ -700,22 +718,25 @@ ${good}
   }
   function effect(check, since) {
     const before = [], after = [], at = Date.parse(since), can = /* @__PURE__ */ new Map();
+    let late = 0;
     for (const m of metas()) {
       if (isDemo(m)) continue;
       if (!can.has(m.profile)) can.set(m.profile, profileChecks(m.profile).has(check));
       if (!can.get(m.profile)) continue;
       (Date.parse(m.started || m.created) >= at ? after : before).push(((m.checkStats || {})[check] || { total: 0 }).total);
+      if (m.started && Date.parse(m.started) < at && Date.parse(m.created) >= at) late++;
     }
     const avgNum = (a2) => a2.length ? a2.reduce((x, y) => x + y, 0) / a2.length : null;
     const avg = (a2) => {
       const v = avgNum(a2);
       return v == null ? "—" : v.toFixed(2);
     };
+    const lateNote = late ? T("eff_late", { n: late }) : "";
     if (!after.length)
       return `<div class="eff-chart">
       <div class="eff-row"><span class="eff-lbl">${T("eff_before")}</span><div class="eff-track"><div class="eff-bar" style="width:${avgNum(before) ? 100 : 0}%"></div></div><span class="eff-val">${avg(before)}</span></div>
       <div class="eff-row"><span class="eff-lbl">${T("eff_after")}</span><div class="eff-track"></div><span class="eff-val">—</span></div>
-    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
+    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}${lateNote}</div>`;
     const bNum = avgNum(before), aNum = avgNum(after);
     const b = +avg(before), a = +avg(after);
     const d = before.length && b > 0 ? Math.round((1 - a / b) * 100) : null;

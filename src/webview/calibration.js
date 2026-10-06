@@ -441,7 +441,7 @@ export function renderCalib() {
               `${esc(x.s.task || x.s.name)}, seq ${esc(x.f.seq)}: ${esc(String(x.f.message || "").slice(0, 90))}${x.vd.note ? ` — «${esc(x.vd.note)}»` : ""}`,
           )
           .join("<br>")}</div></details>
-        <div class="row actions rule-actions">${ap ? `<span class="applied">${esc(T("applied", { f: rulesTargetLabel(), d: String(ap).slice(0, 10) }))}</span><button class="btn tiny ghost unmark-applied">${T("unmark_applied")}</button>` : `<button class="btn tiny ghost mark-applied">${esc(T("mark_applied", { f: rulesTargetLabel() }))}</button>`}<button class="btn tiny ghost danger del-rule">${T("delete")}</button></div>
+        <div class="row actions rule-actions">${ap ? `<span class="applied">${esc(T("applied", { f: rulesTargetLabel() }))}</span><input type="date" class="applied-at" value="${esc(String(ap).slice(0, 10))}" title="${esc(T("applied_at_title", { f: rulesTargetLabel() }))}"><button class="btn tiny ghost unmark-applied">${T("unmark_applied")}</button>` : `<button class="btn tiny ghost mark-applied">${esc(T("mark_applied", { f: rulesTargetLabel() }))}</button>`}<button class="btn tiny ghost danger del-rule">${T("delete")}</button></div>
         ${ap ? `<div class="effect">${eff}</div>` : ""}</div>`;
         })
         .join("")
@@ -459,6 +459,24 @@ export function renderCalib() {
     .forEach((b) =>
       b.addEventListener("click", async () => {
         state.rulesApplied[b.closest(".rule").dataset.k] = new Date().toISOString();
+        await save();
+        renderCalib();
+      }),
+    );
+  // 0.1.121: the day the rule was moved can be set by hand (a rule often goes into the file before its sessions are
+  // reviewed); a day in the future is refused. The day starts at 00:00 UTC, as the date is shown.
+  $("#rules")
+    .querySelectorAll(".applied-at")
+    .forEach((inp) =>
+      inp.addEventListener("change", async () => {
+        const el = /** @type {HTMLInputElement} */ (inp),
+          k = /** @type {HTMLElement} */ (el.closest(".rule")).dataset.k,
+          at = Date.parse(el.value + "T00:00:00.000Z");
+        if (isNaN(at) || at > Date.now()) {
+          el.value = String(state.rulesApplied[k]).slice(0, 10);
+          return;
+        }
+        state.rulesApplied[k] = new Date(at).toISOString();
         await save();
         renderCalib();
       }),
@@ -508,18 +526,22 @@ export function effect(check, since) {
     after = [],
     at = Date.parse(since),
     can = new Map(); // profile → can it report the check
+  let late = 0; // imported after the move, but the agent ran it before: the date may be later than the real move
   for (const m of metas()) {
     if (isDemo(m)) continue;
     if (!can.has(m.profile)) can.set(m.profile, profileChecks(m.profile).has(check));
     if (!can.get(m.profile)) continue;
     // a session without a readable time goes before, as it did when created was compared as text
     (Date.parse(m.started || m.created) >= at ? after : before).push(((m.checkStats || {})[check] || { total: 0 }).total);
+    if (m.started && Date.parse(m.started) < at && Date.parse(m.created) >= at) late++;
   }
   const avgNum = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
   const avg = (a) => {
     const v = avgNum(a);
     return v == null ? "—" : v.toFixed(2);
   };
+  // only while the "after" row is empty: that is when a date later than the real move hides the effect
+  const lateNote = late ? T("eff_late", { n: late }) : "";
   // 0.1.121: the chart is drawn before the first session after the move too, its "after" row empty. Until then it
   // showed only the note, and since 0.1.116 a transcript imported after the move but run before it no longer starts
   // the "after" row, so a rule could show no chart for a long time.
@@ -527,7 +549,7 @@ export function effect(check, since) {
     return `<div class="eff-chart">
       <div class="eff-row"><span class="eff-lbl">${T("eff_before")}</span><div class="eff-track"><div class="eff-bar" style="width:${avgNum(before) ? 100 : 0}%"></div></div><span class="eff-val">${avg(before)}</span></div>
       <div class="eff-row"><span class="eff-lbl">${T("eff_after")}</span><div class="eff-track"></div><span class="eff-val">—</span></div>
-    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}</div>`;
+    </div><div class="eff-note">${T("eff_no_after", { b: avg(before), n: before.length })}${lateNote}</div>`;
   const bNum = avgNum(before),
     aNum = avgNum(after);
   const b = +avg(before),

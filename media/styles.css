@@ -51,7 +51,7 @@ table{border-collapse:collapse;width:100%;font-size:12.5px}td,th{text-align:left
 .trans p{margin:0 0 8px;white-space:pre-wrap;font-size:12.5px}.trans .u{color:var(--slate)}
 .rule{border-top:1px solid var(--rail);padding:8px 0}.rule b{display:block}.rule .ev{color:var(--muted);font-size:12px;margin-top:3px}
 .rule-top{display:flex;gap:7px;align-items:flex-start}.rule-top input{margin-top:3px;flex:none}
-.rule-actions{gap:8px;margin-top:6px !important}.rule-actions .applied{color:var(--green);font-size:12px}
+.rule-actions{gap:8px;margin-top:6px !important}.rule-actions .applied{color:var(--green);font-size:12px}.rule-actions .applied-at{font-size:12px;padding:1px 4px;width:auto}
 #rules-pick-row{gap:8px;align-items:center;margin:4px 0 0}
 pre{background:var(--soft);padding:8px;border-radius:4px;white-space:pre-wrap;font-size:12px}
 
