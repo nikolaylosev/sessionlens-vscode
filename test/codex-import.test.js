@@ -129,3 +129,11 @@ test("Import again: a stored bare exec step is the same step as its command now 
   const stored = fresh.map((e) => (e.tool === "exec" ? { seq: e.seq, ts: e.ts, kind: "tool", tool: "exec" } : e));
   assert.equal(Lens.transcriptMatch(stored, fresh), 1);
 });
+
+test("a command that only lists the tests is not a test run (0.1.122)", () => {
+  const ev = importText([exec("c1", "npx playwright test --list"), output("c1", "Total: 2 tests in 1 file\n")]);
+  assert.deepEqual(
+    ev.filter((e) => e.cmd).map((e) => `${e.kind} ${e.cmd}`),
+    ["run_other npx playwright test --list"],
+  );
+});

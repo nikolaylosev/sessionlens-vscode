@@ -719,6 +719,13 @@
   }
 
   // ---------- import ----------
+  /* A command that runs the profile's tests. A part of it (between &&, ||, ;, |) that only lists them runs nothing:
+     Playwright's --list, Jest's --listTests, pytest's --collect-only / --co, dotnet test --list-tests, vitest list.
+     Until 0.1.122 such a command was a run with no result, so "tests never run" stayed silent after it. */
+  const LIST_ONLY = /(?:^|\s)(?:--list|--listTests|--list-tests|--collect-only|--co)(?=[\s=]|$)|\bvitest\s+list\b/;
+  function isTestRun(cmd, cfg) {
+    return cmd.split(/&&|\|\|?|;|\n/).some((part) => cfg.test_runner_patterns.some((p) => part.includes(p)) && !LIST_ONLY.test(part));
+  }
   function classify(tool, input, cfg) {
     const f = input.file_path || input.path || "";
     if (["Read", "View"].includes(tool)) return ["read", f, ""];
@@ -728,7 +735,7 @@
     if (tool === "Delete") return ["delete", f, ""]; // Cursor's tool for removing a file (test_deleted)
     if (tool === "Bash") {
       const c = input.command || "";
-      if (cfg.test_runner_patterns.some((p) => c.includes(p))) return ["run_tests", "", c];
+      if (isTestRun(c, cfg)) return ["run_tests", "", c];
       if (/^\s*git /.test(c)) return ["git", "", c];
       return ["run_other", "", c];
     }
@@ -1019,7 +1026,7 @@
         const r =
           cmd == null
             ? { seq: seq++, ts, kind: "tool", tool: name }
-            : { seq: seq++, ts, kind: cfg.test_runner_patterns.some((pt) => cmd.includes(pt)) ? "run_tests" : /^\s*git /.test(cmd) ? "git" : "run_other", cmd };
+            : { seq: seq++, ts, kind: isTestRun(cmd, cfg) ? "run_tests" : /^\s*git /.test(cmd) ? "git" : "run_other", cmd };
         // a command from the exec harness keeps the tool's name: transcriptMatch pairs it with a stored "tool exec" step
         if (cmd != null && p.type === "custom_tool_call") r.tool = name;
         out.push(r);
