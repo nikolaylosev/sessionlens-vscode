@@ -106,8 +106,9 @@
   after a run, and **Fix after a failure without triage** could not fire. The runners each profile knows are listed
   in **What this profile checks**.
 - A shell command that only reads a file (`cat`, `sed -n`, `head`, `rg`, `ls`, `find`) was not counted as a read.
-  Codex reads files that way, so a Codex session showed **reads 0** and a Read:Edit warning, and **Peeked at source
-  before the plan** (`peeked_at_src_before_plan`) never fired for it, nor for `cat src/…` in a Claude Code or Cursor session. Now such a command is
+  Codex reads files that way, so a Codex session showed **reads 0** and a Read:Edit warning, and **Read product code before
+  the plan** (`peeked_at_src_before_plan`) never fired for it, nor for `cat src/…` in a Claude Code or Cursor
+  session. Now such a command is
   a read in the metrics, and reading product code with it before the plan is reported. A command that writes
   (`sed -i`, `>`, `find -delete`), one mixed with another command, and `curl` do not count. Saved sessions get this on
   their next analysis, without importing them again.
