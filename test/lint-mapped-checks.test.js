@@ -437,3 +437,32 @@ test("no_assertion_after_action in Robot: the assertions of BuiltIn, SeleniumLib
     none,
   );
 });
+
+test("cypress_async_test from the regex: the hooks the engine misses, never one it finds (0.1.121)", async () => {
+  const CY = "cypress/e2e/cart.cy.ts";
+  const IT = 'it("total", () => {\n  cy.get("[data-test=total]").should("contain", "42");\n});\n';
+  const regex = (code) =>
+    Lens.runChecks([{ seq: 1, kind: "write", file: CY, new_content: code }], Lens.profile("qa-cypress"))
+      .filter((f) => f.check === "cypress_async_test")
+      .map((f) => `${f.severity}: ${f.message}`);
+  const hook = (line) => [`medium: ${CY}: async Cypress hook “${line}” — Cypress queues its commands, so an async hook runs out of order`];
+  for (const line of ["before(async () => {", "beforeEach(async function () {", "after(async () => {", 'afterEach("clean up", async () => {'])
+    assert.deepEqual(regex(`${line}\n  cy.visit("/");\n});\n` + IT), hook(line), line);
+  // the engine's: a titled before / beforeEach, an async it()
+  for (const code of [`before("load", async () => {\n  cy.visit("/");\n});\n` + IT, 'it("total", async () => {\n  cy.visit("/");\n});\n'])
+    assert.deepEqual(regex(code), [], code);
+  // not async, or commented out
+  assert.deepEqual(regex(`beforeEach(() => {\n  cy.visit("/");\n});\n// before(async () => {});\n` + IT), []);
+  // with the engine on: an untitled hook is found once, by the regex; a titled one once, by the engine
+  await loadEngines();
+  const both = (code) => {
+    const ev = [{ seq: 1, kind: "write", file: CY, new_content: code }];
+    const lint = LensLint.run({ events: ev }, Lens.profile("qa-cypress"), {});
+    assert.equal(lint.ran, true);
+    return LensLint.merge(Lens.runChecks(ev, Lens.profile("qa-cypress")), lint.findings, "cypress")
+      .filter((f) => f.check === "cypress_async_test")
+      .map((f) => f.source);
+  };
+  assert.deepEqual(both(`before(async () => {\n  cy.visit("/");\n});\n` + IT), ["formal"]);
+  assert.deepEqual(both(`before("load", async () => {\n  cy.visit("/");\n});\n` + IT), ["lint"]);
+});

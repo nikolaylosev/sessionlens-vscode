@@ -354,7 +354,7 @@
       test_runner_patterns: ["cypress run", "cypress open", "npx cypress", "yarn cypress"],
       src_dirs: ["src", "app"],
       test_dirs: ["cypress", "cypress/e2e", "cypress/integration"],
-      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened"],
+      checks: [...METHOD, ...PROCESS, ...CODE, "focused_test", "debug_leftover", ...SECRETS, "config_weakened", "cypress_async_test"],
       sleep_patterns: [delayCall(String.raw`\bcy\.wait`, String.raw`\d{3,}`)],
       focus_patterns: FOCUS_JS,
       debug_patterns: { pause: /\bcy\.pause\s*\(/, debug: /\bcy\.debug\s*\(|\)\s*\.debug\s*\(\s*\)/, debugger: DEBUGGER_JS },
