@@ -40,6 +40,12 @@ const EXPECTED = {
   assumption_instead_of_question: 1,
 };
 
+test("the demo's weakened assertion shows the change, as the readme's GIF does (0.1.122)", () => {
+  const cfg = Lens.profile(D.PROFILE);
+  const f = Lens.runChecks(Lens.importAny(D.TRANSCRIPT, cfg), cfg).find((x) => x.check === "assert_weakened");
+  assert.match(f.message, /\(….toHaveText\("Invalid email or password"\); → ….toBeVisible\(\);\)$/);
+});
+
 async function demoPage(profile = "qa-java") {
   // a profile other than the demo's: the demo brings its own
   const host = bootHost({ globalState: { settings: { profile, rulesTarget: "claude", modelPool: [], defaultModelId: null } } });

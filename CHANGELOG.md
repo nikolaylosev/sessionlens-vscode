@@ -22,6 +22,11 @@
   weakened** and **Test deleted** could not compare them with the version before. Now the move is an edit of the new
   name, and a test moved with its file is not reported as deleted. A Codex session imported before gets this after
   **Import again**.
+- **Assertion weakened** cut both assertions at 40 characters, so a long one read as two equal halves: the demo
+  session showed `await expect(page.getByRole("alert")).to → await expect(page.getByRole("alert")).to`. Now a pair
+  that does not fit drops the start the two share and shows what changed: `….toHaveText("Invalid email or password");
+  → ….toBeVisible();`. A short pair is shown whole as before. A session imported before shows it after **Import
+  again**; the demo session, after it is deleted and **Try a demo session** is pressed again.
 - A **Cursor Agent** session showed every file by its full path (`/Users/<you>/…/tests/cart.spec.ts`): the transcript
   has no workspace folder. A transcript picked with **Choose file** is in `~/.cursor/projects/<workspace>/`, and that
   folder's name now gives the workspace, so the paths under it are relative to it, as in a Claude Code or Codex
