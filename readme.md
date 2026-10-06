@@ -11,7 +11,7 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 > [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues/new) (see
 > [Found a false finding?](#found-a-false-finding) for what to include).
 
-![The demo session: Try a demo session, a Red session, Confirm on "Claims tests pass while the last run was 1 passed / 1 failed", and the rule it proposes on the Calibration tab](media/screenshots/demo.gif)
+![The demo session: Try a demo session, a Red session, Confirm on "Edited tests/e2e/login.spec.ts right after a failure with no triage", and the rule it proposes on the Calibration tab](media/screenshots/demo.gif)
 
 ## Contents
 
