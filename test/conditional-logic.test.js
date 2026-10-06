@@ -4,10 +4,9 @@
    one finding per test naming the first such line. What must not count: a ternary, a comprehension, a with block, a
    hook or a helper outside a test, the word in a comment or a string.
 
-   Detector gaps found while writing this file (5 Oct 2026), not pinned here, for the owner to decide:
-   - C#'s `foreach (var r in rows)` is not reported (the pattern knows for, not foreach);
-   - a loop written as a call, `rows.forEach((r) => expect(r)…)`, is not reported;
-   - a branch with no indentation inside a test is missed (the pattern wants leading spaces). */
+   Since 0.1.121 (gaps found while writing this file): C#'s foreach, and a loop written as a call, rows.forEach(…) or
+   list.ForEach(…). Not read, by design: a branch with no indentation, since in Python a test's block runs on past its
+   end into the module's own code (`if __name__ == "__main__":`); until 0.1.121 such a line after a blank one counted. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -72,6 +71,26 @@ test("not inside a test: a hook, a helper", () => {
 test("not the word in a comment or a string", () => {
   assert.deepEqual(found("qa-ts", TS, ts("  // if the banner shows, close it")), []);
   assert.deepEqual(found("qa-ts", TS, ts('  await expect(page.getByText("if you need help")).toBeVisible();')), []);
+});
+
+test("C#'s foreach and a loop written as a call (0.1.121)", () => {
+  const CS = "tests/CartTests.cs";
+  assert.deepEqual(found("qa-c#", CS, "[Test]\npublic void Total() {\n  foreach (var r in rows) { Assert.IsTrue(r.Visible); }\n}\n"), [
+    branch(CS, "Total", "foreach (var r in rows) { Assert.IsTrue(r.Visible); }".slice(0, 50)),
+  ]);
+  assert.deepEqual(found("qa-ts", TS, ts("  rows.forEach((r) => expect(r).toBeVisible());")), [
+    branch(TS, "total", "rows.forEach((r) => expect(r).toBeVisible());"),
+  ]);
+  assert.deepEqual(found("qa-c#", CS, "[Test]\npublic void Total() {\n  rows.ForEach(r => Assert.IsTrue(r.Visible));\n}\n"), [
+    branch(CS, "Total", "rows.ForEach(r => Assert.IsTrue(r.Visible));"),
+  ]);
+  // not a loop: a word that only starts with the keyword, a method named like forEach
+  assert.deepEqual(found("qa-c#", CS, "[Test]\npublic void Total() {\n  forecast.Refresh();\n  Assert.IsTrue(ok);\n}\n"), []);
+  assert.deepEqual(found("qa-ts", TS, ts("  await cart.forEachItem();")), []);
+});
+
+test("a Python test's module code after it is not part of the test", () => {
+  assert.deepEqual(found("qa-python", PY, 'def test_total():\n    assert total == PRICE\n\nif __name__ == "__main__":\n    main()\n'), []);
 });
 
 test("the profiles that run it", () => {
