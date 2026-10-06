@@ -123,6 +123,9 @@
   session. Now such a command is a read in the metrics, and reading product code with it before the plan is reported.
   A command that writes (`sed -i`, `>`, `find -delete`), one mixed with another command, and `curl` do not count.
   Saved sessions get this on their next analysis, without importing them again.
+- In a narrow sidebar the **Profile** list stuck out of the panel on both sides, as did **Target file** and **Show
+  checks for**, and the last tabs (Model rules, ⚙) were cut off. Now a list fits the panel and shortens its text with
+  "…", and the tabs wrap to a second line.
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
