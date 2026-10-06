@@ -130,6 +130,8 @@
 - In a narrow sidebar the **Profile** list stuck out of the panel on both sides, as did **Target file** and **Show
   checks for**, and the last tabs (Model rules, ⚙) were cut off. Now a list fits the panel and shortens its text with
   "…", and the tabs wrap to a second line.
+- The evidence under a proposed rule on the Calibration tab cut a finding's text at 90 characters mid-word
+  ("Use methods like .getByRole() o"). Now it ends at a word, with "…".
 - **Choose file** and **Import again** did nothing when VS Code refused to open the file dialog or read the file, for
   example right after a new SessionLens `.vsix` was installed without reloading the window. Now a dialog says why and
   suggests reloading the window.
