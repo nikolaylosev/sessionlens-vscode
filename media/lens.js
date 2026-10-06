@@ -2288,7 +2288,10 @@
         if (!e.new_content || !cfg.test_fn_pattern) continue;
         for (const [name, body] of Object.entries(blocksByTest(e.new_content, cfg.test_fn_pattern))) {
           const inner = body.split("\n").slice(1).join("\n");
-          const m = inner.match(/^\s+(?:if|for|while|switch|try)\b[^\n]*/m) || inner.match(/^\s+(?:if|for|while)\s*\(/m);
+          // since 0.1.121 also C#'s foreach and a loop written as a call: rows.forEach(…), list.ForEach(…). A line with no
+          // indentation is not read: in Python the block runs on past the test's end into the module's own code.
+          // [ \t]+, not \s+: \s also takes the line break, so a line with no indentation after a blank one counted
+          const m = inner.match(/^[ \t]+(?:if|for|foreach|while|switch|try)\b[^\n]*/m) || inner.match(/^[ \t]+[^\n]*\.(?:forEach|ForEach)\s*\([^\n]*/m);
           if (m)
             out.push(
               Object.assign(F("conditional_logic", "low", e.seq, T("conditional", { file: e.file || inMsg(), test: name, line: m[0].trim().slice(0, 50) })), {
