@@ -69,6 +69,35 @@ test("a test that loses assertions", () => {
   );
 });
 
+test("a long pair shows what changed, not the start the two lines share (0.1.122; before, both cut at 40 characters)", () => {
+  // the demo's case: until 0.1.122 it read "await expect(page.getByRole("alert")).to → await expect(page.getByRole("alert")).to"
+  const alert = (m) => `  await expect(page.getByRole("alert")).${m};`;
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, ts(alert('toHaveText("Invalid email or password")'))],
+      ["write", F, ts(alert("toBeVisible()"))],
+    ]),
+    ['high: e2e/cart.spec.ts: total — assertion weakened (….toHaveText("Invalid email or password"); → ….toBeVisible();)'],
+  );
+  // too long even after the shared start: each side is cut at 60 characters
+  const long = "x".repeat(70);
+  const reason = (m) => m.slice(m.indexOf("weakened (") + "weakened (".length, -1);
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", F, ts(`  expect(total).toBe(${long});`)],
+      ["write", F, ts(`  expect(total).toBeDefined(); // ${long}`)],
+    ]).map(reason),
+    [`….toBe(${"x".repeat(53)}… → ….toBeDefined(); // ${"x".repeat(40)}…`],
+  );
+  assert.deepEqual(
+    found("qa-python", [
+      ["write", "tests/test_cart.py", py(`    assert cart.total_for(customer_id=${long}) == 3`)],
+      ["write", "tests/test_cart.py", py(`    assert cart.total_for(customer_id=${long})`)],
+    ]),
+    [`high: tests/test_cart.py: test_total — assertion weakened (comparison → truthiness: assert cart.total_for(customer_id=${"x".repeat(25)}…)`],
+  );
+});
+
 test("Python and Java", () => {
   assert.deepEqual(
     found("qa-python", [

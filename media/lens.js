@@ -680,6 +680,25 @@
   function isAssertLine(ln, cfg) {
     return !/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && cfg.assert_line_patterns.some((p) => p.test(ln));
   }
+  /* An assertion and the weaker one that replaced it, short enough for a finding's message. A pair that does not fit
+     loses the start the two lines share (back to a ".", "(" or space, shown as "…"), so the change itself shows: until
+     0.1.122 each line was cut at 40 characters, and expect(page.getByRole("alert")).toHaveText("…") → ….toBeVisible()
+     read as two equal halves. */
+  const PAIR_MAX = 60;
+  const capLine = (s) => (s.length > PAIR_MAX ? s.slice(0, PAIR_MAX - 1) + "…" : s);
+  function changePair(a, b) {
+    if (a.length <= PAIR_MAX && b.length <= PAIR_MAX) return `${a} → ${b}`;
+    let same = 0;
+    while (same < a.length && same < b.length && a[same] === b[same]) same++;
+    let from = 0;
+    for (let k = same - 1; k > 0; k--)
+      if (".( ".includes(a[k])) {
+        from = a[k] === "." ? k : k + 1;
+        break;
+      }
+    const part = (s) => (from ? "…" : "") + capLine(s.slice(from));
+    return `${part(a)} → ${part(b)}`;
+  }
   // file: whose comments to read (the extension says which); none for code in a message
   function compareAsserts(oldSrc, newSrc, cfg, file) {
     if (!cfg.assert_line_patterns) return null;
@@ -705,11 +724,11 @@
       for (let i = 0; i < Math.min(oa.length, na.length); i++) {
         for (const [strong, weak] of cfg.weaken_pairs || []) {
           if (strong.test(oa[i]) && !strong.test(na[i]) && weak.test(na[i])) {
-            res.weakened.push({ test: name, reason: `${oa[i].slice(0, 40)} → ${na[i].slice(0, 40)}` });
+            res.weakened.push({ test: name, reason: changePair(oa[i], na[i]) });
             break;
           }
           if (strong.test(oa[i]) && !strong.test(na[i]) && !/==|assertEquals|toBe|toEqual|isEqualTo|\.Equal/.test(na[i]) && cfg.language === "python") {
-            res.weakened.push({ test: name, reason: `comparison → truthiness: ${na[i].slice(0, 40)}` });
+            res.weakened.push({ test: name, reason: `comparison → truthiness: ${capLine(na[i])}` });
             break;
           }
         }
