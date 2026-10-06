@@ -36,6 +36,12 @@
   by Cursor too, which it is.
 
 ### Changed
+- The effect of a rule marked **Moved** on the Calibration tab shows its before / after chart from the start: until
+  the first session after the move, the "after" row is empty. Before, only a line of text was shown then.
+- The day a rule was moved can be changed next to its **Moved** mark. A session counts as "after" by when the agent
+  ran it (since 0.1.116), so when the rule went into the file earlier than you pressed **Moved**, for example before
+  you reviewed old sessions, every session stayed "before". While the "after" row is empty, the note says how many
+  sessions imported after the mark ran before it.
 - The empty Sessions list asks for a Claude Code, Codex or Cursor Agent transcript, and the note under a generated
   skill says Cursor reads the shared rules file too. The extension's description and keywords name Cursor, and the
   README tells how to install SessionLens in Cursor
