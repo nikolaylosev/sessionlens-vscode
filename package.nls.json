@@ -4,7 +4,7 @@
   "container.title": "SessionLens",
   "view.sessions": "Sessions",
   "view.panel": "Calibration & Settings",
-  "welcome.sessions": "No sessions yet. Load a Claude Code or Codex transcript to review it.\n[Import transcript…](command:sessionlens.importTranscript)",
+  "welcome.sessions": "No sessions yet. Load a Claude Code, Codex or Cursor Agent transcript to review it.\n[Import transcript…](command:sessionlens.importTranscript)",
   "cmd.focus": "Open panel",
   "cmd.import": "Import transcript…",
   "cmd.openSession": "Open session…",
