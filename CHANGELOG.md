@@ -36,7 +36,9 @@
   by Cursor too, which it is.
 
 ### Changed
-- The extension's description and keywords name Cursor, and the README tells how to install SessionLens in Cursor
+- The empty Sessions list asks for a Claude Code, Codex or Cursor Agent transcript, and the note under a generated
+  skill says Cursor reads the shared rules file too. The extension's description and keywords name Cursor, and the
+  README tells how to install SessionLens in Cursor
   and VSCodium (from Open VSX) and to reload the window after installing a `.vsix`. The README's links to the Detox,
   Java, C#, Python and Robot Framework checks lead to them again.
 - Messages and hints no longer say "VS Code" where they mean the editor, since SessionLens also runs in Cursor: "the
