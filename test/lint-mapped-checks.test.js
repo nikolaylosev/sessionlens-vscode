@@ -5,13 +5,10 @@
    weak-assert.test.js). Real engines, same as supersedes.test.js. Severity and message are pinned too: the verdict key
    includes the start of the message.
 
-   Gaps found on 5 Oct 2026, not pinned here, for the owner to decide:
-   - robot/no-assertion-after-action takes only a keyword that starts with Should or Must for an assertion, so
-     SeleniumLibrary's and Browser's `Page Should Contain`, `Element Should Be Visible`, `Title Should Be` or
-     `Get Text    id=t    ==    42` give a high "nothing is actually verified"; so does a test that calls a user keyword
-     with an assertion inside (`Verify Cart Total`);
-   - eslint-plugin-cypress's no-async-before (vendored, not changed here) reports only a hook with a title,
-     `before("load", async () => …)`, not the usual `before(async () => …)`. */
+   Robot's assertions: see the test of that name (0.1.121; until then only a keyword that started with Should or Must
+   counted). A gap found on 5 Oct 2026, not pinned here: eslint-plugin-cypress's no-async-before (vendored, not
+   changed here) reports only a hook with a title, `before("load", async () => …)`, not the usual
+   `before(async () => …)`. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -396,5 +393,47 @@ test("empty_test_case: a Robot test case with no steps, or only settings", async
     ),
     [],
     "an empty keyword is not a test",
+  );
+});
+
+test("no_assertion_after_action in Robot: the assertions of BuiltIn, SeleniumLibrary, Browser and the file's own keywords (0.1.121)", async () => {
+  const R = "tests/cart.robot";
+  const pays = (step, more = "") => `*** Test Cases ***\nPays\n    Click Button    pay\n    ${step}\n${more}`;
+  for (const step of [
+    "Page Should Contain    Paid",
+    "Element Should Be Visible    id=paid",
+    "Title Should Be    Shop",
+    "SeleniumLibrary.Element Text Should Be    id=total    42",
+    "Wait Until Page Contains    Paid",
+    "Run Keyword And Expect Error    *    Pay Again",
+    "Get Text    id=total    ==    42",
+    "${total}=    Get Text    id=total    contains    42",
+    "Verify Cart Total    42",
+    "SeleniumLibrary.Wait Until Page Contains    Paid",
+    "${error}=    Run Keyword And Expect Error    *    Pay Again",
+  ])
+    assert.deepEqual(await lintFound("qa-robot", R, pays(step), "no_assertion_after_action"), [], step);
+  // the file's own keyword, with an assertion inside, through another keyword
+  assert.deepEqual(
+    await lintFound(
+      "qa-robot",
+      R,
+      pays(
+        "Order Is Paid",
+        "\n*** Keywords ***\nOrder Is Paid\n    Status Is    paid\nStatus Is\n    [Arguments]    ${s}\n    Should Be Equal    ${status}    ${s}\n",
+      ),
+      "no_assertion_after_action",
+    ),
+    [],
+  );
+  const none = [
+    "no_assertion_after_action/lint high: tests/cart.robot:2 — Pays: has steps but none of them is a Should */Must * keyword — nothing is actually verified [robot/no-assertion-after-action]",
+  ];
+  // still reported: actions only, a Get without an operator, an own keyword with no assertion, a keyword that calls itself
+  assert.deepEqual(await lintFound("qa-robot", R, pays("Input Text    id=card    4242"), "no_assertion_after_action"), none);
+  assert.deepEqual(await lintFound("qa-robot", R, pays("${t}=    Get Text    id=total"), "no_assertion_after_action"), none);
+  assert.deepEqual(
+    await lintFound("qa-robot", R, pays("Open Cart", "\n*** Keywords ***\nOpen Cart\n    Go To    /cart\n    Open Cart\n"), "no_assertion_after_action"),
+    none,
   );
 });

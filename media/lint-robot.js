@@ -87,21 +87,49 @@
       .join(",");
   const SLEEP_RX = /^sleep$/i;
   const SKIP_RX = /^skip(?:\s+if)?$/i;
-  const ASSERTION_RX = /^(should|must)\b/i;
+  /* An assertion step (0.1.121; until then only a keyword that starts with Should or Must counted, so most UI tests got a
+     high "nothing is verified"). Robot has no fixed naming, so each of these counts:
+     - Should or Must as a word anywhere: BuiltIn's Should Be Equal, SeleniumLibrary's Page Should Contain, Element
+       Should Be Visible, Title Should Be;
+     - Wait Until …, which fails when its condition never holds; Run Keyword And Expect Error;
+     - a keyword named like a check: Verify …, Check …, Assert …, Validate …, Expect …, Ensure …;
+     - an assertion operator of the Browser library in the arguments: Get Text    id=total    ==    42;
+     - a user keyword of the same file whose own steps hold an assertion.
+     A library prefix (SeleniumLibrary.Page Should Contain) and an assignment (${text}=    Get Text …) are looked past. */
+  const ASSERTION_RX = /\b(?:should|must)\b|^(?:wait until|run keyword and expect error)\b|^(?:verify|check|assert|validate|expect|ensure)\b/i;
+  const BROWSER_ASSERT_OP =
+    /^(?:==|!=|<|>|<=|>=|\*=|\^=|\$=|equal|equals|inequal|contains|not contains|starts|ends|matches|validate|then|evaluate|should be|should not be|should start with|should end with)$/i;
+  const VAR_ASSIGN = /^[$@&]\{[^}]+\}\s*=?$/;
+  // Robot matches keyword names case-insensitively, ignoring spaces and underscores
+  const kwKey = (name) => name.toLowerCase().replace(/[\s_]+/g, "");
+  function assertionCheck(items) {
+    const own = new Map(items.filter((it) => it.kind === "keyword").map((it) => [kwKey(it.name), it]));
+    const isAssertion = (step, seen) => {
+      let kw = step.keyword,
+        args = step.args;
+      while (VAR_ASSIGN.test(kw) && args.length) [kw, args] = [args[0], args.slice(1)];
+      kw = kw.replace(/^[A-Za-z_]\w*\./, "");
+      if (ASSERTION_RX.test(kw) || args.some((a) => BROWSER_ASSERT_OP.test(a))) return true;
+      const k = own.get(kwKey(kw));
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return k.steps.some((s) => isAssertion(s, seen));
+    };
+    return (step) => isAssertion(step, new Set());
+  }
 
   const RULE_IMPLS = {
     // A test case with zero steps at all — a stub nobody filled in yet.
     "empty-test-case"(items, report) {
       for (const it of items) if (it.kind === "test" && it.steps.length === 0) report(it.line, `${it.name}: no steps at all — an empty test case`);
     },
-    // Reuses the same check name as everywhere else: actions with nothing verified. Robot's own BuiltIn
-    // library is consistent enough about naming ("Should Be Equal", "Should Contain", "Must Be...") that
-    // matching the convention, not an exhaustive keyword list, is the right level of precision here.
+    // Reuses the same check name as everywhere else: actions with nothing verified. What counts as an assertion:
+    // assertionCheck() above (naming conventions of BuiltIn, SeleniumLibrary and Browser, not a keyword list).
     "no-assertion-after-action"(items, report) {
+      const isAssertion = assertionCheck(items);
       for (const it of items) {
         if (it.kind !== "test" || !it.steps.length) continue;
-        if (!it.steps.some((s) => ASSERTION_RX.test(s.keyword)))
-          report(it.line, `${it.name}: has steps but none of them is a Should */Must * keyword — nothing is actually verified`);
+        if (!it.steps.some(isAssertion)) report(it.line, `${it.name}: has steps but none of them is a Should */Must * keyword — nothing is actually verified`);
       }
     },
     // Same concept as every other profile: a hardcoded Sleep, or a Skip/Skip If used instead of fixing
