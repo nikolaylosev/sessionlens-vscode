@@ -1,8 +1,9 @@
 "use strict";
 /* snapshot_overwritten (phase 10, step 5): snapshots rewritten instead of read — an update flag on a test run, or a
    snapshot file written by hand. High right after a red run, medium otherwise (the first baselines of new tests).
-   What must not count: -u outside a test runner (git push -u), a plain test run, a test file next to snapshots. A run
-   whose output is missing or not parsed is not a red run, so the finding stays medium. */
+   What must not count: -u outside a test runner (git push -u), a plain test run, a test file next to snapshots. After a
+   red run, a run whose output is not in the transcript makes the finding medium; one whose output could not be parsed
+   does not. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -49,34 +50,32 @@ test("an update flag on a test run: high right after a red run, medium otherwise
   ]);
 });
 
-test("a run with no parsed result stays medium: output nothing could parse, or output_missing", () => {
-  const medium = ["medium: Snapshots updated: npx jest -u"];
+// a red run, then a re-run whose result is not known, then the change (0.1.123): output that could not be parsed is
+// skipped, so the red run decides (high); output that is not in the transcript (output_missing, a Cursor import) makes
+// the result unknown (medium), as in pass_claim_without_run. → [severities with unparsed output, with output_missing]
+function afterUnknownRerun(profile, steps, check) {
+  const cfg = Lens.profile(profile);
+  const ev = Lens.importAny(transcript(steps), cfg);
+  const sev = () =>
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === check)
+      .map((f) => f.severity);
+  const unparsed = sev();
+  for (const e of ev) if (e.kind === "run_tests" && !e.tests) e.output_missing = true;
+  return [unparsed, sev()];
+}
+
+test("a run with no parsed result: unparsed output is skipped, output_missing makes the result unknown (0.1.123)", () => {
   assert.deepEqual(
     found("qa-ts", [
       ["bash", "npx playwright test", "browser launched"],
       ["bash", "npx jest -u", ""],
     ]),
-    medium,
-    "output nothing could parse",
+    ["medium: Snapshots updated: npx jest -u"],
+    "no red run before it",
   );
-  const cfg = Lens.profile("qa-ts");
-  const ev = Lens.importAny(
-    transcript([
-      ["bash", "npx jest", "Tests: 1 failed, 2 passed, 3 total"],
-      ["bash", "npx jest -u", ""],
-    ]),
-    cfg,
-  );
-  const run = ev.find((e) => e.kind === "run_tests" && e.cmd === "npx jest");
-  delete run.tests;
-  run.output_missing = true;
-  assert.deepEqual(
-    Lens.runChecks(ev, cfg)
-      .filter((f) => f.check === "snapshot_overwritten")
-      .map((f) => `${f.severity}: ${f.message}`),
-    medium,
-    "output_missing",
-  );
+  const steps = [RED, ["bash", "npx jest", "Jest did not exit one second after the test run has completed."], ["bash", "npx jest -u", ""]];
+  assert.deepEqual(afterUnknownRerun("qa-ts", steps, "snapshot_overwritten"), [["high"], ["medium"]]);
 });
 
 test("a snapshot file written by hand: one finding per file", () => {

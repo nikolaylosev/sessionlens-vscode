@@ -31,9 +31,11 @@ test("a Russian correction, and a repeat of the first 40 characters", () => {
   assert.deepEqual(found(["Напиши тесты", "Не то, верни как было"]), [
     "medium: User frustration signal: “Не то, верни как было” — the agent misunderstood the task a step earlier",
   ]);
+  // the same first 40 characters is a repeat, a difference at the 40th is not (the boundary from both sides)
   const head = "Please add a test for the cart discount ";
   assert.equal(head.length, 40);
-  assert.deepEqual(found([head + "of ten percent", head + "of zero"]), [`medium: User repeated the same request: “${head}of zero”`]);
+  assert.deepEqual(found([head + "ten percent", head + "zero"]), [`medium: User repeated the same request: “${head}zero”`]);
+  assert.deepEqual(found([head.slice(0, 39) + "s of ten percent", head.slice(0, 39) + "! zero"]), [], "different at the 40th");
 });
 
 test("not reported: a long paste, two different requests, or the phrase inside another word", () => {

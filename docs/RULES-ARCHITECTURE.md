@@ -1356,7 +1356,9 @@ runs, extracted into one function) and `send(type, payload)`, which goes through
 
 Phase 10 added four regex checks that look at the agent's actions rather than at one file's text. They share three
 helpers in `lens.js`: `redRunBefore(ev, seq)` (the last test run before `seq`, if it was red; it makes a finding
-high and adds "right after a failing run (seq N)" to the message), `TEST_FILE_RX` (a test file by its name) and
+high and adds "right after a failing run (seq N)" to the message; since 0.1.123 a run whose output is not in the
+transcript, `output_missing`, makes the result unknown, as in `pass_claim_without_run`, and a run whose output could
+not be parsed is skipped), `TEST_FILE_RX` (a test file by its name) and
 `TEST_SIDE_RX` (fixtures, helpers, page objects, mocks, support, `conftest.py`).
 
 | Check | Group | What it compares | Not a finding |
