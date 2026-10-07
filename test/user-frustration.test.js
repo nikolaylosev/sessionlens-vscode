@@ -1,6 +1,7 @@
 "use strict";
-/* user_frustration: a short user message that sounds like a correction, or the same request sent twice. What must
-   not count: a long dump, a new request that only shares a word with the previous one. */
+/* user_frustration: a short user message that sounds like a correction, or the same request sent twice (the first 40
+   characters). English and Russian. What must not count: a long dump, a new request that only shares a word, a phrase
+   inside another word. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -26,8 +27,18 @@ test("a correction phrase, and the same request twice", () => {
   ]);
 });
 
-test("not reported: a long paste, or two different requests", () => {
+test("a Russian correction, and a repeat of the first 40 characters", () => {
+  assert.deepEqual(found(["Напиши тесты", "Не то, верни как было"]), [
+    "medium: User frustration signal: “Не то, верни как было” — the agent misunderstood the task a step earlier",
+  ]);
+  const head = "Please add a test for the cart discount ";
+  assert.equal(head.length, 40);
+  assert.deepEqual(found([head + "of ten percent", head + "of zero"]), [`medium: User repeated the same request: “${head}of zero”`]);
+});
+
+test("not reported: a long paste, two different requests, or the phrase inside another word", () => {
   const dump = "again ".repeat(80);
   assert.deepEqual(found(["Write the tests", dump]), []);
   assert.deepEqual(found(["Cover the discount on the cart", "Then add a test for an empty cart"]), []);
+  assert.deepEqual(found(["Write the tests", "wrongdoing is not what this word means"]), []);
 });

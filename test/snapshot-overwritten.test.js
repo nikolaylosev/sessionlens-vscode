@@ -1,7 +1,8 @@
 "use strict";
 /* snapshot_overwritten (phase 10, step 5): snapshots rewritten instead of read — an update flag on a test run, or a
    snapshot file written by hand. High right after a red run, medium otherwise (the first baselines of new tests).
-   What must not count: -u outside a test runner (git push -u), a plain test run, a test file next to snapshots. */
+   What must not count: -u outside a test runner (git push -u), a plain test run, a test file next to snapshots. A run
+   whose output is missing or not parsed is not a red run, so the finding stays medium. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -46,6 +47,36 @@ test("an update flag on a test run: high right after a red run, medium otherwise
   assert.deepEqual(found("qa-python", [["bash", "pytest --snapshot-update tests/", "3 passed"]]), [
     "medium: Snapshots updated: pytest --snapshot-update tests/",
   ]);
+});
+
+test("a run with no parsed result stays medium: output nothing could parse, or output_missing", () => {
+  const medium = ["medium: Snapshots updated: npx jest -u"];
+  assert.deepEqual(
+    found("qa-ts", [
+      ["bash", "npx playwright test", "browser launched"],
+      ["bash", "npx jest -u", ""],
+    ]),
+    medium,
+    "output nothing could parse",
+  );
+  const cfg = Lens.profile("qa-ts");
+  const ev = Lens.importAny(
+    transcript([
+      ["bash", "npx jest", "Tests: 1 failed, 2 passed, 3 total"],
+      ["bash", "npx jest -u", ""],
+    ]),
+    cfg,
+  );
+  const run = ev.find((e) => e.kind === "run_tests" && e.cmd === "npx jest");
+  delete run.tests;
+  run.output_missing = true;
+  assert.deepEqual(
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === "snapshot_overwritten")
+      .map((f) => `${f.severity}: ${f.message}`),
+    medium,
+    "output_missing",
+  );
 });
 
 test("a snapshot file written by hand: one finding per file", () => {

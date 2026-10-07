@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.123
+
+### Fixed
+- **Weak assertion** missed C# `Assert.NotNull`, `Assert.True(true)` and `.Should().NotBeNull()`: the scan looked for
+  lowercase `assert`, `expect` or `.should(`, and C# writes them with a capital. Now the scan ignores case. Saved
+  sessions get this on their next analysis.
+
 ## 0.1.122
 
 ### Fixed

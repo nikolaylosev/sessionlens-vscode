@@ -3,8 +3,8 @@
    weak_assert_patterns. High, one finding per weak line; the same line in a later version of the file is not reported
    again. What must not count: an assertion on a value, a commented-out line, a Python predicate such as
    `assert cart.is_empty()` (both reported until 0.1.119). In qa-cypress `.should('exist')` counts in a file with no
-   "expect" or "assert" (missed until 0.1.119). The engine rules mapped to weak_assert are in
-   lint-mapped-checks.test.js. */
+   "expect" or "assert" (missed until 0.1.119). C# and Go use their own patterns. The engine rules mapped to
+   weak_assert are in lint-mapped-checks.test.js. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -43,6 +43,21 @@ test("Python and Java", () => {
     weak(J, "assertNotNull(cart);"),
     weak(J, "assertTrue(true)"),
   ]);
+});
+
+test("C# and Go", () => {
+  const CS = "Tests/CartTests.cs";
+  assert.deepEqual(
+    found("qa-c#", [[CS, "[Fact]\npublic void Total() {\n    Assert.NotNull(cart);\n    Assert.True(true);\n    cart.Should().NotBeNull();\n}\n"]]),
+    [weak(CS, "Assert.NotNull(cart);"), weak(CS, "Assert.True(true)"), weak(CS, ".Should().NotBeNull();")],
+  );
+  assert.deepEqual(found("qa-c#", [[CS, "[Fact]\npublic void Total() {\n    Assert.Equal(3, cart.Total());\n}\n"]]), []);
+  const GO = "cart_test.go";
+  assert.deepEqual(found("qa-go", [[GO, "func TestCart(t *testing.T) {\n\tassert.NotNil(t, cart)\n\trequire.NotNil(t, cart)\n}\n"]]), [
+    weak(GO, "assert.NotNil(t, cart)"),
+    weak(GO, "require.NotNil(t, cart)"),
+  ]);
+  assert.deepEqual(found("qa-go", [[GO, "func TestCart(t *testing.T) {\n\tassert.Equal(t, 3, cart.Total())\n}\n"]]), []);
 });
 
 test("the same weak line in a later version of the file is reported once", () => {

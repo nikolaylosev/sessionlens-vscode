@@ -2,7 +2,8 @@
 /* config_weakened (phase 10, step 6): a test runner's config loosened — more retries, a longer timeout, tests
    excluded — compared with what the file was before. What must not count: a timeout made shorter, retries lowered, an
    unrelated config change, a config written for the first time (only its retries count, as before 0.1.113), and
-   retries on a single test (that stays sleep_or_skip_added). */
+   retries on a single test (that stays sleep_or_skip_added). A run whose output is missing or not parsed is not a red
+   run, so the finding stays medium. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load, M } = require("./helpers");
@@ -51,6 +52,25 @@ test("Playwright: retries, timeouts and an exclusion, compared with the previous
     ]),
     ["medium: playwright.config.ts: test config loosened — timeout 5000 → 15000"],
     "the expect timeout, second of two timeouts",
+  );
+  const medium = ["medium: playwright.config.ts: test config loosened — retries 0 → 2"];
+  const loosen = ["edit", "playwright.config.ts", "retries: 0", "retries: 2"];
+  assert.deepEqual(
+    found("qa-ts", [["write", "playwright.config.ts", PW], ["bash", "npx playwright test", "browser launched"], loosen]),
+    medium,
+    "output nothing could parse",
+  );
+  const cfg = Lens.profile("qa-ts");
+  const ev = Lens.importAny(transcript([["write", "playwright.config.ts", PW], RED, loosen]), cfg);
+  const run = ev.find((e) => e.kind === "run_tests");
+  delete run.tests;
+  run.output_missing = true;
+  assert.deepEqual(
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === "config_weakened")
+      .map((f) => `${f.severity}: ${f.message}`),
+    medium,
+    "output_missing",
   );
   assert.deepEqual(
     found("qa-ts", [

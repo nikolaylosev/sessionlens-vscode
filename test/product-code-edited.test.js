@@ -1,7 +1,8 @@
 "use strict";
 /* product_code_edited (phase 10, step 4): an agent in a testing task changes the product code, worst of all right after
    a red run. What must not count: tests and test-side code inside src (a colocated test, test utils, fixtures, page
-   objects, conftest.py), a runner config, files outside the profile's src_dirs, a file the approved plan names. */
+   objects, conftest.py), a runner config, files outside the profile's src_dirs, a file the approved plan names. A run
+   whose output is missing or not parsed is not a red run, so the finding stays medium. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -61,6 +62,38 @@ test("product code changed: high right after a red run, medium otherwise; one fi
     ]),
     ["medium: shop/src/cart.ts: product code changed in a testing task", "medium: /home/me/shop/src/cart.ts: product code changed in a testing task"],
     "Claude Code started in a parent folder, or a path outside it",
+  );
+});
+
+test("a run with no parsed result stays medium: output nothing could parse, or output_missing", () => {
+  const medium = ["medium: src/cart/total.ts: product code changed in a testing task"];
+  assert.deepEqual(
+    found("qa-ts", [
+      ["write", "e2e/cart.spec.ts"],
+      ["bash", "npx playwright test", "browser launched"],
+      ["write", "src/cart/total.ts"],
+    ]),
+    medium,
+    "output nothing could parse",
+  );
+  const cfg = Lens.profile("qa-ts");
+  const ev = Lens.importAny(
+    transcript([
+      ["write", "e2e/cart.spec.ts"],
+      ["bash", "npx playwright test", "0 passed, 1 failed"],
+      ["write", "src/cart/total.ts"],
+    ]),
+    cfg,
+  );
+  const run = ev.find((e) => e.kind === "run_tests");
+  delete run.tests;
+  run.output_missing = true;
+  assert.deepEqual(
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === "product_code_edited")
+      .map((f) => `${f.severity}: ${f.message}`),
+    medium,
+    "output_missing",
   );
 });
 

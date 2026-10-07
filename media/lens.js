@@ -1895,7 +1895,9 @@
       const PREDICATE = /^assert\s[\w.]*\b(?:(?:is|has|can|should|was|were|does|did)_\w+(?:\(\))?|is[a-z]+\(\)|exists\(\))\s*$/;
       for (const e of ev) {
         const code = e.new_content && linesOf(e);
-        if (!code || !/assert|expect|\.should\s*\(/.test(code)) continue;
+        // case-insensitive: C# writes Assert and .Should(), Go and Java write assert (until 0.1.123 the scan
+        // required the lowercase spelling, so the C# patterns never ran)
+        if (!code || !/assert|expect|\.should\s*\(/i.test(code)) continue;
         for (const rx of cfg.weak_assert_patterns) {
           rx.lastIndex = 0;
           for (const m of code.matchAll(rx)) {
@@ -2854,7 +2856,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.122";
+  const ANALYSIS_VERSION = "0.1.123";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")

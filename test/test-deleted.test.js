@@ -1,6 +1,7 @@
 "use strict";
 /* test_deleted (phase 10, step 2): a test that disappears from a file, or with its file. What must not count: a test
-   renamed with the same body, moved to another file, restored later, and rm of files that are not tests. */
+   renamed with the same body, moved to another file, restored later, and rm of files that are not tests. A run whose
+   output is missing or not parsed is not a red run, so the finding stays medium. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -49,6 +50,34 @@ test("a test removed from a file: medium, high right after a failing run", () =>
       ["edit", "e2e/cart.spec.ts", PW(DISCOUNT).split("\n").slice(1).join("\n"), ""],
     ]),
     ["high: e2e/cart.spec.ts: 1 test deleted: discount — right after a failing run (seq 2)"],
+  );
+});
+
+test("a run with no parsed result stays medium: output nothing could parse, or output_missing", () => {
+  const steps = [
+    ["write", "e2e/cart.spec.ts", PW(TOTAL, DISCOUNT)],
+    ["bash", "npx playwright test", "browser launched"],
+    ["write", "e2e/cart.spec.ts", PW(TOTAL)],
+  ];
+  assert.deepEqual(deleted("qa-ts", steps), ["medium: e2e/cart.spec.ts: 1 test deleted: discount"], "output nothing could parse");
+  const cfg = Lens.profile("qa-ts");
+  const ev = Lens.importAny(
+    transcript([
+      ["write", "e2e/cart.spec.ts", PW(TOTAL, DISCOUNT)],
+      ["bash", "npx playwright test", "1 passed, 1 failed"],
+      ["write", "e2e/cart.spec.ts", PW(TOTAL)],
+    ]),
+    cfg,
+  );
+  const run = ev.find((e) => e.kind === "run_tests");
+  delete run.tests;
+  run.output_missing = true;
+  assert.deepEqual(
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === "test_deleted")
+      .map((f) => `${f.severity}: ${f.message}`),
+    ["medium: e2e/cart.spec.ts: 1 test deleted: discount"],
+    "output_missing",
   );
 });
 
