@@ -1,6 +1,6 @@
 # SessionLens for VS Code — architecture and functional blocks
 
-This document describes the whole extension as it stands at **v0.1.117**: what it is made of, how the parts talk
+This document describes the whole extension as it stands at **v0.1.122**: what it is made of, how the parts talk
 to each other, where data lives, and what each functional block does. It is written for developers who change the
 code and for reviewers who need to know where to look.
 
@@ -28,10 +28,11 @@ Contents
 
 ## 1. What SessionLens does
 
-An AI coding agent (Claude Code, Codex) writes automated tests and says "all tests pass". SessionLens reads the
-transcript of that session and shows what the agent actually did: tests that never ran, weakened assertions, fixed
-sleeps, skipped triage, deleted tests, loosened configs and more. A reviewer confirms or rejects each finding. The
-confirmed findings become rules for `CLAUDE.md` or `AGENTS.md`, and the verdicts calibrate the checks over time.
+An AI coding agent (Claude Code, Codex or Cursor Agent) writes automated tests and says "all tests pass". SessionLens
+reads the transcript of that session and shows what the agent actually did: tests that never ran, weakened assertions,
+fixed sleeps, skipped triage, deleted tests, loosened configs and more. A reviewer confirms or rejects each finding.
+The confirmed findings become rules for `CLAUDE.md`, `AGENTS.md` or `.cursor/rules/sessionlens.mdc`, and the verdicts
+calibrate the checks over time.
 
 The core loop:
 
@@ -42,7 +43,7 @@ flowchart LR
   A --> R[Review<br/>Confirm / False]
   R --> C[Calibration<br/>precision per check and source]
   C --> A
-  R --> M[Rules for CLAUDE.md / AGENTS.md]
+  R --> M[Rules for CLAUDE.md, AGENTS.md<br/>or .cursor/rules/sessionlens.mdc]
   M -. the agent reads them next time .-> T
 ```
 
@@ -65,6 +66,7 @@ flowchart TB
         SEC[secrets.js]
         PROV[providers.js]
         CLI[cli.js]
+        CDB[cursor-db.js]
       end
       subgraph UI["Webviews (sandboxed iframes)"]
         SIDE[Sidebar panel<br/>Calibration & Settings]
@@ -76,6 +78,7 @@ flowchart TB
     end
     FILES[(globalStorage/sessions<br/>*.json + *.meta.json)]
     TR[(Transcripts<br/>~/.claude/projects<br/>~/.codex/sessions<br/>~/.cursor/projects)]
+    CDBS[(Cursor databases<br/>store.db, state.vscdb)]
     CC[claude CLI]
     CX[codex CLI]
     CU[cursor agent CLI]
@@ -89,6 +92,7 @@ flowchart TB
   EXT --> GS
   EXT --> PROV --> API
   EXT --> CLI --> CC & CX & CU
+  EXT --> CDB --> CDBS
   EXT -->|open dialog| TR
   EXT --> TREE
 ```
@@ -102,6 +106,7 @@ Who owns what:
 | API keys | the host, in SecretStorage | a key never enters a webview |
 | HTTP calls to providers, CLI processes | the host | a webview cannot spawn processes; the host has no 300 s fetch limit and uses VS Code's proxy |
 | Program paths and provider base URLs | the host's own configuration | never taken from a webview message (§7) |
+| Command output of a picked Cursor transcript | the host, in `cursor-db.js` | read-only from Cursor's `store.db` or `state.vscdb`; a webview has no file system (§7) |
 
 ---
 
@@ -141,7 +146,7 @@ src/webview/          the panel's source, bundled by esbuild into media/app.js (
   sessions.js         Sessions tab: import, profile, demo, list
   review.js           a session's tab: findings, verdicts, spec, segmentation, timeline, coverage
   analysis.js         analyzeNow(): the analysis pipeline
-  calibration.js      Calibration tab, exports, rules for CLAUDE.md / AGENTS.md, compress, skill
+  calibration.js      Calibration tab, exports, rules for CLAUDE.md / AGENTS.md / .cursor/rules, compress, skill
   rules.js            Rules tab
   prompts.js          Model rules tab
   settings.js         ⚙ Settings tab
@@ -183,7 +188,7 @@ flowchart TB
   subgraph HostSide["Extension host"]
     EXTJS[extension.js] --> LENS
     EXTJS --> AI
-    EXTJS --> STOREJS[store.js] & VALJS[validate.js] & SECJS[secrets.js] & PROVJS[providers.js] & CLIJS[cli.js]
+    EXTJS --> STOREJS[store.js] & VALJS[validate.js] & SECJS[secrets.js] & PROVJS[providers.js] & CLIJS[cli.js] & CDBJS[cursor-db.js]
   end
   BRIDGE <-->|messages| EXTJS
 ```
@@ -285,6 +290,10 @@ classDiagram
     calibHidden
     suppressed
     analyzedGen
+    source_text
+    importGen
+    source_outputs
+    source_project
   }
   class Event {
     seq
@@ -364,6 +373,11 @@ Key points:
   host computes it from the session (RA §15.1). Schema 3 (0.1.116) added `started`, the time of the first step with
   one, which the effect of a moved rule uses, and `hiddenCount`, the findings calibration hides, which the Sessions
   tree shows. `open()` rebuilds a summary of an older schema once.
+- **What a session keeps besides the events.** `source_text` is the transcript when it is under 400 000 characters.
+  `importGen` is the `IMPORT_GEN` of that import (4 at 0.1.122). `source_outputs` (0.1.121) is the ends of the command
+  outputs Cursor's database returned, 20 000 characters each, so Back to regex parsing and Import again can parse the
+  tests again. `source_project` (0.1.122) is the name of the transcript's folder in `~/.cursor/projects`, so a later
+  import can make the absolute paths relative again.
 
 ---
 
@@ -375,10 +389,12 @@ Key points:
 flowchart TD
   IN[Text of a file, a paste or the demo] --> D{importAny}
   D -->|a JSON array or chat_messages| CA[fromClaudeAiExport<br/>claude.ai conversations.json<br/>several conversations]
+  D -->|Cursor CLI stream-json| CS[fromCursorStreamJson<br/>rewritten as Claude lines]
   D -->|Cursor agent-transcripts jsonl| CU[fromCursorJsonl<br/>rewritten as Claude lines]
   D -->|Codex rollout jsonl| CX[fromCodexJsonl<br/>patch_apply_end / FileChange, shell calls]
   D -->|other JSON lines| CL[fromClaudeJsonl<br/>tool_use / tool_result / toolUseResult]
   D -->|anything else| TX[fromText<br/>/export, chat text, code blocks]
+  CS --> CL
   CU --> CL
   CA & CX & CL & TX --> DV[diffMessageVersions<br/>versions of code pasted in messages]
   DV --> SN[stripNonSource<br/>drop text of docs, configs, lockfiles]
@@ -402,9 +418,20 @@ flowchart TD
   from the IDE or the CLI) has `role` at the top of a line and tool calls without ids or results. `fromCursorJsonl`
   rewrites each line in the Claude Code shape (`Shell` → `Bash`, `StrReplace` → `Edit`, `path`/`contents` →
   `file_path`/`content`, `Glob`'s `target_directory` → `path`, `Delete` → a `delete` event), lets `fromClaudeJsonl`
-  rebuild the files, then puts Cursor's tool names back. The user's `<user_query>` is the text and its
-  `<timestamp>` the `ts`. A command's output is not in the file, so a test run gets `output_missing`, and
-  `pass_claim_without_run` treats its result as unknown (not red, not absent). Cloud Agent runs leave no file.
+  rebuild the files, then puts Cursor's tool names back. `turn_ended` lines are bookkeeping and are skipped. A
+  `tool_use` has `name` and `input` only, no `id`. A `StrReplace` with no `path` stays kind `tool` (the file is not
+  guessed). Names outside that map (`Task`, `CallDynamicTool` and the rest) stay `tool`. The user's `<user_query>`
+  is the text and its `<timestamp>` the `ts`. A command's output is not in the file, so a test run gets
+  `output_missing`, and
+  `pass_claim_without_run` treats its result as unknown (not red, not absent). The same check's window of 6 steps
+  (`pass_claim_lookback`, 0.1.121) skips steps that change no code (`read`, `search`, `tool`, `git`, `run_other`) on
+  every transcript, because a Cursor session can put dozens of them between a run and the message about it. A run
+  whose output is present but not parsed still counts as no run. Without a parsed red run,
+  `fix_after_fail_without_triage` does not fire, and `test_deleted`, `product_code_edited`, `snapshot_overwritten`
+  and `config_weakened` stay medium. Cloud Agent runs leave no file. Files next to the project
+  (`terminals/<pid>.txt`, `agent-tools/<uuid>.txt`) are not read: nothing in them names the call they belong to.
+  Older Composer transcripts use another schema and are not detected. There is no command that imports the chat
+  open in Cursor. The extension host has no stable API for its path.
   When the file is picked in the panel, the host (`cursor-db.js`) looks up the chat by the file's id in Cursor's own
   databases and returns the commands with their output beside the text (`open:transcript` → `cursorOutputs`): the
   CLI's `~/.cursor/chats/<md5 of the workspace>/<id>/store.db`, or the IDE's `globalStorage/state.vscdb`. Both are
@@ -417,9 +444,11 @@ flowchart TD
   `fromCursorJsonl` makes them relative to the folder above them whose name, made by the same rule
   (`Lens.cursorProjectSlug`), is that name. A transcript dropped onto the panel or pasted has no output and keeps
   absolute paths. **Choose file** → Cursor Agent opens
-  the dialog at the workspace's `agent-transcripts` folder: the folder's name is the workspace path with every
-  character that is not a Latin letter or a digit made `-` (`guessTranscriptDefaultUri` in `extension.js`, the rule
-  of Cursor's CLI; Windows not checked); with no such folder, at `~/.cursor/projects`.
+  the dialog at the workspace's `agent-transcripts` folder. The folder's name follows `cursorProjectSlug` in `cli.js`,
+  the same rule as `Lens.cursorProjectSlug` and as Cursor's CLI: every character that is not a Latin letter or
+  a digit becomes `-`, a run of them becomes one `-`, and none are left at either end (`/Users/me/my_app` becomes
+  `Users-me-my-app`). Windows is not checked. If that folder does not exist, the dialog opens at `~/.cursor/projects`
+  when that directory exists, and at the home folder when it does not (`guessTranscriptDefaultUri` in `extension.js`).
 - **Cursor Agent CLI log** (since 0.1.121; `agent -p --output-format stream-json`): `tool_call` lines, started and
   completed, each with `args` and `result` under `<kind>ToolCall`. `isCursorStreamJson` looks for such a line (Claude
   Code's own stream-json has `tool_use` blocks and an init with `tools`), and `fromCursorStreamJson` rewrites the calls
@@ -499,7 +528,9 @@ Five sources produce findings:
 
 Checks of what the agent did to the suite (v0.1.113) — `test_deleted`, `product_code_edited`,
 `snapshot_overwritten`, `config_weakened` — compare file versions and commands across the session and turn high
-right after a red run (RA §21).
+right after a red run (RA §21). `pass_claim_without_run` looks back 6 steps and, since 0.1.121, skips `read`,
+`search`, `tool`, `git` and `run_other`. A run in that window with `output_missing` makes the claim unreported. A
+run whose output is there but not parsed still counts as no run.
 
 ### 6.5 Static analysis engines
 
@@ -588,11 +619,14 @@ flowchart TD
   L -->|below 50%| DEM[demoted to low]
   L -->|otherwise| OK[as is]
   V --> CF[confirmed findings ≥ N times]
-  CF --> RM[rules.md for CLAUDE.md / AGENTS.md<br/>with evidence and examples]
+  CF --> RM[rules.md for CLAUDE.md, AGENTS.md<br/>or .cursor/rules/sessionlens.mdc<br/>with evidence and examples]
   RM --> CP[Copy · Compress with model · Generate skill]
   RM --> MV[Moved → effect: did the finding's<br/>frequency drop afterwards?]
 ```
 
+- **Target file** (`rulesTarget`): `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/sessionlens.mdc` (0.1.121), or both
+  Markdown files. `both` does not include the Cursor file. The `.mdc` file is written with frontmatter
+  (`alwaysApply: true`); without it Cursor skips the rule. The other targets are plain Markdown.
 - **Calibration tab:** the precision table per check and source, the proposed rules, export and import of
   verdicts (`verdicts.json`, with the verdicts of hidden findings marked `hidden: true`; an import skips rows it
   already has), the calibration log (RA §5.2).
@@ -612,7 +646,7 @@ flowchart TD
 |---|---|---|
 | Sessions | `globalStorage/sessions/<name>.json` + `<name>.meta.json` | atomic write (temp file, rename), repair on open, retry on Windows locks (RA §15) |
 | Settings of the page, rule overrides, calibration log, results of compress/skill | `globalState`, keys in `STORAGE_KEYS` | the page reads and writes only these keys |
-| Seven user settings | VS Code configuration `sessionlens.*` | two-way sync with the ⚙ tab (RA §16.1) |
+| Eight user settings | VS Code configuration `sessionlens.*` | two-way sync with the ⚙ tab (RA §16.1): the three CLI paths, `minGapMs`, `maxCode`, `verify`, `lint`, `rulesTarget` |
 | API keys | SecretStorage | never in `globalState`, never in a webview (RA §14) |
 | Local / Qwen base URLs | `globalState.hostBaseUrls`, written only by `baseurl:set` | the page cannot point the host at an address |
 
@@ -649,6 +683,7 @@ flowchart LR
   HOST --> FS[(files)]
   HOST --> NET[(providers)]
   HOST --> PROC[(CLI processes)]
+  HOST --> CDB[(Cursor databases<br/>read-only)]
   CFG[VS Code settings<br/>SecretStorage<br/>hostBaseUrls] --> HOST
 ```
 
@@ -658,6 +693,11 @@ flowchart LR
   payloads are refused; a session id never becomes a path; saved files stay inside the folder the user picked.
 - Program paths and provider addresses never come from a message. Keys never leave the host; errors are redacted.
 - The CLIs run without tools, so a transcript that says "run rm -rf" has nothing to run it with.
+- When the user picks a Cursor Agent transcript, the host reads that chat's command output from Cursor's own
+  databases (`cursor-db.js`): the CLI's `store.db` or the IDE's `state.vscdb`. Both are opened read-only and closed
+  at once. The lookup uses the transcript file's id. An encryption key in the CLI database's `meta` is not read
+  further, logged or copied. Without `node:sqlite` (VS Code on Node before 22.13), or with no database, the import
+  continues and the test runs keep `output_missing`.
 
 Details: RA §14.
 
@@ -733,4 +773,13 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **Secret masking works by pattern** (`Lens.redactSecrets`): a secret of an unusual shape can still reach a
   model or an export.
+- **Cursor Agent JSONL keeps no command output.** Output is recovered only when the file is picked in the panel and
+  Cursor's database can be read (`node:sqlite`, Node 22.13 or newer). A file that is dropped or pasted has no output
+  and keeps absolute paths. Without a parsed red run, `fix_after_fail_without_triage` does not fire, and
+  `test_deleted`, `product_code_edited`, `snapshot_overwritten` and `config_weakened` stay medium. A Cloud Agent run
+  leaves no local file. Older Composer transcripts are a different schema and are not imported. The folder-name rule
+  is not checked on Windows. Files in `terminals/` and `agent-tools/` are not a source of output: they do not name
+  the call they belong to.
+- **A claim after a run with `output_missing` is not reported.** The result is unknown. A run whose output is present
+  but not understood still counts as no run, as it does for Claude Code and Codex.
 - **English UI only** (decided in 0.1.110); Russian stays only in the recognition patterns.
