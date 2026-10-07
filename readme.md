@@ -27,6 +27,7 @@ It is built for sessions in which an agent writes or fixes automated tests, but 
 - [Install](#install)
 - [Your data](#your-data)
 - [Found a false finding?](#found-a-false-finding)
+- [License](#license)
 
 ## Quick start
 
@@ -619,3 +620,9 @@ and add a short, anonymized piece of the session that shows it. Every such repor
 **Enjoying the extension?** A [star on GitHub](https://github.com/nikolaylosev/sessionlens-vscode) or a review on the
 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=nikolaylosev.sessionlens-vscode&ssr=false#review-details)
 or [Open VSX](https://open-vsx.org/extension/nikolaylosev/sessionlens-vscode) helps a lot!
+
+## License
+
+SessionLens's own code is under the [MIT License](LICENSE). The extension also bundles other people's open-source code
+(the ESLint bundles and tree-sitter with its grammars in `media/`), unchanged except where noted, under their own
+licenses: see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
