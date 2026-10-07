@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.117**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.122**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -29,7 +29,7 @@ All of these must pass before a commit (see `CLAUDE.md`). CI runs them on Ubuntu
 
 | Command | What it does | Time (local) |
 |---|---|---|
-| `npm test` | Unit and DOM tests: `node --test "test/**/*.test.js"` | about 12 s |
+| `npm test` | Unit and DOM tests: `node --test "test/**/*.test.js"` | about 14 s |
 | `npm run lint` | ESLint on our own code, tests and perf scripts included | a few s |
 | `npm run format:check` | Prettier on every `.js` file (`npm run format` fixes) | a few s |
 | `npm run typecheck` | `tsc -p .` with `checkJs` on the host and `media/*.js` (tests are not type-checked) | a few s |
@@ -47,13 +47,14 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.119 `npm test` runs 357 tests in 60 files. One test is always skipped: `test/cli.test.js` has one case for
-Windows only and one for every other OS.
+At v0.1.122 `npm test` runs 550 tests in 78 files. Off Windows, `cli.test.js` skips its `.cmd` case. On Windows that
+case runs, and the file skips five POSIX cases instead: the `runClaude` prompt, both `runCursor` cases,
+`cursorSocketDir` and `checkCursor`. `transcript-dialog.test.js` skips its symlink case on Windows too.
 
 There are no runtime dependencies. The tests use only dev dependencies: `jsdom` for the panel, `@vscode/test-electron`
-for the integration run, and Node's own `node:test` and `node:assert/strict`. Detector tests give most checks in
+for the integration run, and Node's own `node:test` and `node:assert/strict`. Detector tests give the checks in
 `media/checks.js` must-report and must-not cases on a transcript, run the real engine for an engine-only check, and pass
-the model categories through `LensAI.parseFindings`. The checks without a file of their own are listed in section 10.1.
+the model categories through `LensAI.parseFindings`.
 
 ---
 
@@ -67,7 +68,7 @@ flowchart TB
     C2[real lint engines:<br/>ESLint bundles via vm,<br/>tree-sitter .wasm, Robot]
   end
   subgraph L2["2. Host under a fake vscode module"]
-    H1[extension.js · store.js · validate.js<br/>secrets.js · providers.js · cli.js]
+    H1[extension.js · store.js · validate.js<br/>secrets.js · providers.js · cli.js · cursor-db.js]
     H2[test/fake-vscode.js]
     H2 --- H1
   end
@@ -111,6 +112,7 @@ them on their own.
 | `test/fake-vscode.js` | `fakeVscode(opts)`: just enough of the `vscode` module for `extension.js` to activate. It records every dialog, message, command, file write, clipboard write, settings update and Output line in `calls`. `opts` sets the answers to modals, quick picks, input boxes and file dialogs, the starting settings, the VS Code language and failures (`configFails`). Machine-scoped settings ignore workspace values, as in VS Code. Also `loadExtension(vscode)`, `fakeContext()`, `fakeMemento()`, `fakeSecretStorage({ failStore })` and `fakeWebviewView()` with `send(type, payload)` that waits for the host's reply. |
 | `test/host-panel.js` | `bootHost(opts)` loads a fresh copy of `extension.js` with the fake `vscode` and calls `activate()`. `openPage(host, { sessionId })` opens the sidebar, or a session tab when a `sessionId` is given, loads the real panel into jsdom and wires both directions. The page object has `sent` (page to host), `posted` (host to page), `errors` (page errors and any `alert()`), `idle()` (waits until no reply is pending), `ready()` and `close()`. `opts.patchApp` rewrites `app.js` before it runs (used by the XSS mutation tests). `opts.root` loads another checkout (used by `perf/`). |
 | `test/engine-stub.js` | `stubEngineLoader(window, opts)`: the panel loads lint engines on demand by appending `<script>` tags, which jsdom does not run. The stub records each requested file in `engineLoads` and fires `load` on the next tick. `opts.engines` maps a file to source code to evaluate (a stub or the real file), `opts.engineError` makes a load fail and `opts.engineHold` delays loads. `fakeTreeSitterEngine()` is a stand-in tree-sitter engine with a boot delay. |
+| `test/cursor-fixtures.js` | Cursor's CLI `store.db` and the IDE's `state.vscdb`, built with `node:sqlite` in a temporary home, for `cursor-db.test.js` and `cursor-panel.test.js`. When this Node has no `node:sqlite`, `S` is null and those database cases are skipped. |
 | `perf/fixtures.js` | `makeFixture({ n, bytes, seed })`: deterministic synthetic sessions in the 0.1.100 storage format, with findings and verdicts set so that calibration is active. Used by the render, storage, profile and calibration tests and by the perf scripts. |
 
 Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script error in the page fails the test.
@@ -151,7 +153,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `magic-number.test.js` | `magic_number`: a number on an assertion line, one finding per test listing up to four numbers, in TypeScript, Python, Java, C# and Cypress. 0, 1, 2, 100, HTTP status codes, numbers between -1 and 1, a number outside an assertion or inside a name, a comment on the line and a commented-out assertion do not count. |
 | `duplicate-assert.test.js` | `duplicate_assert`: the same assertion line twice in one test; the same assertion in two tests, another value and commented-out lines (0.1.120) do not count. |
 | `commented-out-code.test.js` | Commented-out code gives no finding in the nine checks that look for a pattern anywhere in a file (`sleep_or_skip_added`, `fragile_wait`, `focused_test`, `debug_leftover`, `expected_failure`, `mocked_service`, `mobile_raw_locator`, `hardcoded_coordinates`, `no_driver_teardown`), each with its live twin; `#` and `//` in a string, code after a block comment, Python's `//` and a TypeScript `#field` stay code. A line inside a block comment with no leading `*` is not code for the checks that read a file line by line (`weak_assert`, `hardcoded_date`, `magic_number`, `conditional_logic`, `hardcoded_base_url`, `response_time_assert`, `duplicate_assert`, `assertion_roulette`, `status_only_assert`, `no_negative_cases`; 0.1.121); a line with code keeps its comment for `magic_number`. Code in a Python docstring of a function, class or module, or in a `"""`/`'''` string used as a block comment, gives no `weak_assert`, `sleep_or_skip_added`, `hardcoded_date`, `magic_number` or `debug_leftover`; a `"""` string inside brackets, after `\` or with an `f` prefix stays code (0.1.122). |
-| `sleep-or-skip-added.test.js` | `sleep_or_skip_added`, the regex side: a fixed delay with a number or a named constant (TypeScript, Python, Java, Cypress; not a lowercase variable), a skipped test, a retry, code in a message; not a delay under 100 ms, a wait on a route alias, retries in a runner config or `retries: 0`, product code (test-side code under `src` is still checked), the word "reruns" (only `reruns=N` and `--reruns N`), and one finding per file. The header lists the detector bugs found on 5 Oct 2026 that are still open. |
+| `sleep-or-skip-added.test.js` | `sleep_or_skip_added`, the regex side: a fixed delay with a number or a named constant (TypeScript, Python, Java, Cypress; not a lowercase variable), a skipped test, a retry, code in a message; not a delay under 100 ms, a wait on a route alias, retries in a runner config or `retries: 0`, product code (test-side code under `src` is still checked), the word "reruns" (only `reruns=N` and `--reruns N`), and one finding per file. Commented-out code, product code and the word "reruns" were found on 5 Oct 2026 and fixed in 0.1.121; commented-out code is in `commented-out-code.test.js`. |
 | `fragile-wait.test.js` | `fragile_wait`, the regex side: `waitUntil: 'networkidle'` (medium), the other ways to wait for network idle in TypeScript, Python, Java and C# (worded apart), and an exact count (`.count()` with `toBe`, `toEqual`, `toStrictEqual`, Python's `==`, Java's and C#'s assertion libraries; low), in a file or a message; not another load state or `toBeGreaterThan`; the profiles that run it. |
 | `expected-failure.test.js` | `expected_failure`: Playwright's `test.fail` (as a test, inside one, with a condition), Jest's `it.failing` / `test.failing`, and pytest's `xfail` (marker, strict, call; not the word), medium, one finding per file with the count; not a skip, an expected exception or `test.failures()`; commented out; the profiles that run it. |
 | `focused-test-debug-leftover.test.js` | `focused_test` (`.only` and `.only.each` on a test, describe, context, `test.describe`; `fit`, `fdescribe` with a title; high, one per file naming the first line; not a method named `only` or `fit`) and `debug_leftover` (`page.pause`, `cy.pause`, `.debug()`, `browser.debug`, `debugger;`, `breakpoint()`, `pdb`/`ipdb.set_trace()`, also after `;`, `)` or `{`, Python's `page.pause()`; medium, one per kind; not a name containing debugger); commented out; the profiles that run them. |
@@ -388,12 +390,3 @@ request.
 - **Integration tests from VS Code's terminal** fail to start unless `ELECTRON_RUN_AS_NODE` is unset.
 - **Windows-only behavior** (`cmd.exe` quoting, antivirus `EPERM`/`EBUSY` on rename, paths with spaces and non-ASCII
   names) is tested for real only on the Windows CI job. On macOS and Linux those cases are either simulated or skipped.
-
-### 10.1 Detectors without a file of their own
-
-Every check name appears in some test file, and `rules-consistency.test.js` fails when a new one does not. The checks
-below have no test file of their own that says in one place what counts and what does not; they have real cases in
-other files. A pull request that gives one of them its own file removes its row.
-
-| Check | Where it is covered now |
-|---|---|
