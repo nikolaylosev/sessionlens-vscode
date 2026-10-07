@@ -1724,11 +1724,15 @@
     }
     return files;
   }
-  // the last test run before seq, if it was red; null if it was green or there was none
+  /* The last test run before seq, if it was red; null if it was green or there was none. A run whose output is not in
+     the transcript (output_missing: a Cursor transcript without Cursor's database) makes the result unknown, not red,
+     as in pass_claim_without_run; until 0.1.123 it was skipped, and a red run before it still made a finding high. A
+     run whose output could not be parsed (a crash before the tests, an unknown runner) is skipped: the run before it
+     decides. */
   const redRunBefore = (ev, seq) => {
-    const runs = ev.filter((e) => e.kind === "run_tests" && e.tests && e.seq < seq);
+    const runs = ev.filter((e) => e.kind === "run_tests" && (e.tests || e.output_missing) && e.seq < seq);
     const l = runs[runs.length - 1];
-    return l && (l.tests.failed || l.tests.errors) ? l : null;
+    return l && l.tests && (l.tests.failed || l.tests.errors) ? l : null;
   };
   // a test file by its name, in any language the profiles know
   const TEST_FILE_RX = /(?:^|\/)(?:test_[^/]*\.py|[^/]*_test\.(?:py|go)|[^/]*\.(?:spec|test|cy)\.[cm]?[jt]sx?|[^/]*Tests?\.(?:java|kt|cs))$/;
@@ -1894,8 +1898,11 @@
       const out = [];
       const PREDICATE = /^assert\s[\w.]*\b(?:(?:is|has|can|should|was|were|does|did)_\w+(?:\(\))?|is[a-z]+\(\)|exists\(\))\s*$/;
       for (const e of ev) {
+        // every profile's patterns run on every file: until 0.1.123 a file had to contain "assert", "expect" or
+        // ".should(" first, so C#'s Assert.NotNull, Go's require.NotNil, REST Assured's statusCode(lessThan(…)) and
+        // Karate's #notnull were never looked for
         const code = e.new_content && linesOf(e);
-        if (!code || !/assert|expect|\.should\s*\(/.test(code)) continue;
+        if (!code) continue;
         for (const rx of cfg.weak_assert_patterns) {
           rx.lastIndex = 0;
           for (const m of code.matchAll(rx)) {
@@ -2854,7 +2861,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.122";
+  const ANALYSIS_VERSION = "0.1.123";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.123
+
+### Fixed
+- **Weak assertion** missed C# `Assert.NotNull`, `Assert.True(true)` and `.Should().NotBeNull()`, Go's
+  `require.NotNil`, REST Assured's `statusCode(lessThan(…))` and Karate's `match response == '#notnull'`: a file was
+  scanned only if it contained a lowercase `assert`, `expect` or `.should(`. Now every file is scanned with its
+  profile's patterns. Saved sessions get this on their next analysis.
+- **Test deleted**, **Product code edited**, **Snapshots overwritten** and **Config weakened** are high "right after a
+  failing run". When the agent ran the tests again after the failure and the transcript has no output of that run
+  (a Cursor transcript without Cursor's database), the finding was still high, blamed on the older red run. Now the
+  result is unknown and the finding is medium, as **Claims tests pass** already treats such a run. A run whose output
+  could not be read (it crashed before the tests) still leaves the red run in charge. Saved sessions get this on their
+  next analysis.
+
 ## 0.1.122
 
 ### Fixed

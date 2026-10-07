@@ -56,6 +56,7 @@ test("carryVerdicts: a verdict follows its finding to the new wording, the same 
     verdicts: { [Lens.fkey(f("weak_assert", 2, "a.spec.ts: old"))]: { v: "ok", note: "", at } },
   };
   assert.equal(Lens.carryVerdicts(two), 0, "two candidates: which one is unknown, nothing moves");
+  assert.deepEqual(Object.keys(two.verdicts), [Lens.fkey(f("weak_assert", 2, "a.spec.ts: old"))], "the old key stays");
   const taken = {
     findings: [f("weak_assert", 2, "a.spec.ts: new")],
     verdicts: {

@@ -1,6 +1,7 @@
 "use strict";
 /* test_deleted (phase 10, step 2): a test that disappears from a file, or with its file. What must not count: a test
-   renamed with the same body, moved to another file, restored later, and rm of files that are not tests. */
+   renamed with the same body, moved to another file, restored later, and rm of files that are not tests. After a red run, a
+   run whose output is not in the transcript makes the finding medium; one whose output could not be parsed does not. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { load } = require("./helpers");
@@ -50,6 +51,40 @@ test("a test removed from a file: medium, high right after a failing run", () =>
     ]),
     ["high: e2e/cart.spec.ts: 1 test deleted: discount — right after a failing run (seq 2)"],
   );
+});
+
+// a red run, then a re-run whose result is not known, then the change (0.1.123): output that could not be parsed is
+// skipped, so the red run decides (high); output that is not in the transcript (output_missing, a Cursor import) makes
+// the result unknown (medium), as in pass_claim_without_run. → [severities with unparsed output, with output_missing]
+function afterUnknownRerun(profile, steps, check) {
+  const cfg = Lens.profile(profile);
+  const ev = Lens.importAny(transcript(steps), cfg);
+  const sev = () =>
+    Lens.runChecks(ev, cfg)
+      .filter((f) => f.check === check)
+      .map((f) => f.severity);
+  const unparsed = sev();
+  for (const e of ev) if (e.kind === "run_tests" && !e.tests) e.output_missing = true;
+  return [unparsed, sev()];
+}
+
+test("a run with no parsed result: unparsed output is skipped, output_missing makes the result unknown (0.1.123)", () => {
+  assert.deepEqual(
+    deleted("qa-ts", [
+      ["write", "e2e/cart.spec.ts", PW(TOTAL, DISCOUNT)],
+      ["bash", "npx playwright test", "browser launched"],
+      ["write", "e2e/cart.spec.ts", PW(TOTAL)],
+    ]),
+    ["medium: e2e/cart.spec.ts: 1 test deleted: discount"],
+    "no red run before it",
+  );
+  const steps = [
+    ["write", "e2e/cart.spec.ts", PW(TOTAL, DISCOUNT)],
+    ["bash", "npx playwright test", "1 passed, 1 failed"],
+    ["bash", "npx playwright test", "browser launched"],
+    ["write", "e2e/cart.spec.ts", PW(TOTAL)],
+  ];
+  assert.deepEqual(afterUnknownRerun("qa-ts", steps, "test_deleted"), [["high"], ["medium"]]);
 });
 
 test("a test file deleted with rm, git rm or with its folder", () => {
