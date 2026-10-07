@@ -1,6 +1,6 @@
 # SessionLens for VS Code — architecture and functional blocks
 
-This document describes the whole extension as it stands at **v0.1.122**: what it is made of, how the parts talk
+This document describes the whole extension as it stands at **v0.1.123**: what it is made of, how the parts talk
 to each other, where data lives, and what each functional block does. It is written for developers who change the
 code and for reviewers who need to know where to look.
 
@@ -262,7 +262,7 @@ Message types (validated by `VALIDATORS` in `validate.js`):
 | Lifecycle | `page:ready`, `panel:close`, `tab:active`, `log:timing` |
 | Storage | `storage:get`, `storage:set` (only the keys in `STORAGE_KEYS`) |
 | Sessions | `session:list`, `session:get`, `session:put`, `session:delete`, `session:clear`, `session:open` |
-| Files and OS | `open:transcript`, `save:file`, `clipboard:write`, `settings:open` |
+| Files and OS | `open:transcript`, `save:file`, `save:folder-files` (a generated skill's files, inside the folder the user picked), `clipboard:write`, `settings:open` |
 | Keys and addresses | `secret:set`, `secret:delete`, `secret:status`, `baseurl:set` |
 | Model | `ai:call`, `claude:check`, `claude:run`, `codex:check`, `codex:run`, `cursor:check`, `cursor:run` |
 
@@ -428,7 +428,9 @@ flowchart TD
   every transcript, because a Cursor session can put dozens of them between a run and the message about it. A run
   whose output is present but not parsed still counts as no run. Without a parsed red run,
   `fix_after_fail_without_triage` does not fire, and `test_deleted`, `product_code_edited`, `snapshot_overwritten`
-  and `config_weakened` stay medium. Cloud Agent runs leave no file. Files next to the project
+  and `config_weakened` stay medium. Since 0.1.123 those four also stay medium when a red run is followed by a run
+  with `output_missing`: the latest result is unknown. A run whose output is present but not parsed is skipped, and
+  the red run before it decides. Cloud Agent runs leave no file. Files next to the project
   (`terminals/<pid>.txt`, `agent-tools/<uuid>.txt`) are not read: nothing in them names the call they belong to.
   Older Composer transcripts use another schema and are not detected. There is no command that imports the chat
   open in Cursor. The extension host has no stable API for its path.
@@ -528,7 +530,8 @@ Five sources produce findings:
 
 Checks of what the agent did to the suite (v0.1.113) — `test_deleted`, `product_code_edited`,
 `snapshot_overwritten`, `config_weakened` — compare file versions and commands across the session and turn high
-right after a red run (RA §21). `pass_claim_without_run` looks back 6 steps and, since 0.1.121, skips `read`,
+right after a red run (`redRunBefore`, RA §21). Since 0.1.123 a later run with `output_missing` makes the result
+unknown, so the finding stays medium; a run whose output could not be parsed is skipped. `pass_claim_without_run` looks back 6 steps and, since 0.1.121, skips `read`,
 `search`, `tool`, `git` and `run_other`. A run in that window with `output_missing` makes the claim unreported. A
 run whose output is there but not parsed still counts as no run.
 
@@ -751,10 +754,13 @@ The test suite in detail (harnesses, what each file checks, how to update each s
 | An engine | `ENGINES`, `ENGINE_FILES` and a rule map in `lint.js`; `ENGINE_SCRIPTS` in `extension.js`; `check:vsix` allow-list | `lazy-engines.test.js` |
 | A message type | a row in `VALIDATORS` (`validate.js`) and a handler in `wireMessages` | `validate.test.js`, `trust-boundary.test.js` |
 | A provider | `LensAI.PROVIDERS` (request shape in `ai.js`), keys and base URL handling follow from its flags | `providers.test.js`, `ai-transport.test.js` |
-| A setting | `package.json` + `package.nls.json`, `CONFIG_SETTINGS` in `extension.js`, the ⚙ tab | `vscode-integration.test.js` |
+| A setting | `package.json` + `package.nls.json`, `CONFIG_SETTINGS` in `extension.js` (a path to a CLI: `CLI_SETTINGS`, a machine setting the page cannot write), the ⚙ tab in `src/webview/settings.js` (then `npm run build`) | `vscode-integration.test.js` |
 
 Rules of the house (CLAUDE.md): one topic per pull request; a CHANGELOG line and a patch version for anything a
-user can notice; snapshots updated only on purpose; no new runtime dependencies without a written reason.
+user can notice; snapshots updated only on purpose; no new runtime dependencies without a written reason; local
+notes stay in `local/`, out of git and of the `.vsix`. A patch version changes `package.json` and
+`Lens.ANALYSIS_VERSION` in `lens.js` together (`reanalyze-after-update.test.js` keeps them equal), so every stored
+session is analyzed again after the update (§6.3).
 
 ---
 
@@ -776,7 +782,8 @@ user can notice; snapshots updated only on purpose; no new runtime dependencies 
 - **Cursor Agent JSONL keeps no command output.** Output is recovered only when the file is picked in the panel and
   Cursor's database can be read (`node:sqlite`, Node 22.13 or newer). A file that is dropped or pasted has no output
   and keeps absolute paths. Without a parsed red run, `fix_after_fail_without_triage` does not fire, and
-  `test_deleted`, `product_code_edited`, `snapshot_overwritten` and `config_weakened` stay medium. A Cloud Agent run
+  `test_deleted`, `product_code_edited`, `snapshot_overwritten` and `config_weakened` stay medium, also when a red run
+  is followed by a run with no output (0.1.123). A Cloud Agent run
   leaves no local file. Older Composer transcripts are a different schema and are not imported. The folder-name rule
   is not checked on Windows. Files in `terminals/` and `agent-tools/` are not a source of output: they do not name
   the call they belong to.
