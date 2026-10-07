@@ -18,4 +18,6 @@ npm test · npm run lint · npm run format:check · npm run typecheck · npm run
 - For anything a user can notice: a line in CHANGELOG.md and a patch version bump in package.json.
 - Code, comments, docs and commit messages in English. Russian stays only in the recognition patterns
   (lens.js, spec.js, ai.js). The extension's UI is English only: no translation files (decided in 0.1.110).
-- PHASE-*.md and PR-*.md are local planning notes: never commit them.
+- Local notes (the TODO, PHASE-*.md and PR-*.md plans, smoke checklists) live in `local/`, which .gitignore and
+  .vscodeignore both leave out: never commit them, and never add them to the .vsix or to the allowed list in
+  scripts/check-vsix.js. A new local note goes into `local/` too, so no ignore file needs a new line.
