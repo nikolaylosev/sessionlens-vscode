@@ -21,3 +21,5 @@ npm test · npm run lint · npm run format:check · npm run typecheck · npm run
 - Local notes (the TODO, PHASE-*.md and PR-*.md plans, smoke checklists) live in `local/`, which .gitignore and
   .vscodeignore both leave out: never commit them, and never add them to the .vsix or to the allowed list in
   scripts/check-vsix.js. A new local note goes into `local/` too, so no ignore file needs a new line.
+- `.cursor/` holds the owner's own Cursor agents and skills (Cursor reads them only from there). It is left out of
+  git and of the .vsix the same way: never commit it.
