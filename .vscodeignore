@@ -24,4 +24,7 @@ ROADMAP.md
 docs/**
 
 CLAUDE.md
+# local notes: see .gitignore (vsce reads only this file)
+local/**
 SessionLens-TODO.md
+SMOKE.md
