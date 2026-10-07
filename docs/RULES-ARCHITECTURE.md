@@ -5,11 +5,10 @@ The overview of the whole extension, with diagrams, is [`ARCHITECTURE.md`](ARCHI
 An internal document for code review before publishing on GitHub. It describes
 **everything** related to "rules" (checks/rules): how a finding is born, how it
 gets its text, severity and on/off state, how this is edited in the UI, stored,
-exported, and how it turns into `CLAUDE.md`/`AGENTS.md`. It was written from the
-actual state of the code at v0.1.97 (after Phase 4) and updated for v0.1.98
-(Phase 1 of the Rules refactoring: the `media/checks.js` registry), not from
-memory — all numbers and lists in this file were obtained by running scripts
-against the real `media/*.js`, not by guessing.
+exported, and how it turns into `CLAUDE.md`, `AGENTS.md` or `.cursor/rules/sessionlens.mdc`.
+It was written from the code at v0.1.97 (after Phase 4), when the registry landed in v0.1.98,
+and is current at **v0.1.122**. Counts below were checked against `media/checks.js` and `media/lens.js`
+at that version.
 
 Format: first the concepts and contracts, then a line-by-line walk through each
 file, then an end-to-end example of one finding from birth to rendering, then a
@@ -76,7 +75,8 @@ automatically.
 
 **Counts.** A word after a number is written `{n} {n|session|sessions}`: `I18N.t()`
 picks the first form when `vars.n` is 1 and the second otherwise, before `{n}` is
-filled in (0.1.111). `test/i18n-plural.test.js` fails on a plain `{n} sessions`.
+filled in (0.1.111). `test/i18n-plural.test.js` fails on a plain `{n} sessions`, and since 0.1.122
+on a plural written as `(s)` (`1 message(s)`).
 Finding messages are not changed this way: a verdict's key includes the message.
 
 ## 2. Anatomy of a finding
@@ -109,12 +109,12 @@ finding card, `sortFindings`, `LensRules.apply`).
 
 ## 3. Five independent sources of findings
 
-`app.js`'s `analyze(s)` (the only place where everything comes together) collects
-findings from **five** independent tracks and joins them into one array BEFORE
-calling `LensRules.apply()`:
+`analyzeNow(s)` in `src/webview/analysis.js` (bundled into `media/app.js`, §19; `analyze(s)` only times it)
+collects findings from **five** independent tracks and joins them into one array BEFORE
+calling `LensRules.apply()`. The join, shortened:
 
 ```js
-function analyze(s) {
+function analyzeNow(s) {
   const cfg = Lens.profile(s.profile);
   const formal  = Lens.runChecks(s.events, cfg);               // 1. regex checks, depend on the profile
   const gherkin = Lens.gherkinChecks(s.events);                 // 2. .feature files, do NOT depend on the profile
@@ -138,8 +138,8 @@ The key properties of this function that matter for review:
 - **`Lens.calibrate()` runs once, after the merge and before `apply()`** (since
   v0.1.112): a regex finding an engine supersedes is gone before calibration sees it,
   so an engine check that calibration switched off never brings the regex one back.
-- **`LensRules.apply()` is called EXACTLY ONCE**, at the very end, on the already
-  merged array. It does not and must not know where a finding came from —
+- **`LensRules.apply()` is called EXACTLY ONCE**, on the already
+  merged array, before `carryVerdicts`. It does not and must not know where a finding came from —
   overrides are applied the same way to all five tracks.
 - **`ai` findings are not recomputed** — `s.findings` already contains
   the previous result of the model call (side effect: if the model has not been
@@ -152,6 +152,10 @@ The key properties of this function that matter for review:
   at least one file. If the engine is still loading (WASM) or failed, the regex
   findings stay as they are and nothing is replaced. This is the
   "graceful degradation" contract examined in §7.
+
+After `apply()`, `analyzeNow` stores `coverage`, `specParsed`, `metrics` and `task`, and calls
+`Lens.carryVerdicts(s)` (§8.2). While an engine is still loading it sets `lintPending` and leaves
+the session's generation empty, so the session is analyzed again (§7).
 
 ---
 
@@ -205,14 +209,13 @@ function book(overrides) {
 Line by line:
 
 - It iterates **over `ALL`, not over the overrides** — so `book()` always
-  returns exactly `ALL.length` rows (currently 54), regardless of how many
+  returns exactly `ALL.length` rows (currently 61), regardless of how many
   checks the user has actually configured. The Rules panel shows
   **all known checks**, even if they never produced a finding.
 - `rule` is taken from `own.rule` (if the user explicitly overrode the text) OR
   from `L().RULES[check]` — which is a Proxy in `lens.js` (see §5.1) that itself
-  reads `i18n.js`. **If no override is set, `book()` indirectly
-  depends on the current UI language** (RU/EN) — the rule text changes
-  when the language changes, unless the user has edited it by hand.
+  reads `i18n.js`. The only dictionary is English (0.1.110, §1), so an unedited rule is that
+  English text. A rule the user has edited by hand stays as written.
 - `severity`: `own.severity` (if set and not falsy) → otherwise
   `DEFAULT_SEVERITY[check]` (from the registry, every check in `ALL` has one) →
   otherwise the safeguard literal `"medium"`, unreachable in practice.
@@ -327,7 +330,7 @@ const RULES = new Proxy({}, { get: (_, k) => {
 
 ### 5.2 The `checks` object, `runChecks()` and `calibrate()`
 
-`lens.js` contains the `checks` object with **35 functions** (v0.1.113) of the form
+`lens.js` contains the `checks` object with **36 functions** (v0.1.122) of the form
 `checkName(ev, cfg) -> Finding[]` (the full list — see the table in §9).
 These are the only checks that **do not depend on an external engine** —
 plain JS/regex over the event text.
@@ -746,7 +749,7 @@ Rules and ⚙ Settings reach it when the Sessions tab is shown again and on a `k
 the one-line summary, also the `title` of the profile name in `#hdr`. The list options: `name — profile_desc_<name>`. All output goes through
 `esc()`; a check's rule text is the `title` attribute.
 
-## 9. The full table of checks at v0.1.115 (61 of them)
+## 9. The full table of checks at v0.1.122 (61 of them)
 
 The reference is `media/checks.js`; this table is a readable copy of it, generated from the registry and
 `LensLint.RULE_MAPS` (the "Source" column), not written by hand.
@@ -829,7 +832,7 @@ the two heuristic spec checks; not `no_spec`, `spec_uncovered` or the model's `a
 
 Take `unannotated_test_method` for the `qa-java` profile.
 
-1. The user imports a transcript with `qa-java`. `analyze(s)` calls
+1. The user imports a transcript with `qa-java`. `analyzeNow(s)` calls
    `Lens.profile("qa-java")` → `cfg.language === "java"`.
 2. `Lens.runChecks(s.events, cfg)` iterates over `cfg.checks`
    (`[...METHOD, ...PROCESS, ...CODE]`), sees the name `unannotated_test_method`
@@ -873,7 +876,7 @@ Take `unannotated_test_method` for the `qa-java` profile.
 
 ## 11. Invariants and known risks (a checklist for review)
 
-Status at v0.1.98. Closed items are kept for the record.
+Closed items are kept for the record. The list was opened at v0.1.98; later items name the version that closed them.
 
 1. ~~Consistency of check names between files~~ — **closed**:
    `test/rules-consistency.test.js` (§1).
@@ -895,8 +898,8 @@ Status at v0.1.98. Closed items are kept for the record.
 8. ~~`fromJson()` silently loses rows~~ — **closed**: `ignored` and
    a message in the UI (§4.3).
 9. ~~Gherkin findings cannot be told apart from regex findings by `.source`~~ — **closed in v0.1.109**:
-   `Lens.gherkinChecks()` sets `source: "gherkin"`. The panel still shows them as "formal"; the calibration plan
-   (per-source stats) builds on this. Since v0.1.112 `runChecks()` sets `source: "formal"` on regex findings
+   `Lens.gherkinChecks()` sets `source: "gherkin"`. The findings filter still counts them with "formal"
+   (`srcOf` in `review.js`). The Calibration table names the source `gherkin` on its own. Since v0.1.112 `runChecks()` sets `source: "formal"` on regex findings
    (and on the ones an "off" check hides), the name the filter and the exported reports already used for them, so
    every finding a detector makes now has a source.
 10. ~~`ai_*` share the text `r_ai`~~ — **decided as deliberate**, recorded
@@ -964,7 +967,7 @@ Status at v0.1.98. Closed items are kept for the record.
 |---|---|
 | `media/checks.js` | The check registry — the source of truth for the name, group, default severity, text key, example, sources and sort priority |
 | `media/rules.js` | Text/severity/on-off/groups — the "rule book" as such (the tables are computed from the registry) |
-| `media/lens.js` | 29 regex checks, calibration/suppression, sorting, the Gherkin parser and checks, the `RULE_KEYS`/`RULES` Proxy, profiles (`PROFILES`/`cfg.checks`), profile details (§8.4) |
+| `media/lens.js` | 36 regex checks, calibration/suppression, sorting, the Gherkin parser and checks, the `RULE_KEYS`/`RULES` Proxy, profiles (`PROFILES`/`cfg.checks`), profile details (§8.4) |
 | `media/lint.js` | The engine dispatcher (`ENGINES`), mapping rule id → check name (`*_RULE_MAP`), `SUPERSEDES`, message capping; lazy loading of the engines (`ENGINE_FILES`, `ensure()`, §7) |
 | `media/lint-java.js`, `lint-csharp.js`, `lint-python.js` | tree-sitter engines, their own rules, async `boot()` (called by `lint.js`, §7) |
 | `media/lint-robot.js` | A line-based Robot Framework parser of its own, its own rules, synchronous |
@@ -974,7 +977,7 @@ Status at v0.1.98. Closed items are kept for the record.
 | `media/ai.js` | 7 model review checks, prompts, the model's answer schema |
 | `media/i18n.js` | All `r_<check>`/`<check>_msg`/`g_<group>` texts; `I18N.has(lang, key)` for tests |
 | `test/` | `rules-consistency` (registry ↔ detectors ↔ i18n), `finding-pipeline` (one finding per source), `book-snapshot`, `render-snapshot`, `spec-extract`, `profile-info` |
-| `src/webview/*.js` → `media/app.js` | The panel. `analyze()` (joining the 5 tracks), `renderRules()`, `saveRules()`, export to `CLAUDE.md`/`AGENTS.md`, UI filters by `source`. `media/app.js` is generated (§19) |
+| `src/webview/*.js` → `media/app.js` | The panel. `analyzeNow()` in `analysis.js` (joining the 5 tracks), `renderRules()`, `saveRules()`, export to `CLAUDE.md`, `AGENTS.md` or `.cursor/rules/sessionlens.mdc`, UI filters by `source`. `media/app.js` is generated (§19) |
 | `store.js` | Sessions in files: writing through a temporary file and rename, `rev`, summaries (`*.meta.json`), reconciliation on open (see §15) |
 | `validate.js` | The trust boundary: the table of validators of webview → host messages, the storage key whitelist, checking skill paths (see §14) |
 | `extension.js` | The host: webview messages, VS Code settings (`CONFIG_SETTINGS`), palette and tree commands, the Sessions tree, the Output channel, host strings through `t()` (see §16) |
@@ -1386,12 +1389,14 @@ What the import keeps for them:
   (`new_content`, the file names), so they work on a session saved before 0.1.113 — except a deletion in the first
   edit of a file, which needs `prev_content`, like `config_weakened` for a config the session only edited; a Codex
   deletion needs the `delete` event. These come with a new import.
-- **Import again (since 0.1.114).** A session records the `importGen` it was imported with (`Lens.IMPORT_GEN`, 3
-  since 0.1.121; none for an import before 0.1.114). `Lens.needsReimport(s)` is true for a session without it that
-  wrote or edited a test file or a runner config and has no `prev_content` and no `delete` event, and (since 0.1.121)
-  for a Codex session imported before 0.1.121 whose kept transcript has file changes (`FileChange`, `unified_diff`)
-  or whose steps have an `exec` call that ran no command (Codex 0.155+ changes were skipped, and an edit lost the line
-  after its hunk); the session's tab then shows
+- **Import again (since 0.1.114).** A session records the `importGen` it was imported with (`Lens.IMPORT_GEN` is 4
+  at 0.1.122; none means an import before 0.1.114). `Lens.needsReimport(s)` is false once `importGen` is 4.
+  It is true when `importGen` is below 3 and the session is a Codex one from before 0.1.121 whose kept transcript
+  has file changes (`FileChange`, `unified_diff`) or whose steps have an `exec` call that ran no command (Codex 0.155+
+  changes were skipped, and an edit lost the line after its hunk). It is true for any older import that 0.1.122 reads
+  differently: a step stored as a test run that only lists the tests, a Codex patch with `move_path` in the kept text,
+  or a weakened assertion whose message cut a line at 40 characters. Below generation 2 it is also true for a session
+  that wrote or edited a test file or a runner config and has no `prev_content` and no `delete` event. The session's tab then shows
   **Import again** (`reimport()` in `src/webview/review.js`). It parses `source_text`, or a file picked again when
   the transcript was too large to keep (400 KB), into the same session (`Lens.pickConversation()` takes the session's
   own conversation of a file with several; "Back to regex parsing" uses it too since 0.1.115): id, name, spec and verdicts stay, `events`
