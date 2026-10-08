@@ -1004,6 +1004,71 @@ function setActiveTab(tab) {
   }
 }
 
+/* 0.1.124: the Sessions tree puts its sessions in groups, by the setting sessionlens.sessionsGroupBy (the button in the
+   tree's title sets it). By date is the default: Today, Yesterday, This week (since Monday) and Earlier, by when the
+   agent ran the session (the summary's started), or when it was imported (created) for a transcript with no times. A
+   group with no session is not shown. Groups start expanded; VS Code remembers the ones the person collapsed by their
+   ids. Each group holds the summaries it shows, so a group's children need no second pass over the store. */
+const GROUP_BY = {
+  date: { label: "Date", detail: "Today, Yesterday, This week, Earlier" },
+  profile: { label: "Profile", detail: "qa-ts, qa-python, …" },
+  verdict: { label: "Verdict", detail: "Red, Yellow, Green" },
+  agent: { label: "Agent", detail: "Claude Code, Codex, Cursor, …" },
+};
+const DATE_GROUPS = { today: "Today", yesterday: "Yesterday", week: "This week", earlier: "Earlier" };
+const VERDICT_GROUPS = { red: "Red", yellow: "Yellow", green: "Green" };
+const AGENT_GROUPS = { "claude-code": "Claude Code", codex: "Codex", cursor: "Cursor", "claude-ai": "claude.ai", text: "Text transcript", "": "Unknown agent" };
+let nowMs = () => Date.now(); // tests set it (_test.setNow)
+function sessionsGroupBy() {
+  try {
+    const v = vscode.workspace.getConfiguration(CONFIG).get("sessionsGroupBy");
+    return Object.prototype.hasOwnProperty.call(GROUP_BY, v) ? v : "date";
+  } catch {
+    return "date";
+  }
+}
+// when the agent ran the session, or when it was imported; NaN when neither is a date
+const sessionTime = (m) => Date.parse(m.started || m.created || "");
+// → the key of the date group, by the local day: today, yesterday, week (from Monday on), earlier
+function dateGroup(m, now) {
+  const t = sessionTime(m);
+  if (isNaN(t)) return "earlier";
+  const day = new Date(now);
+  day.setHours(0, 0, 0, 0);
+  if (t >= day.getTime()) return "today"; // a time ahead of this clock too
+  const yesterday = new Date(day);
+  yesterday.setDate(day.getDate() - 1);
+  if (t >= yesterday.getTime()) return "yesterday";
+  const monday = new Date(day);
+  monday.setDate(day.getDate() - ((day.getDay() + 6) % 7));
+  return t >= monday.getTime() ? "week" : "earlier";
+}
+/* → [{ key, label, items }] in the order shown; list is store.list() (newest import first). By date, a group lists its
+   sessions by sessionTime, newest first, so a transcript imported today that ran last week sits with that week's. */
+function groupSessions(list, by, now) {
+  let order, labels, keyOf;
+  if (by === "profile") {
+    keyOf = (m) => m.profile || "";
+    const seen = [...new Set(list.map(keyOf))];
+    order = [...Lens.PROFILES.filter((p) => seen.includes(p)), ...seen.filter((p) => !Lens.PROFILES.includes(p)).sort()];
+    labels = Object.fromEntries(order.map((p) => [p, p || "No profile"]));
+  } else if (by === "verdict") {
+    keyOf = (m) => (VERDICT_GROUPS[m.verdict] ? m.verdict : "green");
+    [order, labels] = [Object.keys(VERDICT_GROUPS), VERDICT_GROUPS];
+  } else if (by === "agent") {
+    keyOf = (m) => (Object.prototype.hasOwnProperty.call(AGENT_GROUPS, m.agent) ? m.agent : "");
+    [order, labels] = [Object.keys(AGENT_GROUPS), AGENT_GROUPS];
+  } else {
+    keyOf = (m) => dateGroup(m, now);
+    [order, labels] = [Object.keys(DATE_GROUPS), DATE_GROUPS];
+    list = list
+      .map((m, i) => ({ m, i, t: sessionTime(m) }))
+      .sort((a, b) => (isNaN(b.t) ? -Infinity : b.t) - (isNaN(a.t) ? -Infinity : a.t) || a.i - b.i)
+      .map((x) => x.m);
+  }
+  return order.map((key) => ({ key, label: labels[key], items: list.filter((m) => keyOf(m) === key) })).filter((g) => g.items.length);
+}
+
 // Native tree list of sessions, shown above the webview in the same sidebar container. A plain
 // webview list needs an initial click just to hand its iframe mouse/keyboard focus — harmless the
 // very first time, but every session tab it opens takes that focus away again, so the very next
@@ -1022,11 +1087,25 @@ class SessionsTreeProvider {
   getTreeItem(item) {
     return item;
   }
-  // The summaries only (store.js meta files), never the sessions themselves.
-  async getChildren() {
+  // The summaries only (store.js meta files), never the sessions themselves. The root has the groups, a group its sessions.
+  async getChildren(element) {
+    if (element) return (element.sessions || []).map((s) => this.toItem(s));
     await host.ready;
     const list = host.storeOpen ? host.store.list() : [];
-    return list.map((s) => this.toItem(s)); // empty: package.json's viewsWelcome (text + Import button) shows instead
+    if (!list.length) return []; // package.json's viewsWelcome (text + Import button) shows instead
+    const by = sessionsGroupBy();
+    return groupSessions(list, by, nowMs()).map((g) => this.toGroup(by, g));
+  }
+  toGroup(by, g) {
+    const item = /** @type {import("vscode").TreeItem & { sessions?: object[] }} */ (new vscode.TreeItem(g.label, vscode.TreeItemCollapsibleState.Expanded));
+    // a session id is never empty and has no "\n" (validate.js checkId), so it cannot be a group's id
+    item.id = `group\n${by}\n${g.key}`;
+    item.description = String(g.items.length);
+    item.contextValue = "sessionlensGroup";
+    if (by === "agent" && g.key === "")
+      item.tooltip = t("Imported before SessionLens 0.1.124 from a transcript too long to keep. Import again in the session's tab tells the agent.");
+    item.sessions = g.items;
+    return item;
   }
   toItem(s) {
     const label = Lens.displayName(s) || s.id;
@@ -1082,6 +1161,26 @@ async function openSessionPick(context) {
   const items = list.map((m) => ({ label: Lens.displayName(m) || m.id, description: describeSession(m), detail: Lens.otherName(m) || undefined, id: m.id }));
   const pick = await vscode.window.showQuickPick(items, { placeHolder: t("Open a session"), matchOnDescription: true, matchOnDetail: true });
   if (pick) openSessionPanel(context, pick.id);
+}
+
+/* The button in the Sessions tree's title (0.1.124): what to group the sessions by. Written to the user's settings, so
+   every window groups the same way; the change of the setting redraws the tree (activate()). */
+async function pickGroupBy() {
+  const cur = sessionsGroupBy();
+  /** @type {Array<import("vscode").QuickPickItem & { value: string }>} */
+  const items = Object.entries(GROUP_BY).map(([value, g]) => ({
+    label: (value === cur ? "$(check) " : "") + t(g.label),
+    description: t(g.detail),
+    value,
+  }));
+  const pick = await vscode.window.showQuickPick(items, { title: t("SessionLens: group sessions by"), placeHolder: t(GROUP_BY[cur].label) });
+  if (!pick || pick.value === cur) return;
+  try {
+    await vscode.workspace.getConfiguration(CONFIG).update("sessionsGroupBy", pick.value, vscode.ConfigurationTarget.Global);
+  } catch (e) {
+    host.log("could not write the setting sessionlens.sessionsGroupBy: " + String((e && e.message) || e));
+  }
+  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
 }
 
 async function renameSession(context, arg) {
@@ -1215,11 +1314,13 @@ function activate(context) {
     ),
     vscode.commands.registerCommand("sessionlens.renameSession", (arg) => renameSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.deleteSession", (arg) => deleteSession(context, arg)),
+    vscode.commands.registerCommand("sessionlens.groupSessions", () => pickGroupBy()),
   );
   // phase 6: a change in Settings (by hand, from another window, Settings Sync) reaches every page like a panel save
   if (vscode.workspace.onDidChangeConfiguration) {
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration(CONFIG + ".sessionsGroupBy") && sessionsTreeProvider) sessionsTreeProvider.refresh();
         const which = Object.keys(CONFIG_SETTINGS).filter((k) => e.affectsConfiguration(CONFIG + "." + k));
         if (!which.length) return; // the CLI paths are read when a CLI starts
         host.log("settings changed: " + which.map((k) => "sessionlens." + k).join(", "));
@@ -1269,6 +1370,10 @@ module.exports = {
   _test: {
     setReadyTimeout(ms) {
       readyTimeoutMs = ms;
+    },
+    // the clock the date groups of the Sessions tree are counted from
+    setNow(fn) {
+      nowMs = fn;
     },
   },
 };

@@ -36,6 +36,7 @@ function fakeVscode(opts = {}) {
       "sessionlens.verify",
       "sessionlens.lint",
       "sessionlens.rulesTarget",
+      "sessionlens.sessionsGroupBy",
     ],
   );
   class EventEmitter {
@@ -85,11 +86,12 @@ function fakeVscode(opts = {}) {
     ViewColumn: { Active: -1 },
     ProgressLocation: { Window: 10 },
     TreeItem: class {
-      constructor(label) {
+      constructor(label, collapsibleState) {
         this.label = label;
+        this.collapsibleState = collapsibleState;
       }
     },
-    TreeItemCollapsibleState: { None: 0 },
+    TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
     ThemeIcon: class {},
     ThemeColor: class {},
     l10n,
@@ -214,6 +216,17 @@ function fakeVscode(opts = {}) {
   return { vscode, registered, calls, config, setConfig };
 }
 
+/* The session items of the Sessions tree, in the order shown, whatever it groups by (0.1.124: the root holds groups).
+   A session item at the root is returned as it is. */
+async function treeSessions(tree) {
+  const out = [];
+  for (const it of await tree.getChildren()) {
+    if (it.contextValue === "sessionlensGroup") out.push(...(await tree.getChildren(it)));
+    else out.push(it);
+  }
+  return out;
+}
+
 // Loads extension.js with the fake module in place of "vscode"; a fresh copy each time.
 function loadExtension(vscode) {
   const root = path.join(__dirname, "..");
@@ -322,4 +335,4 @@ function fakeWebviewView() {
   };
 }
 
-module.exports = { fakeVscode, loadExtension, fakeContext, fakeMemento, fakeSecretStorage, fakeWebviewView };
+module.exports = { fakeVscode, loadExtension, fakeContext, fakeMemento, fakeSecretStorage, fakeWebviewView, treeSessions };

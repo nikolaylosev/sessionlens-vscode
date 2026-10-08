@@ -68,7 +68,7 @@ A session's overall result is **Red** if it has any high-severity finding, **Yel
 
 ### Sessions
 
-A native list, under the Calibration & Settings panel, of every session you have loaded. A colored dot shows its verdict (red/yellow/green); a ✓ replaces it once the session is marked reviewed. Click a session to open it in its own editor tab; right-click it for **Open**, **Rename…** and **Delete**. A session you renamed is shown under its new name everywhere (list, tab title, header); otherwise the task id found in the transcript is shown, with the file name under it. With no sessions yet, the list shows an **Import transcript…** button. The list is visible right after installing, while the **Sessions** tab below is open and while the panel below is collapsed; it is hidden while you're on Calibration, Rules, Model rules or Settings.
+A native list, under the Calibration & Settings panel, of every session you have loaded. A colored dot shows its verdict (red/yellow/green); a ✓ replaces it once the session is marked reviewed. Click a session to open it in its own editor tab; right-click it for **Open**, **Rename…** and **Delete**. A session you renamed is shown under its new name everywhere (list, tab title, header); otherwise the task id found in the transcript is shown, with the file name under it. Sessions are grouped by date: **Today**, **Yesterday**, **This week** (since Monday) and **Earlier**, by when the agent ran the session (a claude.ai export has no times, so it counts from its import). The button in the list's title groups them by **Profile**, **Verdict** or **Agent** instead. With no sessions yet, the list shows an **Import transcript…** button. The list is visible right after installing, while the **Sessions** tab below is open and while the panel below is collapsed; it is hidden while you're on Calibration, Rules, Model rules or Settings.
 
 If you moved the two parts around in an earlier version, VS Code keeps your order.
 
@@ -518,6 +518,7 @@ SessionLens finds `agent` in `~/.local/bin`, where the installer puts it. Set a 
 - **Open session…** — pick a session by name, profile or date; it opens in its own tab.
 - **Export verdicts** — the same as **Export verdicts.json** on the Calibration tab.
 - **Open settings** — VS Code Settings, filtered to this extension.
+- **Group sessions by…** — date, profile, verdict or agent; the same as the button in the Sessions list's title.
 
 **Settings** (Settings → Extensions → SessionLens, or `sessionlens.*` in `settings.json`):
 
@@ -528,9 +529,10 @@ SessionLens finds `agent` in `~/.local/bin`, where the installer puts it. Set a 
 | `sessionlens.verify` | ⚙ Verification call | on |
 | `sessionlens.lint` | ⚙ Static analysis | on |
 | `sessionlens.rulesTarget` | Calibration → Target file | `claude` |
+| `sessionlens.sessionsGroupBy` | the button in the Sessions list's title | `date` |
 | `sessionlens.claudeCliPath`, `sessionlens.codexCliPath`, `sessionlens.cursorCliPath` | path to the `claude` / `codex` / `agent` command | found automatically |
 
-The first five are user settings: Settings Sync carries them to your other machines, and a project's
+The first six are user settings: Settings Sync carries them to your other machines, and a project's
 `.vscode/settings.json` cannot change them. The CLI paths are machine settings and are not synced. Values you had set
 in the panel before 0.1.103 are moved into these settings on the first start.
 

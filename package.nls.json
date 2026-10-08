@@ -13,6 +13,7 @@
   "cmd.treeOpen": "Open",
   "cmd.treeRename": "Rename…",
   "cmd.treeDelete": "Delete",
+  "cmd.groupSessions": "Group sessions by…",
   "config.title": "SessionLens",
   "config.claudeCliPath": "Full path to the Claude Code CLI (`claude`). Leave empty to find it automatically. Machine setting: a workspace cannot change it.",
   "config.cursorCliPath": "Full path to the Cursor Agent CLI (`agent`). Leave empty to find it automatically in `~/.local/bin`. Machine setting: a workspace cannot change it.",
@@ -25,5 +26,10 @@
   "config.rulesTarget.claude": "CLAUDE.md (Claude Code)",
   "config.rulesTarget.codex": "AGENTS.md (Codex, Cursor and other agents that read it)",
   "config.rulesTarget.cursor": ".cursor/rules/sessionlens.mdc (Cursor's own project rule, loaded in every Agent chat)",
-  "config.rulesTarget.both": "Both CLAUDE.md and AGENTS.md"
+  "config.rulesTarget.both": "Both CLAUDE.md and AGENTS.md",
+  "config.sessionsGroupBy": "How the **Sessions** list groups the sessions. The button in the list's title changes it too.",
+  "config.sessionsGroupBy.date": "By when the agent ran the session: Today, Yesterday, This week (since Monday), Earlier. A transcript without times counts from its import.",
+  "config.sessionsGroupBy.profile": "By profile (qa-ts, qa-python, …).",
+  "config.sessionsGroupBy.verdict": "By verdict: Red, Yellow, Green.",
+  "config.sessionsGroupBy.agent": "By the agent the transcript comes from: Claude Code, Codex, Cursor, claude.ai, or a text transcript."
 }

@@ -6,6 +6,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 const { bootHost, openPage } = require("./host-panel");
+const { treeSessions } = require("./fake-vscode");
 async function showView(p, view) {
   p.document.querySelector(`.tab[data-view="${view}"]`).dispatchEvent(new p.window.MouseEvent("click", { bubbles: true }));
   await p.idle();
@@ -145,7 +146,7 @@ test("a Rules checkbox: no analysis in the sidebar; one write after 300 ms; the 
   await until(() => metas().every((m) => m.analyzedGen === gen), 10000);
   const bgPuts = sb.sent.filter((m) => m.type === "session:put");
   assert.ok(bgPuts.every((m) => m.payload.background === true));
-  const tree = await host.registered.trees.sessionlensSessionsTree.getChildren();
+  const tree = await treeSessions(host.registered.trees.sessionlensSessionsTree);
   assert.equal(tree.length, ids.length);
   for (const m of metas()) assert.ok(!m.checkStats.sleep_or_skip_added, `${m.id} still has the disabled check`);
   assert.deepEqual([...sb.errors, ...tab.errors], []);

@@ -202,7 +202,7 @@ flowchart TB
 | View | Kind | What it shows |
 |---|---|---|
 | `sessionlensView` — "Calibration & Settings" | webview view in the SessionLens activity bar container | tabs **Sessions**, **Calibration**, **Rules**, **Model rules**, **⚙** |
-| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions; Open, Rename, Delete; visible while the Sessions tab is active |
+| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions in groups (date, profile, verdict or agent); Open, Rename, Delete; visible while the Sessions tab is active |
 | `sessionlensSession` | webview panel, one per session | the review of one session: findings, verdicts, spec, timeline, coverage |
 
 All three webviews load the same page (`sidepanel.html` + scripts); a session tab boots straight into its review
@@ -654,7 +654,7 @@ flowchart TD
 |---|---|---|
 | Sessions | `globalStorage/sessions/<name>.json` + `<name>.meta.json` | atomic write (temp file, rename), repair on open, retry on Windows locks (RA §15) |
 | Settings of the page, rule overrides, calibration log, results of compress/skill | `globalState`, keys in `STORAGE_KEYS` | the page reads and writes only these keys |
-| Eight user settings | VS Code configuration `sessionlens.*` | two-way sync with the ⚙ tab (RA §16.1): the three CLI paths, `minGapMs`, `maxCode`, `verify`, `lint`, `rulesTarget` |
+| Nine user settings | VS Code configuration `sessionlens.*` | the three CLI paths; `minGapMs`, `maxCode`, `verify`, `lint`, `rulesTarget` in two-way sync with the ⚙ tab (RA §16.1); `sessionsGroupBy`, set by the Sessions tree's title button |
 | API keys | SecretStorage | never in `globalState`, never in a webview (RA §14) |
 | Local / Qwen base URLs | `globalState.hostBaseUrls`, written only by `baseurl:set` | the page cannot point the host at an address |
 
@@ -664,7 +664,8 @@ VS Code configuration, sessions from `globalState` into files, keys into SecretS
 ### 6.11 Settings
 
 `sessionlens.claudeCliPath`, `sessionlens.codexCliPath`, `sessionlens.cursorCliPath`, `sessionlens.minGapMs`, `sessionlens.maxCode`,
-`sessionlens.verify`, `sessionlens.lint`, `sessionlens.rulesTarget`. The ⚙ tab edits the same values plus the
+`sessionlens.verify`, `sessionlens.lint`, `sessionlens.rulesTarget`, `sessionlens.sessionsGroupBy` (0.1.124, the host's
+own: the Sessions tree reads it, the page does not see it). The ⚙ tab edits the same values (but the last) plus the
 models per task, the keys, the local and Qwen addresses and the demo button. A change in `settings.json` reaches every open page.
 
 ### 6.12 Demo session

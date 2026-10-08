@@ -8,6 +8,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { bootHost, openPage } = require("./host-panel");
+const { treeSessions } = require("./fake-vscode");
 const { createStore } = require("../store.js");
 const { load } = require("./helpers");
 
@@ -90,9 +91,9 @@ test("the PR report names the hidden high findings and counts the rest; without 
 
 test("the Sessions tree counts the hidden findings next to the shown ones", async () => {
   const h = await host(session([hiddenHigh, hiddenLow], SUPPRESSED));
-  const [item] = await h.registered.trees.sessionlensSessionsTree.getChildren();
+  const [item] = await treeSessions(h.registered.trees.sessionlensSessionsTree);
   assert.equal(item.description, "qa-ts · 1 finding · 2 hidden by calibration · 1 verdict · 2026-10-01");
   const plain = await host(session([], []));
-  const [p] = await plain.registered.trees.sessionlensSessionsTree.getChildren();
+  const [p] = await treeSessions(plain.registered.trees.sessionlensSessionsTree);
   assert.equal(p.description, "qa-ts · 1 finding · 1 verdict · 2026-10-01");
 });
