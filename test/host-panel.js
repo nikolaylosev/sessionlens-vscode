@@ -52,8 +52,15 @@ function fakePanel() {
   const wv = fakeWebviewView();
   let disposeCb = null,
     viewCb = null;
+  // as in VS Code: a closed tab refuses its webview and reveal(), also inside its own onDidDispose
+  const gone = () => {
+    if (panel.disposed) throw new Error("Webview is disposed");
+  };
   const panel = {
-    webview: wv.webview,
+    get webview() {
+      gone();
+      return wv.webview;
+    },
     title: "",
     iconPath: null,
     visible: true,
@@ -63,10 +70,12 @@ function fakePanel() {
     onDidDispose: (cb) => {
       disposeCb = cb;
     },
-    reveal() {},
+    reveal() {
+      gone();
+    },
     dispose() {
-      if (disposeCb) disposeCb();
       panel.disposed = true;
+      if (disposeCb) disposeCb();
     },
     focus() {
       if (viewCb) viewCb({ webviewPanel: panel });

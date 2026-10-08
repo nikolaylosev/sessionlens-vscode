@@ -1255,6 +1255,12 @@ the host resets readiness when the view is hidden or closed (without `retainCont
 `vscode-bridge.js` lets through only the names `import`, `exportVerdicts`, `rename`; `SL_COMMAND` in `app.js` decides
 what to do: the sidebar handles import and export, a session tab only renames its own session.
 
+**A closed tab** (since v0.1.124): `setupSessionPanel` and the sidebar keep their `webview` in a variable, because a
+closed tab or view throws "Webview is disposed" on `.webview`, also inside its own `onDidDispose`. Before, the handler
+stopped at that line, the tab stayed in `sessionPanels`, and the sidebar's background analysis skipped its session
+(`session:put` with `background` is left to an open tab). An `ai:call` whose view closed while it waited for
+`host.ready` is not started.
+
 **Rename from the tree.** If the session is open in a tab, the host hands `rename` to the tab: it has its own copy and its own
 `baseRev`, and a write around it would cause a conflict. Otherwise the host reads the session, sets `name` and `nameSet`, writes with
 `baseRev` (3 attempts), broadcasts `session`. **Delete** — a modal confirmation, closing the tab, `store.delete`,

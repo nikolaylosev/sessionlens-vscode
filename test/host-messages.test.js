@@ -162,13 +162,16 @@ test("ai:call: the host adds the key; errors that echo it are redacted; replies 
 });
 
 test("ai:call: closing the view aborts its request; the late reply goes nowhere and throws nothing", async () => {
+  let arrived;
+  const reached = new Promise((r) => (arrived = r));
   const s = await server(() => {
-    /* never answers */
+    arrived(); // never answers
   });
   try {
     const { wv } = await boot({ globalState: { hostBaseUrls: { local: `http://127.0.0.1:${s.address().port}/v1` } } });
     const run = wv.started("ai:call", { provider: "local", model: "l", system: "s", user: "u" });
-    await new Promise((r) => setTimeout(r, 50));
+    // the request is at the server before the view closes (until 0.1.124 a fixed 50 ms, too short on a loaded machine)
+    await reached;
     wv.webview.postMessage = () => {
       throw new Error("Webview is disposed");
     };
@@ -176,6 +179,28 @@ test("ai:call: closing the view aborts its request; the late reply goes nowhere 
     // resolves promptly: aborted, reply swallowed (a local request has no host time limit, so without the abort it would hang)
     const outcome = await Promise.race([run.done.then(() => "done"), new Promise((r) => setTimeout(() => r("hung"), 2000))]);
     assert.equal(outcome, "done");
+  } finally {
+    s.closeAllConnections && s.closeAllConnections();
+    s.close();
+  }
+});
+
+test("ai:call: a view closed before its request started sends nothing (0.1.124)", async () => {
+  let requests = 0;
+  const s = await server(() => {
+    requests++; // never answers
+  });
+  try {
+    const { wv } = await boot({ globalState: { hostBaseUrls: { local: `http://127.0.0.1:${s.address().port}/v1` } } });
+    const run = wv.started("ai:call", { provider: "local", model: "l", system: "s", user: "u" });
+    wv.webview.postMessage = () => {
+      throw new Error("Webview is disposed");
+    };
+    wv.dispose(); // the handler is still waiting for host.ready
+    const outcome = await Promise.race([run.done.then(() => "done"), new Promise((r) => setTimeout(() => r("hung"), 2000))]);
+    assert.equal(outcome, "done");
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(requests, 0);
   } finally {
     s.closeAllConnections && s.closeAllConnections();
     s.close();

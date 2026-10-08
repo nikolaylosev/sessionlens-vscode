@@ -46,15 +46,21 @@ function recordPanels(vscode) {
   vscode.window.createWebviewPanel = (viewType, title) => {
     const wv = fakeWebviewView();
     let disposeCb = null;
+    // as in VS Code: a closed tab refuses its webview and reveal(), also inside its own onDidDispose
     const panel = {
       viewType,
       title,
-      webview: wv.webview,
+      get webview() {
+        if (panel.disposed) throw new Error("Webview is disposed");
+        return wv.webview;
+      },
       onDidChangeViewState() {},
       onDidDispose(cb) {
         disposeCb = cb;
       },
-      reveal() {},
+      reveal() {
+        if (panel.disposed) throw new Error("Webview is disposed");
+      },
       dispose() {
         panel.disposed = true;
         if (disposeCb) disposeCb();
@@ -516,6 +522,25 @@ test("Move to group (tree) while the session is open in a tab: the tab's next ve
   assert.equal(meta().group, "Checkout", "the tab read the session again after the conflict and kept the group");
   assert.deepEqual(tab.errors, []);
   tab.close();
+});
+
+// 0.1.124: the tab's onDidDispose read panel.webview, which a closed tab refuses, and stopped there
+test("a closed session tab is let go: no error, and the sidebar's background analysis reaches its session again", async () => {
+  const s = { id: "t1", name: "n", task: "T-1", profile: "qa-ts", created: "2026-09-01T12:00:00Z", events: [], findings: [], verdicts: {} };
+  const h = await hostOnly({ globalState: { sessions: { t1: s } } });
+  const panels = recordPanels(h.vscode);
+  const background = async () => {
+    const g = await h.wv.send("session:get", { id: "t1" });
+    return h.wv.send("session:put", { session: g.session, baseRev: g.rev, background: true });
+  };
+  await h.registered.commands["sessionlens.openSessionFromTree"]("t1");
+  assert.equal(panels.length, 1);
+  assert.deepEqual(await background(), { skipped: true }, "open in a tab: left to the tab");
+  panels[0].dispose(); // threw "Webview is disposed" before 0.1.124
+  const r = await background();
+  assert.equal(r.ok, true, "closed: the background write goes through");
+  await h.registered.commands["sessionlens.openSessionFromTree"]("t1");
+  assert.equal(panels.length, 2, "opening it again makes a new tab");
 });
 
 test("Delete (tree): asks first; closes the session's tab; gone from store, tree and sidebar", async () => {

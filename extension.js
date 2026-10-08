@@ -562,6 +562,7 @@ function wireMessages(
   { onOpenSession, onClose, onReady } = /** @type {{ onOpenSession?: Function, onClose?: Function, onReady?: Function }} */ ({}),
 ) {
   const inflight = new Set(); // AbortControllers of this webview's pending ai:call requests
+  let gone = false; // the view or tab is closed: an ai:call that was still waiting for host.ready never starts (0.1.124)
   let knownConfig = null; // the five VS Code settings as this page last saw them (writeConfigSettings); null: not read yet
   const keyStatus = () => Secrets.keyStatus(host.secrets, context.globalState.get("settings"), LensAI.PROVIDERS);
   const vctx = {
@@ -722,6 +723,7 @@ function wireMessages(
         reply({ ok: true, url: url || p.defaultBaseUrl || "" });
       } else if (msg.type === "ai:call") {
         await host.ready;
+        if (gone) return; // closed meanwhile: nobody would read the reply, and a local request has no time limit
         const ctl = new AbortController();
         inflight.add(ctl);
         try {
@@ -834,6 +836,7 @@ function wireMessages(
   });
   return {
     dispose() {
+      gone = true;
       for (const c of inflight) c.abort("disposed");
       inflight.clear();
     },
@@ -897,21 +900,25 @@ function setupSessionPanel(context, panel, id) {
   } catch {
     /* disposed */
   }
-  panel.webview.html = buildHtml(panel.webview, context.extensionUri, id);
-  const wired = wireMessages(context, panel.webview, {
+  /* Kept here: a closed tab throws "Webview is disposed" on .webview, also inside its own onDidDispose. Until 0.1.124
+     the handler below read it there and stopped at that line, so the closed tab stayed in sessionPanels: the sidebar's
+     background analysis then skipped its session until the window was reloaded, and every close logged the error. */
+  const webview = panel.webview;
+  webview.html = buildHtml(webview, context.extensionUri, id);
+  const wired = wireMessages(context, webview, {
     onOpenSession: (otherId) => openSessionPanel(context, otherId),
     onClose: () => panel.dispose(),
   });
-  activeWebviews.add(panel.webview);
+  activeWebviews.add(webview);
   // Refresh from storage whenever the tab regains focus, so edits made in another
   // tab (or the sidebar) while this one was hidden aren't shown stale.
   panel.onDidChangeViewState((e) => {
-    if (e.webviewPanel.visible) refreshOnFocus(panel.webview);
+    if (e.webviewPanel.visible) refreshOnFocus(webview);
   });
   sessionPanels.set(id, panel);
   panel.onDidDispose(() => {
     wired.dispose();
-    activeWebviews.delete(panel.webview);
+    activeWebviews.delete(webview);
     if (sessionPanels.get(id) === panel) sessionPanels.delete(id);
   });
 }
@@ -977,10 +984,12 @@ class SessionLensViewProvider {
       onOpenSession: (id) => openSessionPanel(this.context, id),
       onReady: () => this.markReady(),
     });
-    activeWebviews.add(webviewView.webview);
+    // kept here: a view that is gone throws "Webview is disposed" on .webview, also inside its own onDidDispose
+    const webview = webviewView.webview;
+    activeWebviews.add(webview);
     webviewView.onDidDispose(() => {
       wired.dispose();
-      activeWebviews.delete(webviewView.webview);
+      activeWebviews.delete(webview);
       if (this.view === webviewView) {
         this.view = null;
         this.resetReady();
