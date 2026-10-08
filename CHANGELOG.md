@@ -21,6 +21,8 @@
   session, so every window shows the same, and the filter finds a session by its group's name too.
 - **Select several sessions** in the list with Shift or Cmd/Ctrl-click: **Open**, **Move to group…** and **Delete** act
   on all of them (Delete asks once and names them), and several can be dragged onto a group at once.
+- The Sessions list has a **Collapse All** button for its groups. A session's tooltip names its agent and its group,
+  and **Open session…** shows the group, so typing a group's name finds its sessions.
 
 ### Changed
 - The date in the line under a session (in the Sessions list and **Open session…**) is now the day the agent ran the
