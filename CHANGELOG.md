@@ -26,6 +26,13 @@
   today that ran last week showed today's date under **Earlier**. A claude.ai export has no times and still shows the
   day of its import.
 
+### Fixed
+- Closing a session's tab wrote "Webview is disposed" to VS Code's log, and the window kept treating the session as
+  open: when the rules or the static analysis setting changed, the sidebar did not analyze that session again until
+  the window was reloaded or the session opened. Now a closed tab is let go.
+- A model request from a panel that was closed before the request started was still sent, and a request to a local
+  server has no time limit, so it could hang there. Now it is not sent.
+
 ## 0.1.123
 
 ### Fixed

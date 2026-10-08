@@ -373,8 +373,13 @@ function fakeWebviewView() {
     },
   };
   let disposeCb = null;
+  // as in VS Code, a view that is gone refuses its webview, also inside its own onDidDispose (0.1.124: the host read it there)
+  let disposed = false;
   const view = {
-    webview,
+    get webview() {
+      if (disposed) throw new Error("Webview is disposed");
+      return webview;
+    },
     visible: true,
     onDidDispose: (cb) => {
       disposeCb = cb;
@@ -392,7 +397,10 @@ function fakeWebviewView() {
     webview,
     posted,
     send,
-    dispose: () => disposeCb && disposeCb(),
+    dispose: () => {
+      disposed = true;
+      if (disposeCb) disposeCb();
+    },
     started: (type, payload) => {
       const id = ++seq;
       return { id, done: handler({ __sl: true, id, type, payload: Object.assign({ lang: "en" }, payload) }) };
