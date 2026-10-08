@@ -30,7 +30,7 @@ function session(id, extra = {}) {
   );
 }
 async function host(sessions, opts = {}) {
-  const f = fakeVscode({ config: { global: opts.config || {} }, quickPickAnswer: opts.quickPickAnswer });
+  const f = fakeVscode({ config: { global: opts.config || {} }, quickPickAnswer: opts.quickPickAnswer, configFails: opts.configFails });
   const ext = loadExtension(f.vscode);
   ext._test.setNow(() => opts.now || NOW);
   ext.activate(fakeContext({ globalState: { sessions: Object.fromEntries(sessions.map((s) => [s.id, s])) } }));
@@ -162,4 +162,32 @@ test("no sessions: no groups, so the welcome view with its Import button shows",
   const h = await host([]);
   assert.deepEqual(await h.tree.getChildren(), []);
   assert.deepEqual(await treeSessions(h.tree), []);
+});
+
+test("the line under a session shows the day the tree groups it by: when the agent ran it, else the import's", async () => {
+  const h = await host([session("ran", { started: at(1, 9), created: at(7, 10) }), session("no-times", { created: at(6, 10) })]);
+  const by = Object.fromEntries((await treeSessions(h.tree)).map((s) => [s.id, s.description]));
+  assert.equal(by.ran, "qa-ts · 0 findings · 2026-10-01", "imported on the 7th, ran on the 1st: Earlier, and the 1st");
+  assert.equal(by["no-times"], "qa-ts · 0 findings · 2026-10-06");
+});
+
+// the owner's first try of 0.1.124: a .vsix installed into an open window, where VS Code refused to write the setting
+test("the title button regroups even when the setting cannot be written, and says so; a later change of the setting wins", async () => {
+  const h = await host([session("a", { findings: [finding(1)] }), session("b")], {
+    configFails: true,
+    quickPickAnswer: (items) => items.find((i) => i.value === "verdict"),
+  });
+  await h.registered.commands["sessionlens.groupSessions"]();
+  assert.deepEqual(
+    (await groups(h.tree)).map((g) => g[0]),
+    ["Red", "Green"],
+  );
+  assert.equal(h.calls.warning.length, 1);
+  assert.match(h.calls.warning[0][0], /grouped by verdict in this window, but the choice could not be saved\. Reload the window/);
+  assert.ok(h.calls.output.some((l) => /could not write the setting sessionlens\.sessionsGroupBy/.test(l)));
+  h.setConfig("sessionlens.sessionsGroupBy", "profile");
+  assert.deepEqual(
+    (await groups(h.tree)).map((g) => g[0]),
+    ["qa-ts"],
+  );
 });

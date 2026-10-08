@@ -26,6 +26,18 @@ it("registers every contributed command", async () => {
   for (const c of pkg.contributes.commands) assert.ok(all.has(c.command), c.command);
 });
 
+// 0.1.124: the owner's first try showed "not a registered configuration" (a .vsix installed into an open window)
+it("the Sessions grouping setting is registered and can be written", async () => {
+  const cfg = () => vscode.workspace.getConfiguration("sessionlens");
+  assert.strictEqual(cfg().inspect("sessionsGroupBy").defaultValue, "date");
+  await cfg().update("sessionsGroupBy", "verdict", vscode.ConfigurationTarget.Global);
+  try {
+    assert.strictEqual(cfg().get("sessionsGroupBy"), "verdict");
+  } finally {
+    await cfg().update("sessionsGroupBy", undefined, vscode.ConfigurationTarget.Global);
+  }
+});
+
 it("the panel is above the Sessions tree (7A.2)", async () => {
   const views = vscode.extensions.getExtension(ID).packageJSON.contributes.views.sessionlens.map((v) => v.id);
   assert.deepStrictEqual(views, ["sessionlensView", "sessionlensSessionsTree"]);

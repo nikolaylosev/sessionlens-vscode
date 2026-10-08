@@ -13,7 +13,8 @@ const { createStore } = require("../store.js");
 const { load } = require("./helpers");
 
 const { Lens } = load();
-const at = "2026-10-01T00:00:00.000Z";
+// local midday: the Sessions tree shows the local day (0.1.124), so the test gives the same date in every time zone
+const at = new Date(2026, 9, 1, 12).toISOString();
 const shown = { check: "pass_claim_without_run", severity: "high", seq: 2, message: "Claims tests pass, but no test run", source: "formal" };
 const hiddenHigh = { check: "weak_assert", severity: "high", seq: 3, message: "e2e/a.spec.ts: weak assertion", source: "lint" };
 const hiddenLow = { check: "magic_number", severity: "low", seq: 4, message: "e2e/a.spec.ts: magic number 3000" };

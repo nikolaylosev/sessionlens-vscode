@@ -147,7 +147,7 @@ async function treeDescriptions(language, counts) {
     findings.forEach((f) => {
       verdicts[Lens.fkey(f)] = { v: "ok" };
     });
-    sessions[id] = { id, name: "n" + i, task: "T" + i, profile: "qa-ts", created: `2026-09-0${i + 1}T00:00:00Z`, events: [], findings, verdicts };
+    sessions[id] = { id, name: "n" + i, task: "T" + i, profile: "qa-ts", created: new Date(2026, 8, i + 1, 12).toISOString(), events: [], findings, verdicts };
   });
   const h = await hostOnly({ vscode: { language }, globalState: { sessions } });
   const items = await treeSessions(h.registered.trees.sessionlensSessionsTree);
@@ -380,7 +380,16 @@ test("visibility: hiding the panel shows the Sessions tree again (activeTab rese
 
 test("Open session…: a QuickPick of the index; the pick opens its tab, titled with its display name", async () => {
   let offered = null;
-  const s = { id: "q1", name: "file", task: "TASK-9", profile: "qa-api", created: "2026-09-02T00:00:00Z", events: [], findings: [], verdicts: {} };
+  const s = {
+    id: "q1",
+    name: "file",
+    task: "TASK-9",
+    profile: "qa-api",
+    created: new Date(2026, 8, 2, 12).toISOString(),
+    events: [],
+    findings: [],
+    verdicts: {},
+  }; // local midday: the tree shows the local day
   const h = await hostOnly({
     vscode: {
       quickPickAnswer: (items) => {

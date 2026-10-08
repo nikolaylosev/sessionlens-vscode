@@ -118,10 +118,13 @@ function countLabel(n, kind) {
   return fmt(n === 1 ? forms.one : forms.other, [n]);
 }
 // what the tree, Open session… and a tab's title show for a session: its name, or the task id (Lens.displayName)
+/* The date is the one the Sessions tree groups by (0.1.124): when the agent ran the session, or when it was imported for
+   a transcript with no times, as the local day. Until 0.1.124 it was the import's, so a session imported today that ran
+   last week sat under "Earlier" with today's date. */
 function describeSession(s) {
   const n = s.findingsCount || 0,
     done = s.verdictsCount || 0;
-  const date = String(s.created || "").slice(0, 10);
+  const date = localDay(sessionTime(s));
   const bits = [s.profile, countLabel(n, "finding")];
   // 0.1.116: a green session can still have findings an "off" check hides; the colour alone would say "nothing"
   if (s.hiddenCount) bits.push(countLabel(s.hiddenCount, "hidden"));
@@ -1019,7 +1022,12 @@ const DATE_GROUPS = { today: "Today", yesterday: "Yesterday", week: "This week",
 const VERDICT_GROUPS = { red: "Red", yellow: "Yellow", green: "Green" };
 const AGENT_GROUPS = { "claude-code": "Claude Code", codex: "Codex", cursor: "Cursor", "claude-ai": "claude.ai", text: "Text transcript", "": "Unknown agent" };
 let nowMs = () => Date.now(); // tests set it (_test.setNow)
+/* The last pick of the title button in this window. It is used even when the setting could not be written: a .vsix
+   installed into an open window runs its code before VS Code registers its settings, and the write is refused until
+   the window is reloaded (the owner's first try of 0.1.124). A change of the setting drops it. */
+let groupByPicked = null;
 function sessionsGroupBy() {
+  if (groupByPicked) return groupByPicked;
   try {
     const v = vscode.workspace.getConfiguration(CONFIG).get("sessionsGroupBy");
     return Object.prototype.hasOwnProperty.call(GROUP_BY, v) ? v : "date";
@@ -1028,7 +1036,16 @@ function sessionsGroupBy() {
   }
 }
 // when the agent ran the session, or when it was imported; NaN when neither is a date
-const sessionTime = (m) => Date.parse(m.started || m.created || "");
+function sessionTime(m) {
+  return Date.parse(m.started || m.created || "");
+}
+// YYYY-MM-DD of the local day; "" for NaN
+function localDay(ms) {
+  if (isNaN(ms)) return "";
+  const d = new Date(ms),
+    p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
 // → the key of the date group, by the local day: today, yesterday, week (from Monday on), earlier
 function dateGroup(m, now) {
   const t = sessionTime(m);
@@ -1175,12 +1192,20 @@ async function pickGroupBy() {
   }));
   const pick = await vscode.window.showQuickPick(items, { title: t("SessionLens: group sessions by"), placeHolder: t(GROUP_BY[cur].label) });
   if (!pick || pick.value === cur) return;
+  groupByPicked = pick.value;
+  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
   try {
     await vscode.workspace.getConfiguration(CONFIG).update("sessionsGroupBy", pick.value, vscode.ConfigurationTarget.Global);
   } catch (e) {
-    host.log("could not write the setting sessionlens.sessionsGroupBy: " + String((e && e.message) || e));
+    const why = String((e && e.message) || e);
+    host.log("could not write the setting sessionlens.sessionsGroupBy: " + why);
+    vscode.window.showWarningMessage(
+      t(
+        "SessionLens: the sessions are grouped by {0} in this window, but the choice could not be saved. Reload the window and choose it again.",
+        t(GROUP_BY[pick.value].label).toLowerCase(),
+      ),
+    );
   }
-  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
 }
 
 async function renameSession(context, arg) {
@@ -1320,7 +1345,10 @@ function activate(context) {
   if (vscode.workspace.onDidChangeConfiguration) {
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration(CONFIG + ".sessionsGroupBy") && sessionsTreeProvider) sessionsTreeProvider.refresh();
+        if (e.affectsConfiguration(CONFIG + ".sessionsGroupBy")) {
+          groupByPicked = null; // the setting holds the choice now (this window's write, or one from elsewhere)
+          if (sessionsTreeProvider) sessionsTreeProvider.refresh();
+        }
         const which = Object.keys(CONFIG_SETTINGS).filter((k) => e.affectsConfiguration(CONFIG + "." + k));
         if (!which.length) return; // the CLI paths are read when a CLI starts
         host.log("settings changed: " + which.map((k) => "sessionlens." + k).join(", "));

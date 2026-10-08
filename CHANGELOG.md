@@ -10,6 +10,12 @@
   A session imported before this version from a transcript too long to keep is under **Unknown agent** until
   **Import again**.
 
+### Changed
+- The date in the line under a session (in the Sessions list and **Open session…**) is now the day the agent ran the
+  session, in your time zone, the same day the date groups use. It was the day of the import, so a session imported
+  today that ran last week showed today's date under **Earlier**. A claude.ai export has no times and still shows the
+  day of its import.
+
 ## 0.1.123
 
 ### Fixed

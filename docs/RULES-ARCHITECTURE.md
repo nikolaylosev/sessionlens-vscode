@@ -1271,7 +1271,14 @@ Since v0.1.124 the root holds groups and a group its sessions (`groupSessions()`
 group with no session is not shown. A group is `Expanded`, `contextValue` `sessionlensGroup` (no session menu), and
 its `id` is `group\n<by>\n<key>`: a session id has no control characters (`checkId`), so the two never meet, and VS
 Code keeps a collapsed group collapsed by that id. The group item carries the summaries it shows; `getChildren(group)`
-does not read the store again.
+does not read the store again. The date in a session's line (`describeSession`, also in **Open session…**) is the local
+day of the same `started || created`; until v0.1.124 it was the UTC day of `created`.
+
+A pick of the title button is applied at once (`groupByPicked`), then written to the setting. A .vsix installed into
+an open window runs its new code before VS Code registers its settings, and the write fails with "not a registered
+configuration" until the window is reloaded (the owner's first try of 0.1.124): the tree is grouped anyway, the
+Output channel has the error, and a warning asks to reload. Any change of the setting drops the pick.
+`test-integration/suite.js` checks in a real VS Code that the setting is registered and can be written.
 
 ### 16.4 The session name
 
