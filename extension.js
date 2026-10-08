@@ -1216,6 +1216,12 @@ class SessionsTreeProvider {
     // a group of the person's own has Rename group… and Delete group in its menu
     item.contextValue = by === "custom" && g.key ? "sessionlensGroupCustom" : "sessionlensGroup";
     if (by === "custom") item.groupName = g.key;
+    /* No group says how to make a group: on hover, and in its line while there is none yet (My groups chosen before
+       any group was made showed every session under No group, and nothing said what to do next) */
+    if (by === "custom" && g.key === "") {
+      item.tooltip = t("Make a group with + New group in the title, or right-click a session → Move to group…, then drag sessions onto it.");
+      if (host.storeOpen && !groupNames(host.store.list()).length) item.description = t("{0} · make a group: + New group above", g.items.length);
+    }
     if (by === "agent" && g.key === "")
       item.tooltip = t("Imported before SessionLens 0.1.124 from a transcript too long to keep. Import again in the session's tab tells the agent.");
     item.sessions = g.items;

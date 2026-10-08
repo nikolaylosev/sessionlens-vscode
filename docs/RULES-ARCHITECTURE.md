@@ -1286,7 +1286,8 @@ Output channel has the error, and a warning asks to reload. Any change of the se
 `test-integration/suite.js` checks in a real VS Code that the setting is registered and can be written.
 
 "My groups" (`custom`, since v0.1.124) groups by the summary's `group`: the names in any case (`localeCompare`, base
-sensitivity), then "No group". A group is a name kept on the session file, so it travels with it and every window
+sensitivity), then "No group", whose tooltip says how to make a group (and its line too while there is none yet: "N · make a
+group: + New group above"). A group is a name kept on the session file, so it travels with it and every window
 sees the same; it exists while a session is in it. `setSessionGroups(ids, group)` writes each session through the store
 with its `baseRev` (3 attempts, as Rename from the tree) and broadcasts `session`; `""` deletes the field. A tab that
 has the session open gets a conflict at its next save, reads the session again and applies its change to it, so the

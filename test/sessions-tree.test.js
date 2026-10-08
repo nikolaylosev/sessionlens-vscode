@@ -441,7 +441,7 @@ test("Rename group… moves every session of it, also into a group there is; Del
   assert.equal(stored(h, "a").group, "Login", "cancelled: nothing changes");
   yes = true;
   await h.registered.commands["sessionlens.deleteGroup"](login);
-  assert.deepEqual(await groups(h.tree), [["No group", "3", ["c", "b", "a"]]]);
+  assert.deepEqual(await groups(h.tree), [["No group", "3 · make a group: + New group above", ["c", "b", "a"]]], "the last group is gone: the hint");
   assert.deepEqual(
     ["a", "b", "c"].map((id) => stored(h, id).name),
     ["a", "b", "c"],
@@ -554,4 +554,21 @@ test("+ New group: Escape at the name, or no session ticked, makes nothing; with
   await empty.registered.commands["sessionlens.newGroup"]();
   assert.match(empty.calls.info[0], /no sessions yet/);
   assert.equal(empty.calls.inputBox.length, 0);
+});
+
+test("My groups with no group yet: No group says how to make one, in its line and on hover; then only on hover", async () => {
+  const h = await host([session("a"), session("b")], {
+    config: myGroups,
+    inputBoxAnswer: () => "Checkout",
+    quickPickAnswer: (items) => items.filter((i) => i.id === "a"),
+  });
+  let [none] = await h.tree.getChildren();
+  assert.deepEqual([none.label, none.description], ["No group", "2 · make a group: + New group above"]);
+  assert.match(none.tooltip, /\+ New group.*Move to group…/);
+  await h.registered.commands["sessionlens.newGroup"]();
+  none = (await h.tree.getChildren()).find((g) => g.label === "No group");
+  assert.equal(none.description, "1", "a group is there: the count alone");
+  assert.match(none.tooltip, /\+ New group/);
+  const byDate = await host([session("a")]);
+  assert.equal((await byDate.tree.getChildren())[0].tooltip, undefined, "not in the other groupings");
 });

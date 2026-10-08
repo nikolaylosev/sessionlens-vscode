@@ -16,7 +16,7 @@
 - **Your own groups.** The **+ New group** button in the list's title asks for a name and lets you tick the sessions
   for it. Right-click a session → **Move to group…** puts it into a group you made or a new one; in **My groups** (a
   fifth way to group the list) you can also drag sessions onto a group. A name that differs from a group's only in
-  case is that group. A group's menu has
+  case is that group. While you have no group yet, **No group** says how to make one. A group's menu has
   **Rename group…** and **Delete group** (its sessions are kept and go to **No group**). The group is kept with the
   session, so every window shows the same, and the filter finds a session by its group's name too.
 
