@@ -1201,6 +1201,18 @@ file already exists with `rev > 1` (changed after an interrupted migration) is n
 After the migration, versions ≤ 0.1.100 see no sessions (they are in files). There is no backup copy in `globalState`: its size
 was the problem in the first place.
 
+### 15.7 Paths in the home folder (since v0.1.124)
+
+`importAny` ends with `fromHome()`: every step's `file` and `cmd` get `Lens.homeless`, which writes the home folder at
+the start of a path as `~` (`/Users/<name>/`, `/home/<name>/`, `C:\\Users\\<name>\\`; not `/Users/Shared`). The
+importers make a file inside the agent's folder relative first, so this only changes the ones outside it and paths in
+commands. Before, a session started in one folder that worked in another (the owner's, from `~/.claude/skills/…`) had
+the user name in its findings and its PR report. Three comparisons take either spelling, for a session imported
+before: `test_deleted`'s match of an `rm` target with a known file, `inPlan`, and `transcriptMatch` (Import again
+would otherwise take the session for another one). `IMPORT_GEN` is 5, and `needsReimport` offers Import again to a
+session with a home folder spelled out in a step. A finding's text changes with its path, and `carryVerdicts` moves
+its verdict.
+
 ---
 
 ## 16. VS Code integration (since v0.1.103)
