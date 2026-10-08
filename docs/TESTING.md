@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.124**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.125**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.124 `npm test` runs 595 tests in 82 files. Off Windows, `cli.test.js` skips its `.cmd` case. On Windows that
+At v0.1.125 `npm test` runs 601 tests in 83 files. Off Windows, `cli.test.js` skips its `.cmd` case. On Windows that
 case runs, and the file skips five POSIX cases instead: the `runClaude` prompt, both `runCursor` cases,
 `cursorSocketDir` and `checkCursor`. `transcript-dialog.test.js` skips its symlink case on Windows too.
 
@@ -150,6 +150,7 @@ Panel tests should end with `assert.deepEqual(page.errors, [])` so that a script
 | `weak-assert.test.js` | `weak_assert`, the regex side: toBeDefined, toBeTruthy, `expect(true).toBe(true)`, Python `assert True`, a bare `assert x`, `is not None`, Java `assertNotNull`, `assertTrue(true)`, C# `Assert.NotNull` / `Assert.True(true)` / `Should().NotBeNull()`, Go `assert.NotNil` / `require.NotNil`; Cypress `.should('exist')` also in a file without `expect`; a file with none of the words assert, expect or `.should(` is scanned too: Go's `require.NotNil`, REST Assured's `statusCode(lessThan(…))`, Karate's `#notnull` (0.1.123); one finding per line, once across versions. Assertions on a value, commented-out lines and Python predicates (`is_*`, `has_*`, `exists()`) do not count (0.1.119). |
 | `process-checks.test.js` | `fix_after_fail_without_triage`, `peeked_at_src_before_plan`, `assumption_instead_of_question`, `scope_creep`, `stop_markers_missing`, each with must-not cases next to the trigger: triage first, the user speaking, after the approval, a planned file, an approved plan. Since 0.1.119: a `src` folder deeper in the path (not test-side code or `node_modules`), a planned file under another prefix, a plan of `e2e/` files, PLAN only as a word. |
 | `spec-checks.test.js` | `test_without_requirement` and `out_of_scope_tested` from `LensSpec.checks`, in English and Russian. An ID in the title or a comment above, a specification without IDs and no out-of-scope section do not count; nor, since 0.1.119, a keyword inside another word, one keyword in a body, a word a requirement uses, a common word. |
+| `browser-check.test.js` | `browser_check_not_in_test` (0.1.125): a look at the page through a browser MCP after the last test change and no test after it (one or several looks, its message); not counted: looking before the tests, triage then a changed test (both from the owner's sessions), tab housekeeping, other MCP servers, a session with no test written; the browser servers with and without `mcp__`; from a Claude Code transcript, in every profile. |
 | `edit-churn.test.js` | `edit_churn`: a fifth write of one file; four writes, or five writes split across two files, do not count. |
 | `user-frustration.test.js` | `user_frustration`: a short correction phrase, in English and Russian, or the same request twice (the same first 40 characters; a difference at the 40th is not a repeat). A long paste, two different requests and the phrase inside another word do not count. |
 | `hardcoded-date.test.js` | `hardcoded_date`: a calendar date on an assertion line; a date outside an assertion and a commented-out assertion do not count (0.1.118). |

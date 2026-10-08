@@ -39,6 +39,8 @@
       no_plan: "Code written without a plan",
       no_approval: "Plan produced, but no stop and approval — straight to code",
       never_run: "Tests written in {n} {n|message|messages}, never executed — a hypothesis about tests, not tests",
+      browser_unasserted_one: "Checked the page in the browser after the last test change (seq {first}); no test asserts what it saw",
+      browser_unasserted: "Checked the page in the browser {n} times after the last test change (seq {first}–{last}); no test asserts what it saw",
       hard_date: "{file}: date in an assertion “{line}” — will go red when content changes",
       networkidle: "{file}: waitUntil: 'networkidle' on a live site — a flakiness source (Playwright advises against it)",
       cypress_async_hook: "{file}: async Cypress hook “{line}” — Cypress queues its commands, so an async hook runs out of order",
@@ -85,6 +87,8 @@
         "Don't use async/await in Cypress tests and hooks. Cypress queues its commands, so an async test can finish before they run. Chain the commands instead.",
       r_assume: "Don't write “I assume” / “let's say”. If the spec doesn't define behaviour, ask and stop.",
       r_plan: "After the plan — stop and wait for approval. Code only after an explicit “ok”.",
+      r_browser:
+        "A look at the page in the browser is a step towards a test, not the result. What you confirm by hand goes into a test as an assertion, and the test runs.",
       r_never_run: "Don't present tests as done until they have been run. No environment to run them — say so and mark the code as a draft.",
       r_date: "Don't assert concrete dates or changing content. Assert a pattern or move the value to config.",
       r_wait:

@@ -2,7 +2,7 @@
   "name": "sessionlens-vscode",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.124",
+  "version": "0.1.125",
   "license": "MIT",
   "publisher": "nikolaylosev",
   "engines": {
