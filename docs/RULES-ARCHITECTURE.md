@@ -1321,6 +1321,12 @@ group** (a modal; the sessions go to No group). The tree is a `createTreeView` w
 (`application/vnd.code.tree.sessionlenssessionstree`, the session ids): in "My groups" a drop onto a group, onto a
 session (its group) or onto No group moves the dragged sessions; in the other groupings a drop does nothing.
 
+The tree has `canSelectMany` (since v0.1.124). A menu command gets the item clicked and the items selected;
+`sessionIdsOf` takes the selected sessions when the clicked one is among them, else the clicked one alone, and leaves
+groups and the filter row out. **Open** opens each, **Move to group…** moves them all (its title counts them; "Out of
+…" names their group when they share one, else "Out of their groups"), **Delete** asks once ("delete N sessions?", up
+to five names, then "and N more") and closes their tabs. **Rename…** is for the clicked one.
+
 The filter (since v0.1.124) is `sessionFilter { text, red, open }` in the host, for this window only. `text` is a part
 of `displayName`, `name`, `task`, `profile` or `group`, in any case (`toLocaleLowerCase`); `red` keeps the red sessions; `open`
 the ones whose `openCount` (§15.1) is above 0, and for a summary without it (written by an older version in another
