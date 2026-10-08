@@ -338,6 +338,9 @@ classDiagram
     verdict
     findingsCount
     hiddenCount
+    openCount
+    agent
+    project
     checkStats
     sourceStats
     confirmed
@@ -372,7 +375,9 @@ Key points:
 - **Summary** (`*.meta.json`) is what the sidebar, Calibration and Rules need without loading every session. The
   host computes it from the session (RA §15.1). Schema 3 (0.1.116) added `started`, the time of the first step with
   one, which the effect of a moved rule uses, and `hiddenCount`, the findings calibration hides, which the Sessions
-  tree shows. `open()` rebuilds a summary of an older schema once.
+  tree shows. Schema 4 (0.1.124) added `agent` (Claude Code, Codex, Cursor, claude.ai or text) and `project` (the
+  folder the agent worked in), which the import now stores on the session, and `openCount`, the findings without a
+  verdict. `open()` rebuilds a summary of an older schema once.
 - **What a session keeps besides the events.** `source_text` is the transcript when it is under 400 000 characters.
   `importGen` is the `IMPORT_GEN` of that import (4 at 0.1.122). `source_outputs` (0.1.121) is the ends of the command
   outputs Cursor's database returned, 20 000 characters each, so Back to regex parsing and Import again can parse the

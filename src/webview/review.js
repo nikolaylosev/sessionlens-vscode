@@ -253,6 +253,7 @@ export async function reimport() {
       x.source_outputs = keptOutputs(cursorOutputs);
       x.source_project = cursorProject;
     }
+    Object.assign(x, Lens.transcriptOrigin(text, { cursorProject })); // a session imported before 0.1.124 has neither
     x.importGen = Lens.IMPORT_GEN;
     analyze(x, "import");
   });

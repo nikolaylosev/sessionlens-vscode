@@ -110,7 +110,8 @@ async function tab(opts = {}) {
 async function disk(dir) {
   const st = createStore({ dir: path.join(dir, "sessions") });
   await st.open();
-  return { list: st.list().map((m) => m.id), session: (await st.get("reimp1")).session };
+  const got = await st.get("reimp1");
+  return { list: st.list().map((m) => m.id), session: got.session, meta: got.meta };
 }
 const puts = (p) => p.sent.filter((m) => m.type === "session:put");
 
@@ -218,6 +219,7 @@ test("Import again with the text kept at import: the same session gets test_dele
 
 test("Import again without the text: the file is picked again; a transcript of another session is asked about", async () => {
   const { dir, p } = await tab();
+  assert.deepEqual([(await disk(dir)).meta.agent, (await disk(dir)).meta.project], ["", ""], "no text kept: unknown before");
   const asked = [];
   let sources = null;
   p.window.chooseDialog = async (msg, opts) => (asked.push(msg), (sources = opts.map((o) => String(o.value)).join()), "claude");
@@ -240,9 +242,10 @@ test("Import again without the text: the file is picked again; a transcript of a
   await until(() => puts(p).length > n0);
   await p.idle();
   assert.equal(asked.length, 2, "the right file: no question after the pick");
-  const { session: s } = await disk(dir);
+  const { session: s, meta } = await disk(dir);
   assert.ok(s.findings.some((f) => f.check === "test_deleted"));
   assert.equal(s.source_text, file, "a small transcript is kept, as at import");
+  assert.deepEqual([s.agent, s.project, meta.agent, meta.project], ["claude-code", "/w", "claude-code", "/w"], "the agent and folder (0.1.124)");
   assert.deepEqual(p.errors, []);
   p.close();
 });

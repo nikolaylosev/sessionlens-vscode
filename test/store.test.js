@@ -103,7 +103,7 @@ test("the summary splits the stats by source; a regex finding of an older sessio
     verdicts: { [Lens.fkey(old)]: { v: "ok" }, [Lens.fkey(formal)]: { v: "ok" }, [Lens.fkey(lint)]: { v: "fp" }, [Lens.fkey(hidden)]: { v: "fp" } },
   });
   const m = (await st.put(s)).meta;
-  assert.equal(m.schema, 3);
+  assert.equal(m.schema, 4);
   assert.deepEqual(m.checkStats, { weak_assert: { total: 4, ok: 2, fp: 2 } }, "unchanged: every source together");
   assert.deepEqual(m.sourceStats, {
     weak_assert: { formal: { total: 2, ok: 2, fp: 0 }, lint: { total: 2, ok: 0, fp: 2 } },
@@ -124,7 +124,7 @@ test("open(): a summary of schema 1 is rebuilt from its session once, keeping it
   fs.writeFileSync(mp, JSON.stringify(old));
   const r = await open(dir);
   const m = r.st.meta("a");
-  assert.equal(m.schema, 3);
+  assert.equal(m.schema, 4);
   assert.deepEqual(m.sourceStats, { weak_assert: { formal: { total: 1, ok: 0, fp: 0 } } });
   assert.deepEqual([m.order, m.analyzedGen, m.rev], [order, "0000abcd", 1]);
   assert.deepEqual(
@@ -155,7 +155,38 @@ test("open(): a summary of schema 2 is rebuilt once and gets started, the time o
   fs.writeFileSync(mp, JSON.stringify(old));
   const r = await open(dir);
   const m = r.st.meta("a");
-  assert.deepEqual([m.schema, m.started, m.created], [3, "2026-05-30T10:00:00.000Z", "2026-06-01T00:00:00.000Z"]);
+  assert.deepEqual([m.schema, m.started, m.created], [4, "2026-05-30T10:00:00.000Z", "2026-06-01T00:00:00.000Z"]);
+  assert.deepEqual([m.order, m.analyzedGen, m.rev], [old.order, "0000abcd", 1]);
+  assert.deepEqual(
+    r.logs.filter((l) => /rebuilt/.test(l)),
+    ["rebuilt the summary of a"],
+  );
+  assert.deepEqual(
+    (await open(dir)).logs.filter((l) => /rebuilt/.test(l)),
+    [],
+    "once",
+  );
+});
+
+test("open(): a summary of schema 3 is rebuilt once and gets the agent, the project and openCount (0.1.124)", async () => {
+  const dir = tmp();
+  const { st } = await open(dir);
+  const text = JSON.stringify({ type: "user", cwd: "/w/shop", message: { role: "user", content: "hi" } });
+  const f2 = { check: "raw_locator", severity: "low", seq: 1, message: "raw" };
+  // imported before 0.1.124: no agent or project on the session, only the kept text
+  const s = sess("a", { source_text: text });
+  s.findings.push(f2);
+  s.verdicts = { [Lens.fkey(f2)]: { v: "ok" } };
+  await st.put(s, { analyzedGen: "0000abcd" });
+  // a as 0.1.116-0.1.123 wrote it: schema 3, none of the three
+  const mp = path.join(dir, "a.meta.json");
+  const old = JSON.parse(fs.readFileSync(mp, "utf8"));
+  old.schema = 3;
+  for (const k of ["agent", "project", "openCount"]) delete old[k];
+  fs.writeFileSync(mp, JSON.stringify(old));
+  const r = await open(dir);
+  const m = r.st.meta("a");
+  assert.deepEqual([m.schema, m.agent, m.project, m.openCount], [4, "claude-code", "/w/shop", 1]);
   assert.deepEqual([m.order, m.analyzedGen, m.rev], [old.order, "0000abcd", 1]);
   assert.deepEqual(
     r.logs.filter((l) => /rebuilt/.test(l)),

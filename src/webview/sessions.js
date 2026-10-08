@@ -191,6 +191,8 @@ export async function importText(text, name, from = {}) {
   }
   let last = null;
   await needEngine(cfg.profile);
+  // the agent and its folder, from the whole text: a long transcript is not kept (source_text) (0.1.124)
+  const origin = Lens.transcriptOrigin(text, from);
   for (const c of convs) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const s = {
@@ -208,6 +210,8 @@ export async function importText(text, name, from = {}) {
       // kept with the text, so Back to regex parsing and Import again parse it the same way
       source_outputs: text.length < 400000 ? keptOutputs(from.cursorOutputs) : undefined,
       source_project: text.length < 400000 ? from.cursorProject : undefined,
+      agent: origin.agent,
+      project: origin.project,
       seg: null,
       importGen: Lens.IMPORT_GEN,
     };
@@ -249,6 +253,7 @@ export async function openDemo() {
       spec: D.SPEC,
       dropped: [],
       source_text: D.TRANSCRIPT,
+      ...Lens.transcriptOrigin(D.TRANSCRIPT),
       seg: null,
       importGen: Lens.IMPORT_GEN,
     };

@@ -1534,6 +1534,45 @@
     return stripNonSource(diffMessageVersions(ev, cfg), cfg);
   }
 
+  /* Which agent a transcript comes from and the folder it worked in (0.1.124, summary schema 4: the Sessions tree
+     groups by the agent, the project is kept for later). The agent is the format importAny reads the text as, tried in
+     the same order: claude-ai, cursor (a Cursor transcript or an Agent CLI log), codex, claude-code, text. The project
+     is the first cwd of a Claude Code transcript or a Cursor Agent CLI log, the cwd of Codex's session_meta, and for a
+     Cursor transcript, which names no folder, the name of its folder in ~/.cursor/projects (opts.cursorProject, as
+     importAny takes it). "" when there is none: a claude.ai export, pasted text, a dropped Cursor transcript.
+     A claude.ai export whose conversations give no steps is still claude-ai here; importAny then reads it as text. */
+  const AGENTS = ["claude-code", "codex", "cursor", "claude-ai", "text"];
+  const cleanProject = (p) => (typeof p === "string" && !/[\u0000-\u001f]/.test(p) ? p.replace(/(.)[\\/]+$/, "$1").slice(0, 500) : "");
+  function firstCwd(text, pick) {
+    for (const line of text.split("\n")) {
+      if (!line.includes('"cwd"')) continue;
+      try {
+        const p = cleanProject(pick(JSON.parse(line)));
+        if (p) return p;
+      } catch {
+        /* not a record */
+      }
+    }
+    return "";
+  }
+  function transcriptOrigin(text, opts) {
+    const t = typeof text === "string" ? text.trimStart() : "";
+    if (!t) return { agent: "", project: "" };
+    if (t.startsWith("[") || (t.startsWith("{") && /"chat_messages"/.test(t.slice(0, 5000)))) {
+      try {
+        const o = JSON.parse(t);
+        if ((Array.isArray(o) ? o : [o]).some((c) => c && Array.isArray(c.chat_messages))) return { agent: "claude-ai", project: "" };
+      } catch {
+        /* not an export */
+      }
+    }
+    if (!t.startsWith("{")) return { agent: "text", project: "" };
+    if (isCursorStreamJson(t)) return { agent: "cursor", project: firstCwd(t, (r) => r && r.type === "system" && r.cwd) };
+    if (isCursorJsonl(t)) return { agent: "cursor", project: cleanProject(opts && opts.cursorProject) };
+    if (isCodexJsonl(t)) return { agent: "codex", project: firstCwd(t, (r) => r && r.type === "session_meta" && r.payload && r.payload.cwd) };
+    return { agent: "claude-code", project: firstCwd(t, (r) => r && r.cwd) };
+  }
+
   /* A JSONL file with tool calls of which the import read none: only the conversation text was found, so there is
      nothing to review (no files, edits or test runs). The panel asks before it keeps such a session (0.1.121): before,
      a Cursor CLI log became a silent session of messages. A claude.ai export is left out: its tool blocks are the
@@ -2919,14 +2958,17 @@
     return "";
   }
   /* → { id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount,
-         checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
+         openCount, agent, project, checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
          confirmed: [{ key, check, seq, message, snippet, note }] }
      checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
      (calibHidden); sourceStats is the same split by the finding's source ("formal" when it has none: a regex
      finding of a session analyzed before 0.1.112), so an engine's bad record never counts against a regex check of
      the same name (phase 8); confirmed are the findings shown with an "ok" verdict, in finding order; started is
      sessionStarted() (0.1.116), what a rule's effect compares with the day the rule was moved; hiddenCount is how
-     many findings calibration hides (calibHidden, 0.1.116), so the Sessions tree can say a green session has some. */
+     many findings calibration hides (calibHidden, 0.1.116), so the Sessions tree can say a green session has some.
+     Schema 4 (0.1.124) adds agent and project (transcriptOrigin(): stored on the session at import; a session imported
+     before has neither and gets them from its kept text, or "" without one) and openCount, the findings shown that
+     have no verdict yet. verdictsCount is no use for that: it also counts verdicts on findings that are gone. */
   /* A text cut to at most n characters at a word break, ending in "…" (0.1.121: a confirmed finding's message was cut
      at exactly 90 characters, mid-word, so the evidence on the Calibration tab read ".getByRole() o"). A text that
      fits stays as it is; a word longer than half of n is cut where it is. */
@@ -2943,6 +2985,7 @@
     const checkStats = {},
       sourceStats = {},
       confirmed = [];
+    let open = 0;
     const count = (f, vd) => {
       const per = (sourceStats[f.check] = sourceStats[f.check] || {}),
         src = f.source || "formal";
@@ -2955,10 +2998,14 @@
       const k = fkey(f),
         vd = verdicts[k];
       count(f, vd);
+      if (!vd) open++;
       if (vd && vd.v === "ok")
         confirmed.push({ key: k, check: f.check, seq: f.seq, message: clip(f.message, 90), snippet: snippet(f), note: String(vd.note || "") });
     }
     for (const f of Array.isArray(s.calibHidden) ? s.calibHidden : []) count(f, verdicts[fkey(f)]);
+    const origin = AGENTS.includes(s.agent)
+      ? { agent: s.agent, project: cleanProject(s.project) }
+      : transcriptOrigin(s.source_text, { cursorProject: s.source_project });
     return {
       id: s.id,
       name: s.name || "",
@@ -2973,6 +3020,9 @@
       findingsCount: findings.length,
       hiddenCount: Array.isArray(s.calibHidden) ? s.calibHidden.length : 0,
       verdictsCount: Object.keys(verdicts).length,
+      openCount: open,
+      agent: origin.agent,
+      project: origin.project,
       checkStats,
       sourceStats,
       confirmed,
@@ -3083,6 +3133,8 @@
     ALIAS,
     redactSecrets,
     importAny,
+    transcriptOrigin,
+    AGENTS,
     isCursorJsonl,
     cursorProjectSlug,
     isCursorStreamJson,
