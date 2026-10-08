@@ -1000,8 +1000,11 @@ class SessionLensViewProvider {
 }
 
 function setActiveTab(tab) {
+  setContextKey("sessionlens.activeTab", tab);
+}
+function setContextKey(key, value) {
   try {
-    Promise.resolve(vscode.commands.executeCommand("setContext", "sessionlens.activeTab", tab)).catch(() => {});
+    Promise.resolve(vscode.commands.executeCommand("setContext", key, value)).catch(() => {});
   } catch {
     /* ignore */
   }
@@ -1086,6 +1089,38 @@ function groupSessions(list, by, now) {
   return order.map((key) => ({ key, label: labels[key], items: list.filter((m) => keyOf(m) === key) })).filter((g) => g.items.length);
 }
 
+/* 0.1.124: the Sessions tree's filter (the search button in its title). text: a part of the name, task or profile;
+   red: only the sessions with a red verdict; open: only the ones with a finding that has no verdict yet (the summary's
+   openCount: a review not started, or started and not finished). The three combine. This window only: a reload shows
+   every session again. */
+const sessionFilter = { text: "", red: false, open: false };
+const filterActive = () => !!(sessionFilter.text || sessionFilter.red || sessionFilter.open);
+// a summary written by a version before 0.1.124 in another window has no openCount (open() rebuilds it at the next start)
+const openFindings = (m) => (typeof m.openCount === "number" ? m.openCount : Math.max(0, (m.findingsCount || 0) - (m.verdictsCount || 0)));
+function matchesFilter(m, f) {
+  if (f.red && m.verdict !== "red") return false;
+  if (f.open && !(openFindings(m) > 0)) return false;
+  if (!f.text) return true;
+  const q = f.text.toLocaleLowerCase();
+  return [Lens.displayName(m), m.name, m.task, m.profile].some((x) =>
+    String(x || "")
+      .toLocaleLowerCase()
+      .includes(q),
+  );
+}
+function filterLabel(f) {
+  const bits = [];
+  if (f.text) bits.push(`"${f.text}"`);
+  if (f.red) bits.push(t("Only Red"));
+  if (f.open) bits.push(t("With findings without a verdict"));
+  return t("Filter: {0}", bits.join(" · "));
+}
+function setSessionFilter(next) {
+  Object.assign(sessionFilter, next);
+  setContextKey("sessionlens.sessionsFiltered", filterActive()); // the Clear filter button in the tree's title
+  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
+}
+
 // Native tree list of sessions, shown above the webview in the same sidebar container. A plain
 // webview list needs an initial click just to hand its iframe mouse/keyboard focus — harmless the
 // very first time, but every session tab it opens takes that focus away again, so the very next
@@ -1104,14 +1139,33 @@ class SessionsTreeProvider {
   getTreeItem(item) {
     return item;
   }
-  // The summaries only (store.js meta files), never the sessions themselves. The root has the groups, a group its sessions.
+  /* The summaries only (store.js meta files), never the sessions themselves. The root has the groups, a group its
+     sessions; with a filter, the root starts with a row that says what it is and clears it when clicked. */
   async getChildren(element) {
     if (element) return (element.sessions || []).map((s) => this.toItem(s));
     await host.ready;
     const list = host.storeOpen ? host.store.list() : [];
     if (!list.length) return []; // package.json's viewsWelcome (text + Import button) shows instead
     const by = sessionsGroupBy();
-    return groupSessions(list, by, nowMs()).map((g) => this.toGroup(by, g));
+    if (!filterActive()) return groupSessions(list, by, nowMs()).map((g) => this.toGroup(by, g));
+    const shown = list.filter((m) => matchesFilter(m, sessionFilter));
+    const rows = [this.toFilterRow(shown.length, list.length)];
+    if (!shown.length) {
+      const none = new vscode.TreeItem(t("No session matches the filter"), vscode.TreeItemCollapsibleState.None);
+      none.id = "filter\nnone";
+      rows.push(none);
+    }
+    return rows.concat(groupSessions(shown, by, nowMs()).map((g) => this.toGroup(by, g)));
+  }
+  toFilterRow(shown, total) {
+    const item = new vscode.TreeItem(filterLabel(sessionFilter), vscode.TreeItemCollapsibleState.None);
+    item.id = "filter\n"; // no session id has a control character (validate.js checkId)
+    item.description = t("{0} of {1} — Clear", shown, total);
+    item.tooltip = t("Click to show every session again");
+    item.iconPath = new vscode.ThemeIcon("filter-filled");
+    item.command = { command: "sessionlens.clearSessionFilter", title: t("Clear filter") };
+    item.contextValue = "sessionlensFilter";
+    return item;
   }
   toGroup(by, g) {
     const item = /** @type {import("vscode").TreeItem & { sessions?: object[] }} */ (new vscode.TreeItem(g.label, vscode.TreeItemCollapsibleState.Expanded));
@@ -1206,6 +1260,50 @@ async function pickGroupBy() {
       ),
     );
   }
+}
+
+/* The search button in the Sessions tree's title (0.1.124). One QuickPick: what is typed filters by name, task or
+   profile, and the quick filters below it are switched on and off (a tick shows the ones on). */
+async function pickSessionFilter() {
+  /** @type {import("vscode").QuickPick<import("vscode").QuickPickItem & { action: string }>} */
+  const qp = vscode.window.createQuickPick();
+  qp.title = t("SessionLens: filter sessions");
+  qp.placeholder = t("Type a part of the name, task or profile, or pick a quick filter");
+  qp.value = sessionFilter.text;
+  const build = () => {
+    const v = qp.value.trim();
+    const tick = (on) => (on ? "$(check) " : "");
+    const items = [];
+    if (v) items.push({ label: "$(search) " + t('Name, task or profile containing "{0}"', v), alwaysShow: true, action: "text" });
+    else if (sessionFilter.text) items.push({ label: "$(close) " + t('Without "{0}"', sessionFilter.text), alwaysShow: true, action: "notext" });
+    items.push(
+      { label: tick(sessionFilter.red) + t("Only Red"), description: t("a red verdict"), alwaysShow: true, action: "red" },
+      {
+        label: tick(sessionFilter.open) + t("With findings without a verdict"),
+        description: t("a review not started or not finished"),
+        alwaysShow: true,
+        action: "open",
+      },
+    );
+    if (filterActive()) items.push({ label: "$(clear-all) " + t("Clear filter"), alwaysShow: true, action: "clear" });
+    qp.items = items;
+  };
+  build();
+  qp.onDidChangeValue(build);
+  const pick = await new Promise((resolve) => {
+    qp.onDidAccept(() => resolve(qp.selectedItems[0] || qp.activeItems[0]));
+    qp.onDidHide(() => resolve(undefined));
+    qp.show();
+  });
+  const text = qp.value.trim().slice(0, 200);
+  qp.hide();
+  qp.dispose();
+  if (!pick) return;
+  if (pick.action === "text") setSessionFilter({ text });
+  else if (pick.action === "notext") setSessionFilter({ text: "" });
+  else if (pick.action === "red") setSessionFilter({ red: !sessionFilter.red });
+  else if (pick.action === "open") setSessionFilter({ open: !sessionFilter.open });
+  else if (pick.action === "clear") setSessionFilter({ text: "", red: false, open: false });
 }
 
 async function renameSession(context, arg) {
@@ -1340,6 +1438,8 @@ function activate(context) {
     vscode.commands.registerCommand("sessionlens.renameSession", (arg) => renameSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.deleteSession", (arg) => deleteSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.groupSessions", () => pickGroupBy()),
+    vscode.commands.registerCommand("sessionlens.filterSessions", () => pickSessionFilter()),
+    vscode.commands.registerCommand("sessionlens.clearSessionFilter", () => setSessionFilter({ text: "", red: false, open: false })),
   );
   // phase 6: a change in Settings (by hand, from another window, Settings Sync) reaches every page like a panel save
   if (vscode.workspace.onDidChangeConfiguration) {

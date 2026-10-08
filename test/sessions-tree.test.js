@@ -1,11 +1,13 @@
 "use strict";
 /* The Sessions tree groups its sessions (0.1.124): by date by default (Today, Yesterday, This week since Monday,
-   Earlier), or by profile, verdict or agent (sessionlens.sessionsGroupBy, the button in the tree's title). The host
+   Earlier), or by profile, verdict or agent (sessionlens.sessionsGroupBy, the button in the tree's title). Its filter
+   (the search button): a part of the name, task or profile, Only Red, With findings without a verdict. The host
    alone with the fake vscode module; the clock is fixed, the dates are local, so the test does not depend on the
    time zone. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { fakeVscode, loadExtension, fakeContext, fakeWebviewView, treeSessions } = require("./fake-vscode");
+const Lens = require("../media/lens.js");
 
 // Wednesday, 7 October 2026, 15:00 local time
 const NOW = new Date(2026, 9, 7, 15, 0, 0).getTime();
@@ -30,7 +32,12 @@ function session(id, extra = {}) {
   );
 }
 async function host(sessions, opts = {}) {
-  const f = fakeVscode({ config: { global: opts.config || {} }, quickPickAnswer: opts.quickPickAnswer, configFails: opts.configFails });
+  const f = fakeVscode({
+    config: { global: opts.config || {} },
+    quickPickAnswer: opts.quickPickAnswer,
+    configFails: opts.configFails,
+    quickPickFlow: opts.quickPickFlow,
+  });
   const ext = loadExtension(f.vscode);
   ext._test.setNow(() => opts.now || NOW);
   ext.activate(fakeContext({ globalState: { sessions: Object.fromEntries(sessions.map((s) => [s.id, s])) } }));
@@ -190,4 +197,131 @@ test("the title button regroups even when the setting cannot be written, and say
     (await groups(h.tree)).map((g) => g[0]),
     ["qa-ts"],
   );
+});
+
+// ---------- the filter ----------
+
+const verdict = (f, v) => ({ [Lens.fkey(f)]: { v } });
+function filterSessions() {
+  const a1 = finding(1),
+    d1 = finding(2),
+    e1 = finding(3);
+  return [
+    // red, a finding without a verdict
+    session("a", { task: "Cart checkout", findings: [a1] }),
+    // yellow, every finding has a verdict
+    session("b", { name: "login flow", profile: "qa-python", findings: [{ check: "raw_locator", seq: 1, severity: "medium", message: "m" }] }),
+    // green, nothing to review
+    session("c", { name: "smoke" }),
+    // red, reviewed
+    session("d", { task: "CART-12", findings: [d1], verdicts: verdict(d1, "ok") }),
+    // red: one verdict, but on a finding that is gone, so its own finding is still open
+    session("e", { name: "search", findings: [e1], verdicts: { "gone@9@x": { v: "ok" } } }),
+  ].map((s) => (s.id === "b" ? Object.assign(s, { verdicts: verdict(s.findings[0], "fp") }) : s));
+}
+// what the person does in the filter's QuickPick, one step per call of the command
+function person(steps) {
+  const seen = [];
+  return {
+    seen,
+    flow: async (qp, p) => {
+      const step = steps.shift();
+      if (step.type != null) p.type(step.type);
+      seen.push(qp.items.map((i) => i.label));
+      if (step.pick === undefined) return p.escape();
+      const item = qp.items.find((i) => i.label.includes(step.pick));
+      assert.ok(item, `no item "${step.pick}" in ${qp.items.map((i) => i.label).join(" | ")}`);
+      p.accept(item);
+    },
+  };
+}
+const filterKey = (h) =>
+  h.calls.commands
+    .filter((c) => c[0] === "setContext" && c[1] === "sessionlens.sessionsFiltered")
+    .map((c) => c[2])
+    .pop();
+
+test("filter by text: a part of the name, task or profile, in any case; the row on top says it and clears it", async () => {
+  const steps = [{ type: "  CART ", pick: "containing" }];
+  const who = person(steps);
+  const h = await host(filterSessions(), { quickPickFlow: who.flow });
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(who.seen[0], ['$(search) Name, task or profile containing "CART"', "Only Red", "With findings without a verdict"]);
+  const [row, ...rest] = await h.tree.getChildren();
+  assert.deepEqual([row.label, row.description, row.contextValue], ['Filter: "CART"', "2 of 5 — Clear", "sessionlensFilter"]);
+  assert.equal(row.command.command, "sessionlens.clearSessionFilter");
+  assert.deepEqual(
+    (await treeSessions(h.tree)).map((s) => s.id),
+    ["d", "a"],
+    "the task, either case; the filter row is not a session",
+  );
+  assert.deepEqual(
+    rest.map((g) => [g.label, g.description]),
+    [["Today", "2"]],
+    "a group counts what the filter shows",
+  );
+  assert.equal(filterKey(h), true, "the Clear filter button shows");
+
+  steps.push({ type: "python", pick: "containing" });
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(
+    (await treeSessions(h.tree)).map((s) => s.id),
+    ["b"],
+    "the profile; the new text replaces the old",
+  );
+
+  await h.registered.commands["sessionlens.clearSessionFilter"]();
+  assert.equal(
+    (await h.tree.getChildren()).some((g) => g.contextValue === "sessionlensFilter"),
+    false,
+  );
+  assert.equal((await treeSessions(h.tree)).length, 5);
+  assert.equal(filterKey(h), false);
+});
+
+test("quick filters: Only Red, With findings without a verdict (openCount, not the verdict count), and both", async () => {
+  const steps = [{ pick: "Only Red" }, { pick: "With findings" }, { pick: "Only Red" }];
+  const who = person(steps);
+  const h = await host(filterSessions(), { quickPickFlow: who.flow });
+  const ids = async () => (await treeSessions(h.tree)).map((s) => s.id).sort();
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(await ids(), ["a", "d", "e"]);
+  assert.equal((await h.tree.getChildren())[0].label, "Filter: Only Red");
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(await ids(), ["a", "e"], "both: red and still to review");
+  assert.deepEqual(who.seen[1], ["$(check) Only Red", "With findings without a verdict", "$(clear-all) Clear filter"]);
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(await ids(), ["a", "e"], "Only Red off again: b has a verdict on its finding, c has none to review");
+  assert.equal((await h.tree.getChildren())[0].label, "Filter: With findings without a verdict");
+});
+
+test("filter: nothing matches; Escape changes nothing; the text can be dropped and the rest kept", async () => {
+  const steps = [
+    { type: "nothing like it", pick: "containing" },
+    { type: "cart" },
+    { pick: "Only Red" },
+    { type: "", pick: "Without" },
+    { pick: "Clear filter" },
+  ];
+  const who = person(steps);
+  const h = await host(filterSessions(), { quickPickFlow: who.flow });
+  await h.registered.commands["sessionlens.filterSessions"]();
+  const rows = await h.tree.getChildren();
+  assert.deepEqual(
+    rows.map((r) => [r.label, r.description]),
+    [
+      ['Filter: "nothing like it"', "0 of 5 — Clear"],
+      ["No session matches the filter", undefined],
+    ],
+  );
+  await h.registered.commands["sessionlens.filterSessions"](); // typed, then Escape
+  assert.equal((await h.tree.getChildren())[0].label, 'Filter: "nothing like it"');
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.equal((await h.tree.getChildren())[0].label, 'Filter: "nothing like it" · Only Red');
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.ok(who.seen[3].includes('$(close) Without "nothing like it"'), who.seen[3].join(" | "));
+  assert.equal((await h.tree.getChildren())[0].label, "Filter: Only Red");
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.equal((await treeSessions(h.tree)).length, 5);
+  assert.equal(filterKey(h), false);
 });

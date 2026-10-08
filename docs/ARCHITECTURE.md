@@ -202,7 +202,7 @@ flowchart TB
 | View | Kind | What it shows |
 |---|---|---|
 | `sessionlensView` — "Calibration & Settings" | webview view in the SessionLens activity bar container | tabs **Sessions**, **Calibration**, **Rules**, **Model rules**, **⚙** |
-| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions in groups (date, profile, verdict or agent); Open, Rename, Delete; visible while the Sessions tab is active |
+| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions in groups (date, profile, verdict or agent), with a filter; Open, Rename, Delete; visible while the Sessions tab is active |
 | `sessionlensSession` | webview panel, one per session | the review of one session: findings, verdicts, spec, timeline, coverage |
 
 All three webviews load the same page (`sidepanel.html` + scripts); a session tab boots straight into its review

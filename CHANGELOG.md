@@ -9,6 +9,10 @@
   a text transcript) instead; so does the setting `sessionlens.sessionsGroupBy`. A group you collapse stays collapsed.
   A session imported before this version from a transcript too long to keep is under **Unknown agent** until
   **Import again**.
+- **Filter the Sessions list.** The search button in the list's title takes a part of a session's name, task or
+  profile, and has two quick filters: **Only Red**, and **With findings without a verdict** (a review not started or
+  not finished). They combine. A row on top of the list says what the filter is and how many sessions it shows;
+  click it, or the **Clear filter** button, to see every session again.
 
 ### Changed
 - The date in the line under a session (in the Sessions list and **Open session…**) is now the day the agent ran the
