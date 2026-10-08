@@ -68,7 +68,7 @@ test("hardcoded_coordinates, not reported: a tap on an element, single-digit arg
 });
 
 test("hardcoded_coordinates: the x/y form of a gesture, the gesture APIs of each client", () => {
-  const coord = (file, line) => `medium: ${file}: tap/swipe at a literal screen coordinate — ${line.slice(0, 60)}`; // the line is cut at 60
+  const coord = (file, line) => `medium: ${file}: tap/swipe at a literal screen coordinate — ${Lens.clip(line, 60)}`; // the line is cut at 60, at a word, with … (0.1.124)
   const F = "tests/cart.spec.ts";
   for (const line of [
     "await driver.touchAction({ action: 'tap', x: 120, y: 340 });",

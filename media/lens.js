@@ -1977,7 +1977,7 @@
           rx.lastIndex = 0;
           for (const m of code.matchAll(rx)) {
             if (/^\s*(?:\/\/|#|\/\*|\*)/.test(code.slice(code.lastIndexOf("\n", m.index) + 1, m.index)) || PREDICATE.test(m[0].trim())) continue;
-            out.push(F("weak_assert", "high", e.seq, T("weak_assert", { file: e.file || inMsg(), line: m[0].trim().slice(0, 80) })));
+            out.push(F("weak_assert", "high", e.seq, T("weak_assert", { file: e.file || inMsg(), line: clip(m[0].trim(), 80) })));
           }
         }
       }
@@ -2176,7 +2176,7 @@
       for (const e of ev) {
         if (e.cmd && e.cmd.split(/&&|\|\||;|\n/).some(updates)) {
           const [sev, a] = after(e.seq);
-          out.push(F("snapshot_overwritten", sev, e.seq, T("snapshot_cmd", { cmd: e.cmd.trim().slice(0, 80), after: a })));
+          out.push(F("snapshot_overwritten", sev, e.seq, T("snapshot_cmd", { cmd: clip(e.cmd.trim(), 80), after: a })));
         } else if (["write", "edit"].includes(e.kind) && e.file && SNAP_FILE.test(e.file) && !files.has(e.file)) {
           files.add(e.file);
           const [sev, a] = after(e.seq);
@@ -2268,8 +2268,8 @@
               else if (v > old[i]) what.push(T("cw_change", { key, from: old[i], to: v }));
             });
           }
-          for (const l of now.excludes) if (!was.excludes.has(l)) what.push(T("cw_excluded", { line: l.slice(0, 80) }));
-          for (const l of now.ignores) if (!was.ignores.has(l)) what.push(T("cw_ignored", { line: l.slice(0, 80) }));
+          for (const l of now.excludes) if (!was.excludes.has(l)) what.push(T("cw_excluded", { line: clip(l, 80) }));
+          for (const l of now.ignores) if (!was.ignores.has(l)) what.push(T("cw_ignored", { line: clip(l, 80) }));
         }
         if (!what.length) continue;
         const r = redRunBefore(ev, e.seq);
@@ -2286,7 +2286,7 @@
           .split("\n")
           .find((l) => (cfg.focus_patterns || []).some((r) => r.test(l)));
         if (ln)
-          out.push(Object.assign(F("focused_test", "high", e.seq, T("focused", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })), { kind: "only" }));
+          out.push(Object.assign(F("focused_test", "high", e.seq, T("focused", { file: e.file || inMsg(), line: clip(ln.trim(), 80) })), { kind: "only" }));
       }
       return out;
     },
@@ -2299,7 +2299,7 @@
           const m = codeOf(e).match(rx);
           if (m)
             out.push(
-              Object.assign(F("debug_leftover", "medium", e.seq, T("debug_leftover", { file: e.file || inMsg(), line: m[0].trim().slice(0, 80) })), { kind }),
+              Object.assign(F("debug_leftover", "medium", e.seq, T("debug_leftover", { file: e.file || inMsg(), line: clip(m[0].trim(), 80) })), { kind }),
             );
         }
       }
@@ -2312,8 +2312,8 @@
         const prose = e.text.replace(/```[\s\S]*?```/g, "");
         const hits = cfg.assumption_patterns.filter((p) => p.test(prose));
         if (!hits.length) continue;
-        const sn = (prose.split(/[.\n]/).find((s) => hits.some((h) => h.test(s))) || "").trim().slice(0, 140);
-        out.push(F("assumption_instead_of_question", "medium", e.seq, T("assumption", { snippet: sn })));
+        const sn = (prose.split(/[.\n]/).find((s) => hits.some((h) => h.test(s))) || "").trim();
+        out.push(F("assumption_instead_of_question", "medium", e.seq, T("assumption", { snippet: clip(sn, 140) })));
       }
       return out;
     },
@@ -2339,7 +2339,7 @@
         if (!e.new_content) continue;
         for (const ln of linesOf(e).split("\n"))
           if (!/^\s*(?:\/\/|#|\/\*|\*)/.test(ln) && /expect|assert|toHaveText|getByText/.test(ln) && RX.test(ln))
-            out.push(F("hardcoded_date", "medium", e.seq, T("hard_date", { file: e.file || inMsg(), line: ln.trim().slice(0, 80) })));
+            out.push(F("hardcoded_date", "medium", e.seq, T("hard_date", { file: e.file || inMsg(), line: clip(ln.trim(), 80) })));
       }
       return out;
     },
@@ -2402,7 +2402,7 @@
         for (const rx of RX) {
           const m = codeOf(e).match(rx);
           if (m) {
-            out.push(F("mocked_service", "medium", e.seq, T("mocked_api", { file: e.file || inMsg(), what: m[0].trim().slice(0, 40) })));
+            out.push(F("mocked_service", "medium", e.seq, T("mocked_api", { file: e.file || inMsg(), what: clip(m[0].trim(), 40) })));
             break;
           }
         }
@@ -2507,7 +2507,7 @@
         if (!e.new_content) continue;
         for (const [name, body] of Object.entries(blocksByTest(linesOf(e), cfg.test_fn_pattern))) {
           const ln = body.split("\n").find((l) => /assert|expect/i.test(l) && TIME.test(l) && CMP.test(l));
-          if (ln) out.push(F("response_time_assert", "low", e.seq, T("resp_time", { file: e.file || inMsg(), test: name, line: ln.trim().slice(0, 60) })));
+          if (ln) out.push(F("response_time_assert", "low", e.seq, T("resp_time", { file: e.file || inMsg(), test: name, line: clip(ln.trim(), 60) })));
         }
       }
       return out;
@@ -2539,8 +2539,7 @@
         const ln = codeOf(e)
           .split("\n")
           .find((l) => CALL.test(l) || (XY.test(l) && GESTURE.test(l)));
-        if (ln)
-          out.push(F("hardcoded_coordinates", "medium", e.seq, T("hardcoded_coordinates_msg", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
+        if (ln) out.push(F("hardcoded_coordinates", "medium", e.seq, T("hardcoded_coordinates_msg", { file: e.file || inMsg(), line: clip(ln.trim(), 60) })));
       }
       return out;
     },
@@ -2604,7 +2603,7 @@
           const m = inner.match(/^[ \t]+(?:if|for|foreach|while|switch|try)\b[^\n]*/m) || inner.match(/^[ \t]+[^\n]*\.(?:forEach|ForEach)\s*\([^\n]*/m);
           if (m)
             out.push(
-              Object.assign(F("conditional_logic", "low", e.seq, T("conditional", { file: e.file || inMsg(), test: name, line: m[0].trim().slice(0, 50) })), {
+              Object.assign(F("conditional_logic", "low", e.seq, T("conditional", { file: e.file || inMsg(), test: name, line: clip(m[0].trim(), 50) })), {
                 kind: "branch",
               }),
             );
@@ -2624,7 +2623,7 @@
             seen.set(t, (seen.get(t) || 0) + 1);
           }
           const dup = [...seen].filter(([, n]) => n > 1);
-          if (dup.length) out.push(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: dup[0][0].slice(0, 60) })));
+          if (dup.length) out.push(F("duplicate_assert", "low", e.seq, T("dup_assert", { file: e.file || inMsg(), test: name, line: clip(dup[0][0], 60) })));
         }
       }
       return out;
@@ -2641,7 +2640,7 @@
         const ln = codeOf(e)
           .split("\n")
           .find((l) => RX.test(l));
-        if (ln) out.push(F("cypress_async_test", "medium", e.seq, T("cypress_async_hook", { file: e.file || inMsg(), line: ln.trim().slice(0, 60) })));
+        if (ln) out.push(F("cypress_async_test", "medium", e.seq, T("cypress_async_hook", { file: e.file || inMsg(), line: clip(ln.trim(), 60) })));
       }
       return out;
     },
@@ -2666,9 +2665,9 @@
         users = ev.filter((e) => e.kind === "user");
       users.forEach((u, i) => {
         const t = u.text.toLowerCase();
-        if (RX.test(t) && t.length < 400) out.push(F("user_frustration", "medium", u.seq, T("frustration", { text: u.text.trim().slice(0, 100) })));
+        if (RX.test(t) && t.length < 400) out.push(F("user_frustration", "medium", u.seq, T("frustration", { text: clip(u.text.trim(), 100) })));
         else if (i > 0 && t.length > 15 && users[i - 1].text.toLowerCase().slice(0, 40) === t.slice(0, 40))
-          out.push(F("user_frustration", "medium", u.seq, T("repeat", { text: u.text.trim().slice(0, 80) })));
+          out.push(F("user_frustration", "medium", u.seq, T("repeat", { text: clip(u.text.trim(), 80) })));
       });
       return out;
     },
@@ -2928,7 +2927,7 @@
   // one line of the code a finding points at, for the rule text and the evidence list
   function snippet(f) {
     const ev = f.evidence || (f.code ? (f.code.split("\n").find((l) => l.includes("▸")) || "").replace(/^\s*\d+\s*▸\s?/, "") : "");
-    return (ev || f.message).replace(/\s+/g, " ").trim().slice(0, 140);
+    return clip((ev || f.message).replace(/\s+/g, " ").trim(), 140);
   }
   // Which inputs of analyze() a session's findings were computed with, as 8 hex characters (FNV-1a 32 over JSON
   // with sorted keys): the rule overrides, the ESLint switch, analysisEpoch (bumped where the calibration changed
@@ -3008,13 +3007,19 @@
      none either, so they need no rebuild. */
   /* A text cut to at most n characters at a word break, ending in "…" (0.1.121: a confirmed finding's message was cut
      at exactly 90 characters, mid-word, so the evidence on the Calibration tab read ".getByRole() o"). A text that
-     fits stays as it is; a word longer than half of n is cut where it is. */
+     fits stays as it is; a word longer than half of n is cut where it is. Since 0.1.124 every finding text that quotes
+     a line, a command or what the person wrote cuts it this way (it was slice(), mid-word and with no sign of the cut),
+     and so does LensSpec (Lens.clip). */
+  // since 0.1.124 the break is the last one between a word and what is not a word, not only a space: a line of code
+  // (await banner.click()) keeps as much as fits (await banner.click…) instead of dropping back to the last space
+  const wordChar = (c) => /[\p{L}\p{N}_$]/u.test(c || "");
   function clip(text, n) {
     const t = String(text || "");
     if (t.length <= n) return t;
-    const cut = t.slice(0, n - 1),
-      sp = cut.lastIndexOf(" ");
-    return (sp > n / 2 ? cut.slice(0, sp) : cut).replace(/[\s,;:.·/—–-]+$/, "") + "…";
+    let k = n - 1;
+    while (k > n / 2 && wordChar(t[k - 1]) && wordChar(t[k])) k--;
+    if (k <= n / 2) k = n - 1;
+    return t.slice(0, k).replace(/[\s,;:.·/—–([{=-]+$/, "") + "…";
   }
   function sessionSummary(s) {
     const findings = Array.isArray(s.findings) ? s.findings : [],
@@ -3172,6 +3177,7 @@
     redactSecrets,
     importAny,
     homeless,
+    clip,
     transcriptOrigin,
     AGENTS,
     cleanGroup,

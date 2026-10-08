@@ -29,6 +29,10 @@
   session, in your time zone, the same day the date groups use. It was the day of the import, so a session imported
   today that ran last week showed today's date under **Earlier**. A claude.ai export has no times and still shows the
   day of its import.
+- A finding that quotes a long line of code, a command, a requirement or what you wrote now cuts it at a word and ends
+  it with "…": `{ x: 120, y…` instead of `{ x: 120, y: 34`, which read like a different value. About eighteen checks
+  cut it mid-word with no sign of the cut. The evidence on the Calibration tab and in proposed rules keeps a word more
+  where it fits. Verdicts stay with their findings; saved sessions get this on their next analysis.
 
 ### Fixed
 - **Your user name no longer shows in paths.** A file outside the agent's folder and a path in a command were shown in

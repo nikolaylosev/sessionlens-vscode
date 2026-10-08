@@ -6,6 +6,8 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   const T = (k, v) => (typeof I18N !== "undefined" ? I18N : require("./i18n.js")).t(k, v);
+  // a quoted text cut at a word break with "…" (0.1.124; it was cut mid-word): Lens.clip, loaded before this file
+  const clip = (t, n) => (typeof Lens !== "undefined" ? Lens : require("./lens.js")).clip(t, n);
   const ID_RE = /^\s*(?:[-*]\s*|\d+[.)]\s*|#{1,4}\s*)?((?:[A-Z]{2,10}-\d+\/)?[RS]\d{1,3})[.:)\s]\s*(.+)$/;
   const OOS_HEAD = /вне\s+scope|out of scope|не\s+входит|исключ/i;
   const REQ_HEAD = /требован|requirement|сценари|scenario|критери|acceptance/i;
@@ -248,7 +250,7 @@
     if (cov.hasIds)
       for (const id of cov.uncovered) {
         const r = spec.requirements.find((x) => x.id === id);
-        out.push(F("spec_uncovered", "high", lastCode.seq, T("uncovered", { id, text: r.text.slice(0, 90) })));
+        out.push(F("spec_uncovered", "high", lastCode.seq, T("uncovered", { id, text: clip(r.text, 90) })));
       }
     if (cov.hasIds) for (const t of cov.unlinked) out.push(F("test_without_requirement", "medium", lastCode.seq, T("unlinked", { name: t.name })));
     /* An out-of-scope item's keywords: its first two words longer than four letters that are not common words and that
@@ -261,7 +263,7 @@
       if (!kw.length) continue;
       const rxs = kw.map((w) => new RegExp("(?<![\\p{L}\\p{N}_])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "iu"));
       if (cov.tests.some((t) => rxs.some((rx) => rx.test(t.name)) || rxs.every((rx) => rx.test(t.body))))
-        out.push(F("out_of_scope_tested", "medium", lastCode.seq, T("oos", { text: o.slice(0, 80) })));
+        out.push(F("out_of_scope_tested", "medium", lastCode.seq, T("oos", { text: clip(o, 80) })));
     }
     return { findings: out, coverage: cov };
   }

@@ -31,7 +31,7 @@ test("if, for, while, switch and try inside a TypeScript test", () => {
     "switch (kind) { case 1: break; }",
     "try { await pay(); } catch {}",
   ])
-    assert.deepEqual(found("qa-ts", TS, ts("  " + line)), [branch(TS, "total", line.slice(0, 50))], line);
+    assert.deepEqual(found("qa-ts", TS, ts("  " + line)), [branch(TS, "total", Lens.clip(line, 50))], line); // cut at a word, with … (0.1.124)
 });
 
 test("one finding per test, naming the first line; each test on its own", () => {
@@ -76,7 +76,7 @@ test("not the word in a comment or a string", () => {
 test("C#'s foreach and a loop written as a call (0.1.121)", () => {
   const CS = "tests/CartTests.cs";
   assert.deepEqual(found("qa-c#", CS, "[Test]\npublic void Total() {\n  foreach (var r in rows) { Assert.IsTrue(r.Visible); }\n}\n"), [
-    branch(CS, "Total", "foreach (var r in rows) { Assert.IsTrue(r.Visible); }".slice(0, 50)),
+    branch(CS, "Total", "foreach (var r in rows) { Assert.IsTrue(r.Visible…"), // cut at a word, with … (0.1.124)
   ]);
   assert.deepEqual(found("qa-ts", TS, ts("  rows.forEach((r) => expect(r).toBeVisible());")), [
     branch(TS, "total", "rows.forEach((r) => expect(r).toBeVisible());"),
