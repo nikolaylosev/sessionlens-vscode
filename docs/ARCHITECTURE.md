@@ -1,6 +1,6 @@
 # SessionLens for VS Code — architecture and functional blocks
 
-This document describes the whole extension as it stands at **v0.1.124**: what it is made of, how the parts talk
+This document describes the whole extension as it stands at **v0.1.125**: what it is made of, how the parts talk
 to each other, where data lives, and what each functional block does. It is written for developers who change the
 code and for reviewers who need to know where to look.
 
@@ -521,7 +521,7 @@ flowchart LR
 
 ### 6.4 Checks
 
-61 checks in nine groups (Methodology, Process, Code, API, Mobile, Gherkin, Robot, Specification, Model). The
+62 checks in nine groups (Methodology, Process, Code, API, Mobile, Gherkin, Robot, Specification, Model). The
 registry `media/checks.js` is the single source of truth; `test/rules-consistency.test.js` fails when a detector
 emits a name that is not there, or a registry entry has no detector. The user-facing table is in the
 [readme](../readme.md#the-checks); the developer table with sources is RA §9.

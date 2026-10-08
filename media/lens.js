@@ -33,6 +33,7 @@
   };
   const PROCESS = [
     "pass_claim_without_run",
+    "browser_check_not_in_test",
     "fix_after_fail_without_triage",
     "scope_creep",
     "edit_churn",
@@ -768,6 +769,20 @@
   const TEXT_RUNNER_CONFIG_RX = /(?:^|\/)(?:pytest\.ini|tox\.ini|setup\.cfg|pyproject\.toml|pom\.xml|build\.gradle(?:\.kts)?|[^/]*\.runsettings)$/i;
   const isRunnerConfig = (f) => !!f && (RUNNER_CONFIG_RX.test(f) || TEXT_RUNNER_CONFIG_RX.test(f));
   // a test file: by its name, or in one of the profile's test folders (anywhere in the path)
+  /* A browser tool of an MCP server (0.1.125, browser_check_not_in_test): mcp__<server>__<tool> in Claude Code, and the
+     same without "mcp__", where the server's name says it drives a browser (claude-in-chrome, playwright,
+     chrome-devtools, puppeteer, browsermcp…). Tabs, picking a browser and the window's size are housekeeping, not a
+     look at the page. */
+  const BROWSER_SERVER = /browser|chrome|playwright|puppeteer|devtools/i;
+  const BROWSER_HOUSEKEEPING =
+    /^(?:tabs_\w+|list_connected_browsers|select_browser|switch_browser|resize_window|shortcuts_\w+|gif_creator|upload_image|file_upload|browser_(?:close|install|resize|tabs)|(?:new|close|list|select)_pages?)$/i;
+  function browserLook(tool) {
+    // the server is what comes before the first "__" (a server's name has none), the tool what comes after it
+    const name = String(tool || "").replace(/^mcp__/, ""),
+      at = name.indexOf("__");
+    if (at <= 0) return false;
+    return BROWSER_SERVER.test(name.slice(0, at)) && !BROWSER_HOUSEKEEPING.test(name.slice(at + 2));
+  }
   const isTestFile = (f, cfg) => isCode(f, cfg) && (TEST_FILE_RX.test(f) || (cfg.test_dirs || []).some((d) => ("/" + f).includes("/" + d + "/")));
   /* what a runner config or a test file was before this write or edit: config_weakened and test_deleted compare with
      it. Often the only earlier version there is: a first Edit of a file that existed before the session. */
@@ -1919,6 +1934,20 @@
        Since 0.1.121 the window of pass_claim_lookback steps skips the steps that change no code: reads, searches, other
        tools (a browser, MCP), git and other commands. A Cursor session with an MCP browser makes dozens of them between
        a run and the message about it. */
+    /* 0.1.125: the agent looked at the page through a browser tool (an MCP server such as Claude in Chrome, Playwright
+       MCP, Chrome DevTools MCP or Puppeteer) after its last change of a test file, and changed no test after that: the
+       last check was by hand, and no test asserts what it saw. Looking at the site before writing the tests, or while
+       finding out why a test failed and then changing the test, is how the work goes and does not count. A session
+       that wrote no test file is left to tests_never_run and the other checks. Opening and closing tabs is no look. */
+    browser_check_not_in_test(ev, cfg) {
+      let lastTest = -1;
+      for (const e of ev) if ((e.kind === "write" || e.kind === "edit") && e.file && isTestFile(e.file, cfg)) lastTest = e.seq;
+      if (lastTest < 0) return [];
+      const looks = ev.filter((e) => e.seq > lastTest && e.kind === "tool" && browserLook(e.tool));
+      if (!looks.length) return [];
+      const vars = { n: looks.length, first: looks[0].seq, last: looks[looks.length - 1].seq };
+      return [F("browser_check_not_in_test", "medium", looks[0].seq, T(looks.length === 1 ? "browser_unasserted_one" : "browser_unasserted", vars))];
+    },
     pass_claim_without_run(ev, cfg) {
       const out = [],
         pats = cfg.pass_claim_patterns.map(
@@ -2934,7 +2963,7 @@
   // wholesale: verdict import), and since 0.1.116 the version of the analysis. Until then an update left every
   // stored session with the findings of the version that analyzed it: no new check showed up in it until a Rules
   // edit. The version is package.json's (test/reanalyze-after-update.test.js keeps the two equal).
-  const ANALYSIS_VERSION = "0.1.124";
+  const ANALYSIS_VERSION = "0.1.125";
   function canon(v) {
     if (Array.isArray(v)) return "[" + v.map(canon).join(",") + "]";
     if (v && typeof v === "object")

@@ -204,6 +204,7 @@ Checks are grouped as the tab shows them. "Default" is the built-in severity.
 | `fix_after_fail_without_triage` | High | The agent edits right after a failure without saying whether it is a product bug, a test bug or a spec defect |
 | `tests_never_run` | High | Tests were written but never executed |
 | `scope_creep` | Medium | A file was edited that is not in the plan |
+| `browser_check_not_in_test` | Medium | The agent looked at the page through a browser tool (Claude in Chrome, Playwright MCP, Chrome DevTools MCP, Puppeteer) after its last test change and changed no test after it: its last check was by hand, and no test asserts what it saw. Looking before writing the tests, or while finding out why a test failed and then changing it, does not count |
 | `edit_churn` | Medium | The same file was edited over and over |
 | `assumption_instead_of_question` | Medium | The agent assumed ("I assume", "presumably") instead of asking |
 | `user_frustration` | Medium | The user corrected the agent or repeated a request |

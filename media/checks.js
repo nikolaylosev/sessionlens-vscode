@@ -77,6 +77,14 @@
       sortPriority: -1,
     },
     scope_creep: { group: "process", severity: "medium", ruleKey: "r_scope", good: "touch only the files listed in the approved plan", sources: ["regex"] },
+    // 0.1.125: a look at the page through a browser MCP after the last test change, and no test after it
+    browser_check_not_in_test: {
+      group: "process",
+      severity: "medium",
+      ruleKey: "r_browser",
+      good: "turn the look into an assertion: await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toBeHidden()",
+      sources: ["regex"],
+    },
     edit_churn: {
       group: "process",
       severity: "medium",

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.125
+
+### Added
+- **Checked in the browser, not in a test** (`browser_check_not_in_test`, medium, process). An agent with a browser
+  tool (Claude in Chrome, Playwright MCP, Chrome DevTools MCP or Puppeteer) can look at the page itself. When it does
+  so after its last change of a test file and changes no test after that, its last check was by hand, and no test
+  asserts what it saw. Looking at the site before writing the tests, or while finding out why a test failed and then
+  changing the test, does not count. Saved sessions get this on their next analysis.
+
 ## 0.1.124
 
 ### Added
