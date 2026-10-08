@@ -100,6 +100,18 @@
         "title": "%cmd.groupSessions%",
         "category": "SessionLens",
         "icon": "$(list-tree)"
+      },
+      {
+        "command": "sessionlens.filterSessions",
+        "title": "%cmd.filterSessions%",
+        "category": "SessionLens",
+        "icon": "$(search)"
+      },
+      {
+        "command": "sessionlens.clearSessionFilter",
+        "title": "%cmd.clearSessionFilter%",
+        "category": "SessionLens",
+        "icon": "$(clear-all)"
       }
     ],
     "configuration": {
@@ -217,6 +229,10 @@
         {
           "command": "sessionlens.deleteSession",
           "when": "false"
+        },
+        {
+          "command": "sessionlens.clearSessionFilter",
+          "when": "sessionlens.sessionsFiltered"
         }
       ],
       "view/item/context": [
@@ -238,9 +254,19 @@
       ],
       "view/title": [
         {
-          "command": "sessionlens.groupSessions",
+          "command": "sessionlens.filterSessions",
           "when": "view == sessionlensSessionsTree",
           "group": "navigation@1"
+        },
+        {
+          "command": "sessionlens.clearSessionFilter",
+          "when": "view == sessionlensSessionsTree && sessionlens.sessionsFiltered",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sessionlens.groupSessions",
+          "when": "view == sessionlensSessionsTree",
+          "group": "navigation@3"
         }
       ]
     }

@@ -14,6 +14,8 @@
   "cmd.treeRename": "Rename…",
   "cmd.treeDelete": "Delete",
   "cmd.groupSessions": "Group sessions by…",
+  "cmd.filterSessions": "Filter sessions…",
+  "cmd.clearSessionFilter": "Clear filter",
   "config.title": "SessionLens",
   "config.claudeCliPath": "Full path to the Claude Code CLI (`claude`). Leave empty to find it automatically. Machine setting: a workspace cannot change it.",
   "config.cursorCliPath": "Full path to the Cursor Agent CLI (`agent`). Leave empty to find it automatically in `~/.local/bin`. Machine setting: a workspace cannot change it.",

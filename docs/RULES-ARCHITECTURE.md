@@ -1243,6 +1243,7 @@ and a change of it from anywhere redraws the tree.
 | `sessionlens.openSettings` | the host: `"@ext:" + context.extension.id` (since v0.1.106) |
 | `sessionlens.openSessionFromTree`, `renameSession`, `deleteSession` | the host; hidden in the palette, in the tree menu |
 | `sessionlens.groupSessions` | the host: a QuickPick of the four ways to group (the current one ticked); the button in the tree's title (`view/title`), and the palette (since v0.1.124) |
+| `sessionlens.filterSessions`, `clearSessionFilter` | the host: the filter's QuickPick and its reset (§16.3); buttons in the tree's title, Clear only while `sessionlens.sessionsFiltered`, and the palette (since v0.1.124) |
 
 A command for the sidebar: `sessionlensView.focus`, waiting for `page:ready` (up to 10 s), then
 `postMessage({ __slCommand: true, name })`. The page sends `page:ready` after loading and on a `focus` refresh;
@@ -1279,6 +1280,16 @@ an open window runs its new code before VS Code registers its settings, and the 
 configuration" until the window is reloaded (the owner's first try of 0.1.124): the tree is grouped anyway, the
 Output channel has the error, and a warning asks to reload. Any change of the setting drops the pick.
 `test-integration/suite.js` checks in a real VS Code that the setting is registered and can be written.
+
+The filter (since v0.1.124) is `sessionFilter { text, red, open }` in the host, for this window only. `text` is a part
+of `displayName`, `name`, `task` or `profile`, in any case (`toLocaleLowerCase`); `red` keeps the red sessions; `open`
+the ones whose `openCount` (§15.1) is above 0, and for a summary without it (written by an older version in another
+window) `findingsCount − verdictsCount`. The three combine. **Filter sessions…** is one `createQuickPick`: the typed
+text gives the item "Name, task or profile containing …", and the quick filters are switched on and off (ticked when
+on), with "Without …" to drop the text and "Clear filter". The filter is applied before grouping, so the groups count
+what it shows. With a filter the root starts with a row: `Filter: "cart" · Only Red`, "N of M — Clear", a click clears
+it (`contextValue` `sessionlensFilter`, `id` `filter\n`); when nothing matches, a row says so. The context key
+`sessionlens.sessionsFiltered` shows the Clear filter button.
 
 ### 16.4 The session name
 

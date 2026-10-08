@@ -23,6 +23,7 @@ function fakeVscode(opts = {}) {
     output: [],
     quickPick: [],
     inputBox: [],
+    quickPicks: [],
   };
   const config = { global: Object.assign({}, (opts.config || {}).global), workspace: Object.assign({}, (opts.config || {}).workspace) };
   // machine and application scope: a workspace value is ignored (phase 6: the five panel settings are "application")
@@ -160,6 +161,48 @@ function fakeVscode(opts = {}) {
         calls.inputBox.push(o);
         return typeof opts.inputBoxAnswer === "function" ? opts.inputBoxAnswer(o) : opts.inputBoxAnswer;
       },
+      /* opts.quickPickFlow(qp, person): what the person does in a QuickPick the extension built itself, with
+         person.type(text), person.accept(item) and person.escape(); without it the QuickPick closes at once (Escape) */
+      createQuickPick: () => {
+        const changed = new EventEmitter(),
+          accepted = new EventEmitter(),
+          hidden = new EventEmitter();
+        let open = false;
+        const qp = {
+          items: [],
+          activeItems: [],
+          selectedItems: [],
+          value: "",
+          title: "",
+          placeholder: "",
+          onDidChangeValue: changed.event,
+          onDidAccept: accepted.event,
+          onDidHide: hidden.event,
+          show() {
+            open = true;
+            calls.quickPicks.push(qp);
+            const person = {
+              type: (v) => {
+                qp.value = v;
+                changed.fire(v);
+              },
+              accept: (item) => {
+                qp.selectedItems = [item];
+                accepted.fire();
+              },
+              escape: () => qp.hide(),
+            };
+            Promise.resolve().then(() => (opts.quickPickFlow ? opts.quickPickFlow(qp, person) : person.escape()));
+          },
+          hide() {
+            if (!open) return;
+            open = false;
+            hidden.fire();
+          },
+          dispose() {},
+        };
+        return qp;
+      },
     },
     commands: {
       registerCommand: (id, fn) => {
@@ -216,13 +259,13 @@ function fakeVscode(opts = {}) {
   return { vscode, registered, calls, config, setConfig };
 }
 
-/* The session items of the Sessions tree, in the order shown, whatever it groups by (0.1.124: the root holds groups).
-   A session item at the root is returned as it is. */
+/* The session items of the Sessions tree, in the order shown, whatever it groups by (0.1.124: the root holds groups,
+   and with a filter a row that says what it is). */
 async function treeSessions(tree) {
   const out = [];
   for (const it of await tree.getChildren()) {
     if (it.contextValue === "sessionlensGroup") out.push(...(await tree.getChildren(it)));
-    else out.push(it);
+    else if (it.contextValue === "sessionlensSession") out.push(it);
   }
   return out;
 }
