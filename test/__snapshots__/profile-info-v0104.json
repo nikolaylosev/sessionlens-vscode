@@ -59,6 +59,11 @@
       "engineOnly": false
      },
      {
+      "name": "browser_check_not_in_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
       "name": "edit_churn",
       "off": false,
       "engineOnly": false
@@ -216,7 +221,7 @@
     ]
    }
   ],
-  "count": 35,
+  "count": 36,
   "engine": {
    "kind": "eslint",
    "state": "on"
@@ -294,6 +299,11 @@
      },
      {
       "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "browser_check_not_in_test",
       "off": false,
       "engineOnly": false
      },
@@ -445,7 +455,7 @@
     ]
    }
   ],
-  "count": 33,
+  "count": 34,
   "engine": {
    "kind": "eslint-cypress",
    "state": "on"
@@ -520,6 +530,11 @@
      },
      {
       "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "browser_check_not_in_test",
       "off": false,
       "engineOnly": false
      },
@@ -676,7 +691,7 @@
     ]
    }
   ],
-  "count": 34,
+  "count": 35,
   "engine": {
    "kind": "eslint-detox",
    "state": "on"
@@ -745,6 +760,11 @@
      },
      {
       "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "browser_check_not_in_test",
       "off": false,
       "engineOnly": false
      },
@@ -886,7 +906,7 @@
     ]
    }
   ],
-  "count": 31,
+  "count": 32,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -960,6 +980,11 @@
       "engineOnly": false
      },
      {
+      "name": "browser_check_not_in_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
       "name": "edit_churn",
       "off": false,
       "engineOnly": false
@@ -1097,7 +1122,7 @@
     ]
    }
   ],
-  "count": 31,
+  "count": 32,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1168,6 +1193,11 @@
       "engineOnly": false
      },
      {
+      "name": "browser_check_not_in_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
       "name": "edit_churn",
       "off": false,
       "engineOnly": false
@@ -1305,7 +1335,7 @@
     ]
    }
   ],
-  "count": 31,
+  "count": 32,
   "engine": {
    "kind": "tree-sitter",
    "state": "on"
@@ -1395,6 +1425,11 @@
      },
      {
       "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "browser_check_not_in_test",
       "off": false,
       "engineOnly": false
      },
@@ -1566,7 +1601,7 @@
     ]
    }
   ],
-  "count": 36,
+  "count": 37,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1657,6 +1692,11 @@
      },
      {
       "name": "scope_creep",
+      "off": false,
+      "engineOnly": false
+     },
+     {
+      "name": "browser_check_not_in_test",
       "off": false,
       "engineOnly": false
      },
@@ -1818,7 +1858,7 @@
     ]
    }
   ],
-  "count": 34,
+  "count": 35,
   "engine": {
    "kind": "none",
    "state": "none"
@@ -1894,6 +1934,11 @@
       "engineOnly": false
      },
      {
+      "name": "browser_check_not_in_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
       "name": "edit_churn",
       "off": false,
       "engineOnly": false
@@ -1961,7 +2006,7 @@
     ]
    }
   ],
-  "count": 15,
+  "count": 16,
   "engine": {
    "kind": "robot-parser",
    "state": "on"
@@ -2026,6 +2071,11 @@
       "engineOnly": false
      },
      {
+      "name": "browser_check_not_in_test",
+      "off": false,
+      "engineOnly": false
+     },
+     {
       "name": "edit_churn",
       "off": false,
       "engineOnly": false
@@ -2068,7 +2118,7 @@
     ]
    }
   ],
-  "count": 11,
+  "count": 12,
   "engine": {
    "kind": "none",
    "state": "none"

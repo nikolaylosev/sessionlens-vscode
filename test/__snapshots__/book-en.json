@@ -54,6 +54,15 @@
   "edited": false
  },
  {
+  "check": "browser_check_not_in_test",
+  "group": "process",
+  "rule": "A look at the page in the browser is a step towards a test, not the result. What you confirm by hand goes into a test as an assertion, and the test runs.",
+  "severity": "medium",
+  "enabled": true,
+  "good": "turn the look into an assertion: await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toBeHidden()",
+  "edited": false
+ },
+ {
   "check": "edit_churn",
   "group": "process",
   "rule": "More than three edits to one file — stop and explain what is unclear instead of trying again.",
