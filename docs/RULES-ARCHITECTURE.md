@@ -1245,6 +1245,7 @@ and a change of it from anywhere redraws the tree.
 | `sessionlens.openSettings` | the host: `"@ext:" + context.extension.id` (since v0.1.106) |
 | `sessionlens.openSessionFromTree`, `renameSession`, `deleteSession` | the host; hidden in the palette, in the tree menu |
 | `sessionlens.groupSessions` | the host: a QuickPick of the four ways to group (the current one ticked); the button in the tree's title (`view/title`), and the palette (since v0.1.124) |
+| `sessionlens.newGroup` | the host: a name, then a `canPickMany` QuickPick of the sessions; the `$(new-folder)` button in the tree's title, and the palette (since v0.1.124, §16.3) |
 | `sessionlens.moveToGroup`, `renameGroup`, `deleteGroup` | the host; hidden in the palette; Move in a session's menu, Rename and Delete in the menu of a group of "My groups" (since v0.1.124, §16.3) |
 | `sessionlens.filterSessions`, `clearSessionFilter` | the host: the filter's QuickPick and its reset (§16.3); buttons in the tree's title, Clear only while `sessionlens.sessionsFiltered`, and the palette (since v0.1.124) |
 
@@ -1289,7 +1290,11 @@ sensitivity), then "No group". A group is a name kept on the session file, so it
 sees the same; it exists while a session is in it. `setSessionGroups(ids, group)` writes each session through the store
 with its `baseRev` (3 attempts, as Rename from the tree) and broadcasts `session`; `""` deletes the field. A tab that
 has the session open gets a conflict at its next save, reads the session again and applies its change to it, so the
-group stays (`test/vscode-integration.test.js`). **Move to group…** offers the groups there are (not the session's own),
+group stays (`test/vscode-integration.test.js`). **+ New group** (`newGroup`) asks for a name, then lists every session with ticks (a session's own group in its
+description; the sessions of a group with that name come ticked) and puts the ticked ones into the group. A group exists
+while a session is in it, so none ticked makes none, and there are no empty groups to store. A typed name that differs
+from a group there is only in case is that group (`existingGroup`), here, in Move to group…'s "New group…" and in
+Rename group…, where the group itself is left out, so a rename can change its case. **Move to group…** offers the groups there are (not the session's own),
 "New group…" (an input box: one line, at most 60 characters) and "Out of …"; after a move into a group the tree is
 grouped by "My groups" if it was not. A group of the person's own has `contextValue` `sessionlensGroupCustom` and
 `groupName`; its menu has **Rename group…** (every session of it; a name there is already merges them) and **Delete

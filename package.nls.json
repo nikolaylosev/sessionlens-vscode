@@ -17,6 +17,7 @@
   "cmd.filterSessions": "Filter sessions…",
   "cmd.clearSessionFilter": "Clear filter",
   "cmd.moveToGroup": "Move to group…",
+  "cmd.newGroup": "New group…",
   "cmd.renameGroup": "Rename group…",
   "cmd.deleteGroup": "Delete group",
   "config.title": "SessionLens",

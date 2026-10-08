@@ -127,6 +127,12 @@
         "command": "sessionlens.deleteGroup",
         "title": "%cmd.deleteGroup%",
         "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.newGroup",
+        "title": "%cmd.newGroup%",
+        "category": "SessionLens",
+        "icon": "$(new-folder)"
       }
     ],
     "configuration": {
@@ -308,9 +314,14 @@
           "group": "navigation@2"
         },
         {
-          "command": "sessionlens.groupSessions",
+          "command": "sessionlens.newGroup",
           "when": "view == sessionlensSessionsTree",
           "group": "navigation@3"
+        },
+        {
+          "command": "sessionlens.groupSessions",
+          "when": "view == sessionlensSessionsTree",
+          "group": "navigation@4"
         }
       ]
     }

@@ -129,6 +129,16 @@ test("package.json: activation, views, commands and menus", async () => {
   // 0.1.124: a group of the person's own ("My groups"); the other groups have no menu
   assert.deepEqual(menu("sessionlensGroupCustom"), ["sessionlens.renameGroup", "sessionlens.deleteGroup"]);
   assert.equal(ctx.length, 6);
+  // 0.1.124: the buttons in the Sessions tree's title, in this order; Clear filter only while a filter is on
+  assert.deepEqual(
+    PKG.contributes.menus["view/title"].map((m) => [m.command, m.when, m.group]),
+    [
+      ["sessionlens.filterSessions", "view == sessionlensSessionsTree", "navigation@1"],
+      ["sessionlens.clearSessionFilter", "view == sessionlensSessionsTree && sessionlens.sessionsFiltered", "navigation@2"],
+      ["sessionlens.newGroup", "view == sessionlensSessionsTree", "navigation@3"],
+      ["sessionlens.groupSessions", "view == sessionlensSessionsTree", "navigation@4"],
+    ],
+  );
   // in a checkout: .vscodeignore keeps package.nls.json in the package; in the unpacked .vsix it is not there, but the
   // file itself must be
   const ignoreFile = path.join(root, ".vscodeignore");

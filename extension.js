@@ -1098,6 +1098,11 @@ function groupSessions(list, by, now) {
 /* 0.1.124: "My groups". A group is a name kept on the session (its group field; the summary has it, cleaned by
    Lens.cleanGroup), so it travels with the session's file, and two windows see the same. A group exists while a session
    is in it: Move to group… makes one, Delete group and moving its last session out end it. */
+// a typed name that is a group there is, in any case, is that group (two groups that look the same would confuse)
+function existingGroup(list, name) {
+  const g = Lens.cleanGroup(name);
+  return groupNames(list).find((x) => x.localeCompare(g, undefined, { sensitivity: "base" }) === 0) || g;
+}
 const groupNames = (list) => [...new Set(list.map((m) => m.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 /* Writes the group of each session (one by one, with its rev, as Rename from the tree does): a tab that has the session
    open gets a conflict at its next save, reads it again and keeps the group. → how many sessions changed. */
@@ -1302,6 +1307,42 @@ async function pickGroupBy() {
 
 /* Move to group… (0.1.124), from a session's menu: one of the groups there are, a new one, or out of its group. The
    sessions are grouped by "My groups" afterwards when they were not: the move would not show otherwise. */
+/* + New group (0.1.124), the button in the Sessions tree's title: a name, then the sessions to put into it (a list with
+   ticks). A group exists while a session is in it, so none picked makes none. A name there is already adds to that
+   group: its sessions come ticked. The tree is grouped by "My groups" afterwards when it was not. */
+async function newGroup() {
+  await host.ready;
+  const list = host.storeOpen ? host.store.list() : [];
+  if (!list.length) {
+    vscode.window.showInformationMessage(t("SessionLens: no sessions yet. Import a transcript first."));
+    return;
+  }
+  const name = await vscode.window.showInputBox({ title: t("SessionLens: new group"), prompt: t("Group name"), validateInput: checkGroupName });
+  const group = name === undefined ? "" : existingGroup(list, name);
+  if (!group) return;
+  /** @type {Array<import("vscode").QuickPickItem & { id: string }>} */
+  const items = list.map((m) => ({
+    label: Lens.displayName(m) || m.id,
+    description: (m.group && m.group !== group ? t('in "{0}"', m.group) + " · " : "") + describeSession(m),
+    picked: m.group === group,
+    id: m.id,
+  }));
+  const picks = /** @type {any} */ (
+    await vscode.window.showQuickPick(items, {
+      title: t('SessionLens: sessions for "{0}"', group),
+      placeHolder: t("Tick the sessions to put into the group"),
+      canPickMany: true,
+      matchOnDescription: true,
+    })
+  );
+  if (!Array.isArray(picks) || !picks.length) return;
+  await setSessionGroups(
+    picks.map((p) => p.id),
+    group,
+  );
+  if (sessionsGroupBy() !== "custom") await showMyGroups();
+}
+
 async function moveToGroup(arg) {
   const id = sessionIdOf(arg);
   if (!id) return;
@@ -1322,7 +1363,7 @@ async function moveToGroup(arg) {
   if (pick.make) {
     const name = await vscode.window.showInputBox({ title: t("SessionLens: new group"), prompt: t("Group name"), validateInput: checkGroupName });
     if (name === undefined || !Lens.cleanGroup(name)) return;
-    group = Lens.cleanGroup(name);
+    group = existingGroup(host.store.list(), name);
   }
   await setSessionGroups([id], group || "");
   if (group && sessionsGroupBy() !== "custom") await showMyGroups();
@@ -1349,7 +1390,14 @@ async function renameGroup(arg) {
   if (!from) return;
   await host.ready;
   const value = await vscode.window.showInputBox({ title: t("SessionLens: rename group"), prompt: t("New name"), value: from, validateInput: checkGroupName });
-  const to = value === undefined ? "" : Lens.cleanGroup(value);
+  // into a group there is in any case (they merge); the group itself is left out, so only its case can change too
+  const to =
+    value === undefined || !Lens.cleanGroup(value)
+      ? ""
+      : existingGroup(
+          host.store.list().filter((m) => m.group !== from),
+          value,
+        );
   if (!to || to === from) return;
   await setSessionGroups(
     host.store
@@ -1578,6 +1626,7 @@ function activate(context) {
     vscode.commands.registerCommand("sessionlens.deleteSession", (arg) => deleteSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.groupSessions", () => pickGroupBy()),
     vscode.commands.registerCommand("sessionlens.moveToGroup", (arg) => moveToGroup(arg)),
+    vscode.commands.registerCommand("sessionlens.newGroup", () => newGroup()),
     vscode.commands.registerCommand("sessionlens.renameGroup", (arg) => renameGroup(arg)),
     vscode.commands.registerCommand("sessionlens.deleteGroup", (arg) => deleteGroup(arg)),
     vscode.commands.registerCommand("sessionlens.filterSessions", () => pickSessionFilter()),

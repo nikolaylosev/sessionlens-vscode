@@ -424,7 +424,14 @@ test("Rename group… moves every session of it, also into a group there is; Del
     warningAnswer: (msg, o, button) => (yes ? button : undefined),
   });
   const [checkout] = await h.tree.getChildren();
+  rename = "CHECKOUT"; // only the case: allowed
   await h.registered.commands["sessionlens.renameGroup"](checkout);
+  assert.deepEqual(
+    (await groups(h.tree)).map((g) => g[0]),
+    ["CHECKOUT", "Login"],
+  );
+  rename = "login"; // a group there is, in any case: they merge under its name
+  await h.registered.commands["sessionlens.renameGroup"]((await h.tree.getChildren())[0]);
   assert.deepEqual(await groups(h.tree), [["Login", "3", ["c", "b", "a"]]]);
 
   const [login] = await h.tree.getChildren();
@@ -490,4 +497,61 @@ test("the filter's text matches a group's name too", async () => {
     (await treeSessions(h.tree)).map((s) => s.id),
     ["a"],
   );
+});
+
+test("+ New group in the title: a name, then the sessions with ticks; the tree switches to My groups", async () => {
+  let name = "  Checkout  ",
+    pick = (items) => items.filter((i) => i.id === "a" || i.id === "c");
+  const offered = [];
+  const h = await host([session("a"), session("b", { group: "Login" }), session("c")], {
+    inputBoxAnswer: (o) => {
+      assert.equal(o.validateInput("two\nlines"), "A group name is one line.");
+      return name;
+    },
+    quickPickAnswer: (items, o) => (offered.push({ items, o }), pick(items)),
+  });
+  await h.registered.commands["sessionlens.newGroup"]();
+  const [{ items, o }] = offered;
+  assert.equal(o.canPickMany, true);
+  assert.equal(o.title, 'SessionLens: sessions for "Checkout"');
+  assert.deepEqual(
+    items.map((i) => [i.id, i.picked, i.description.startsWith('in "Login" · ')]),
+    [
+      ["c", false, false],
+      ["b", false, true],
+      ["a", false, false],
+    ],
+    "every session, with the group it is in",
+  );
+  assert.deepEqual([stored(h, "a").group, stored(h, "b").group, stored(h, "c").group], ["Checkout", "Login", "Checkout"]);
+  assert.deepEqual(h.calls.configUpdates, [["sessionlens.sessionsGroupBy", "custom", h.vscode.ConfigurationTarget.Global]]);
+  assert.deepEqual(await groups(h.tree), [
+    ["Checkout", "2", ["c", "a"]],
+    ["Login", "1", ["b"]],
+  ]);
+
+  // the name of a group there is, in any case: that group; its sessions come ticked, a tick adds
+  name = "checkout ";
+  pick = (items) => items.filter((i) => i.picked || i.id === "b");
+  await h.registered.commands["sessionlens.newGroup"]();
+  assert.equal(offered[1].o.title, 'SessionLens: sessions for "Checkout"');
+  assert.deepEqual(
+    offered[1].items.filter((i) => i.picked).map((i) => i.id),
+    ["c", "a"],
+  );
+  assert.deepEqual(await groups(h.tree), [["Checkout", "3", ["c", "b", "a"]]], "one group, not checkout and Checkout");
+});
+
+test("+ New group: Escape at the name, or no session ticked, makes nothing; with no sessions it says so", async () => {
+  let name;
+  const h = await host([session("a")], { inputBoxAnswer: () => name, quickPickAnswer: () => [] });
+  await h.registered.commands["sessionlens.newGroup"](); // Escape
+  name = "Spike";
+  await h.registered.commands["sessionlens.newGroup"](); // nothing ticked
+  assert.equal("group" in stored(h, "a"), false);
+  assert.deepEqual(h.calls.configUpdates, []);
+  const empty = await host([]);
+  await empty.registered.commands["sessionlens.newGroup"]();
+  assert.match(empty.calls.info[0], /no sessions yet/);
+  assert.equal(empty.calls.inputBox.length, 0);
 });
