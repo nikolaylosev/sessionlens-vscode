@@ -642,3 +642,28 @@ test("several selected: Open in the menu opens each; a click opens the one click
   await h.registered.commands["sessionlens.openSessionFromTree"]("c"); // the item's own click command
   assert.deepEqual(opened.sort(), ["a", "b", "c"]);
 });
+
+// ---------- details (0.1.124) ----------
+
+test("a session's tooltip: its other name, its agent and its group; Collapse All in the title", async () => {
+  const h = await host([
+    session("a", { task: "TASK-1", agent: "codex", group: "Checkout" }),
+    session("b", { agent: "" }),
+    session("c", { task: "TASK-3", agent: "" }),
+  ]);
+  const by = Object.fromEntries((await treeSessions(h.tree)).map((s) => [s.id, s.tooltip]));
+  assert.equal(by.a, "a\nAgent: Codex\nGroup: Checkout");
+  assert.equal(by.b, undefined, "nothing to add");
+  assert.equal(by.c, "c", "the other name alone, as before");
+  assert.equal(h.registered.treeViews.sessionlensSessionsTree.showCollapseAll, true);
+});
+
+test("Open session…: a session's group is in its line, so typing the group's name finds it", async () => {
+  let offered = null;
+  const h = await host([session("a", { group: "Checkout" }), session("b")], { quickPickAnswer: (items, o) => ((offered = { items, o }), undefined) });
+  await h.registered.commands["sessionlens.openSession"]();
+  const by = Object.fromEntries(offered.items.map((i) => [i.id, i.description]));
+  assert.match(by.a, / · \$\(folder\) Checkout$/);
+  assert.doesNotMatch(by.b, /folder/);
+  assert.equal(offered.o.matchOnDescription, true);
+});

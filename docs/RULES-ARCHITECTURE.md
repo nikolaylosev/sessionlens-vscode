@@ -1327,6 +1327,9 @@ groups and the filter row out. **Open** opens each, **Move to group…** moves t
 …" names their group when they share one, else "Out of their groups"), **Delete** asks once ("delete N sessions?", up
 to five names, then "and N more") and closes their tabs. **Rename…** is for the clicked one.
 
+Also since v0.1.124: `showCollapseAll`; a session's tooltip is its other name, "Agent: …" and "Group: …" (each only when
+there is one); **Open session…** adds " · $(folder) <group>" to a session's line, which `matchOnDescription` searches.
+
 The filter (since v0.1.124) is `sessionFilter { text, red, open }` in the host, for this window only. `text` is a part
 of `displayName`, `name`, `task`, `profile` or `group`, in any case (`toLocaleLowerCase`); `red` keeps the red sessions; `open`
 the ones whose `openCount` (§15.1) is above 0, and for a summary without it (written by an older version in another

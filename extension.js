@@ -1241,8 +1241,14 @@ class SessionsTreeProvider {
     const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
     item.id = s.id; // the context menu's commands get the item; the id is how they find the session
     item.description = describeSession(s);
+    // the other name, then the agent and the session's own group when it has them (0.1.124)
     const other = Lens.otherName(s);
-    if (other && other !== label) item.tooltip = other;
+    const tip = [
+      other && other !== label ? other : "",
+      s.agent && AGENT_GROUPS[s.agent] ? t("Agent: {0}", AGENT_GROUPS[s.agent]) : "",
+      s.group ? t("Group: {0}", s.group) : "",
+    ];
+    if (tip.some(Boolean)) item.tooltip = tip.filter(Boolean).join("\n");
     const colorId = s.verdict === "red" ? "charts.red" : s.verdict === "yellow" ? "charts.yellow" : "charts.green";
     item.iconPath = new vscode.ThemeIcon(s.reviewed ? "check" : "circle-filled", new vscode.ThemeColor(colorId));
     item.command = { command: "sessionlens.openSessionFromTree", title: t("Open session"), arguments: [s.id] };
@@ -1296,7 +1302,13 @@ async function openSessionPick(context) {
     return;
   }
   /** @type {Array<import("vscode").QuickPickItem & { id: string }>} */
-  const items = list.map((m) => ({ label: Lens.displayName(m) || m.id, description: describeSession(m), detail: Lens.otherName(m) || undefined, id: m.id }));
+  // a session's own group is in its line too, so typing a group's name finds its sessions (0.1.124)
+  const items = list.map((m) => ({
+    label: Lens.displayName(m) || m.id,
+    description: describeSession(m) + (m.group ? " · $(folder) " + m.group : ""),
+    detail: Lens.otherName(m) || undefined,
+    id: m.id,
+  }));
   const pick = await vscode.window.showQuickPick(items, { placeHolder: t("Open a session"), matchOnDescription: true, matchOnDetail: true });
   if (pick) openSessionPanel(context, pick.id);
 }
@@ -1655,6 +1667,7 @@ function activate(context) {
       treeDataProvider: sessionsTreeProvider,
       dragAndDropController: sessionsDragAndDrop,
       canSelectMany: true,
+      showCollapseAll: true, // with groups, a button to fold them all
     }),
   );
   context.subscriptions.push(
