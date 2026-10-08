@@ -1124,8 +1124,21 @@ under a session, so a green session with hidden findings does not look clean. Re
 `hiddenByCalibration` (with the `precision` and `verdicts` of the pair that hid them, from `s.suppressed`), and the
 PR report lists the hidden high findings by name and counts the rest.
 
+Since v0.1.124 the summary is `schema: 4` and has `agent`, `project` and `openCount` (`Lens.transcriptOrigin`).
+`agent` is the format `importAny` reads the transcript as: `claude-code`, `codex`, `cursor` (a transcript or an Agent
+CLI log), `claude-ai` or `text`. `project` is the folder the agent worked in: the first `cwd` of a Claude Code
+transcript or a Cursor Agent CLI log, the `cwd` of Codex's `session_meta`, and for a Cursor transcript the name of its
+folder in `~/.cursor/projects` (`source_project`); `""` for a claude.ai export, pasted text and a dropped Cursor
+transcript. The import stores both on the session (from the whole text: a long transcript is not kept), and so does
+**Import again**. A session imported before has neither: the summary takes them from `source_text`, or `""` when no
+text was kept, until **Import again**. An `agent` that is not one of the five is ignored, and a `project` with
+control characters is dropped (the page is not trusted, §14). `openCount` is the number of findings shown that have
+no verdict; `verdictsCount` cannot give it, since it also counts verdicts on findings that are gone. The Sessions
+tree groups by `agent` and filters by `openCount`; `project` is only kept for now. A summary of schema 3 is rebuilt
+once at `open()`.
+
 `<name> = fileNameFor(id)`: the id itself if it matches `^[A-Za-z0-9_-]{1,64}$`, otherwise `h-` and the 32 hex characters of
-`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount,
+`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount, openCount, agent, project,
 checkStats { check: { total, ok, fp } }, sourceStats { check: { source: { total, ok, fp } } }, confirmed [{ key, check, seq, message ≤90, snippet ≤140, note }]` — everything that
 Calibration, Rules, `effect()`, the profile drop-down and the Sessions tree used to take from full sessions. The summary
 is computed by the **host** from the session's content; only `analyzedGen` is taken from the message (its format is checked).
@@ -1143,7 +1156,7 @@ is retried 5 times (20…320 ms). Writes of one id in one host are queued.
 ### 15.3 Reconciliation at `open()`
 
 A summary is current if it was written no earlier than the session, stores its size (two `stat`s per session; `rev` from the tail
-of the file only when the times match) and has the current `schema` (3 since v0.1.116). Otherwise the summary is rebuilt from the
+of the file only when the times match) and has the current `schema` (4 since v0.1.124). Otherwise the summary is rebuilt from the
 session file, keeping its `order` and `analyzedGen`. A summary without a session is deleted,
 an unreadable session file is moved to `sessions/corrupt/`, leftover `*.tmp` files are deleted. Everything is written to the Output
 channel "SessionLens".

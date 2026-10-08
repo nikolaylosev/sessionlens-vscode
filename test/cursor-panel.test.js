@@ -96,6 +96,7 @@ test(
       assert.ok(checks(s).includes("fix_after_fail_without_triage"), checks(s).join(", "));
       assert.equal(s.source_outputs.length, 2, "kept with the text");
       assert.equal(s.source_project, "Users-me-shop", "the transcript's folder, kept with the text");
+      assert.deepEqual([s.agent, s.project], ["cursor", "Users-me-shop"], "stored at import (0.1.124)");
       assert.deepEqual([...new Set(s.events.filter((e) => e.file).map((e) => e.file))], ["e2e/cart.spec.ts"], "relative to the workspace (0.1.122)");
       const log = host.calls.output.join("\n");
       assert.match(log, /cursor: the output of 2 commands from the cli database/);

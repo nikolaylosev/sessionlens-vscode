@@ -1606,6 +1606,7 @@ ${en.raw}`).join("\n\n\n");
     }
     let last = null;
     await needEngine(cfg.profile);
+    const origin = Lens.transcriptOrigin(text, from);
     for (const c of convs) {
       const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const s = {
@@ -1623,6 +1624,8 @@ ${en.raw}`).join("\n\n\n");
         // kept with the text, so Back to regex parsing and Import again parse it the same way
         source_outputs: text.length < 4e5 ? keptOutputs(from.cursorOutputs) : void 0,
         source_project: text.length < 4e5 ? from.cursorProject : void 0,
+        agent: origin.agent,
+        project: origin.project,
         seg: null,
         importGen: Lens.IMPORT_GEN
       };
@@ -1656,6 +1659,7 @@ ${en.raw}`).join("\n\n\n");
         spec: D.SPEC,
         dropped: [],
         source_text: D.TRANSCRIPT,
+        ...Lens.transcriptOrigin(D.TRANSCRIPT),
         seg: null,
         importGen: Lens.IMPORT_GEN
       };
@@ -1932,6 +1936,7 @@ ${en.raw}`).join("\n\n\n");
         x.source_outputs = keptOutputs(cursorOutputs);
         x.source_project = cursorProject;
       }
+      Object.assign(x, Lens.transcriptOrigin(text, { cursorProject }));
       x.importGen = Lens.IMPORT_GEN;
       analyze(x, "import");
     });

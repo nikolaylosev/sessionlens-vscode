@@ -75,6 +75,7 @@ test("Try a demo session: imports it with its own name, profile and specificatio
   assert.equal(s.nameSet, true);
   assert.equal(s.profile, "qa-ts");
   assert.equal(s.spec, D.SPEC);
+  assert.equal(s.agent, "claude-code", "the demo is a Claude Code transcript (0.1.124)");
   const got = {};
   for (const f of s.findings) got[f.check] = (got[f.check] || 0) + 1;
   assert.deepEqual(got, EXPECTED);
