@@ -572,3 +572,73 @@ test("My groups with no group yet: No group says how to make one, in its line an
   const byDate = await host([session("a")]);
   assert.equal((await byDate.tree.getChildren())[0].tooltip, undefined, "not in the other groupings");
 });
+
+// ---------- several sessions selected (0.1.124) ----------
+
+const item = async (h, id) => (await treeSessions(h.tree)).find((s) => s.id === id);
+
+test("several selected: Move to group… moves them all; the clicked one alone when it is not in the selection", async () => {
+  let offered = null;
+  const h = await host([session("a", { group: "Login" }), session("b"), session("c", { group: "Login" }), session("d", { group: "Spike" })], {
+    quickPickAnswer: (items, o) => ((offered = { labels: items.map((i) => i.label), o }), items.find((i) => i.label.endsWith("Spike"))),
+  });
+  assert.equal(h.registered.treeViews.sessionlensSessionsTree.canSelectMany, true);
+  const [a, b, c] = [await item(h, "a"), await item(h, "b"), await item(h, "c")];
+  await h.registered.commands["sessionlens.moveToGroup"](a, [a, b]);
+  assert.equal(offered.o.title, "SessionLens: move 2 sessions to a group");
+  assert.deepEqual(offered.labels, ["$(folder) Login", "$(folder) Spike", "$(new-folder) New group…", "$(close) Out of their groups"], "in different groups");
+  assert.deepEqual([stored(h, "a").group, stored(h, "b").group], ["Spike", "Spike"]);
+
+  await h.registered.commands["sessionlens.moveToGroup"](c, [a, b]); // right-clicked outside the selection
+  assert.equal(offered.o.title, "SessionLens: move to group");
+  assert.deepEqual([stored(h, "c").group, stored(h, "a").group], ["Spike", "Spike"]);
+  const [x, y] = [await item(h, "a"), await item(h, "b")];
+  await h.registered.commands["sessionlens.moveToGroup"](x, [x, y, (await h.tree.getChildren())[0]]);
+  assert.ok(offered.labels.includes('$(close) Out of "Spike"'), "all in one group; a group in the selection is left out");
+});
+
+test("several selected: one Delete question names them, and deletes them all; Cancel deletes none", async () => {
+  let yes = false;
+  const ids = ["a", "b", "c", "d", "e", "f", "g"];
+  const h = await host(
+    ids.map((id) => session(id)),
+    { warningAnswer: (msg, o, button) => (yes ? button : undefined) },
+  );
+  const all = await treeSessions(h.tree);
+  const [first] = all;
+  await h.registered.commands["sessionlens.deleteSession"](first, all);
+  assert.equal(h.calls.warning.length, 1);
+  assert.equal(h.calls.warning[0][0], "SessionLens: delete 7 sessions?");
+  assert.match(h.calls.warning[0][1].detail, /^Their findings and verdicts are deleted with them\. This cannot be undone\.\n\n(\w\n){5}and 2 more$/);
+  assert.equal((await treeSessions(h.tree)).length, 7, "cancelled");
+  yes = true;
+  const gone = all.slice(0, 3).map((s) => s.id);
+  await h.registered.commands["sessionlens.deleteSession"](first, all.slice(0, 3));
+  assert.deepEqual(
+    (await treeSessions(h.tree)).map((s) => s.id).sort(),
+    ids.filter((id) => !gone.includes(id)),
+  );
+  assert.equal(h.calls.warning[1][0], "SessionLens: delete 3 sessions?");
+  const one = (await treeSessions(h.tree))[0];
+  await h.registered.commands["sessionlens.deleteSession"](one, [one]);
+  assert.match(h.calls.warning[2][0], /^SessionLens: delete the session ".+"\?$/, "one: as before");
+});
+
+test("several selected: Open in the menu opens each; a click opens the one clicked", async () => {
+  const h = await host([session("a"), session("b"), session("c")]);
+  const opened = [];
+  h.vscode.window.createWebviewPanel = (type, title) => {
+    opened.push(title);
+    return {
+      webview: fakeWebviewView().webview,
+      onDidChangeViewState() {},
+      onDidDispose() {},
+      reveal() {},
+    };
+  };
+  const [a, b] = [await item(h, "a"), await item(h, "b")];
+  await h.registered.commands["sessionlens.openSessionFromTree"](a, [a, b]);
+  assert.deepEqual(opened.sort(), ["a", "b"]);
+  await h.registered.commands["sessionlens.openSessionFromTree"]("c"); // the item's own click command
+  assert.deepEqual(opened.sort(), ["a", "b", "c"]);
+});

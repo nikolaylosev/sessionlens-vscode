@@ -1257,6 +1257,15 @@ class SessionsTreeProvider {
 let readyTimeoutMs = 10000; // tests shorten it (module.exports._test)
 let viewProvider = null;
 const sessionIdOf = (arg) => (typeof arg === "string" ? arg : arg && typeof arg.id === "string" ? arg.id : null);
+/* The sessions a menu command is for (0.1.124: the tree can select several). VS Code passes the item clicked and the
+   items selected; the selection counts when the clicked one is in it, else only the clicked one. Groups and the filter
+   row are left out. */
+function sessionIdsOf(arg, selected) {
+  const id = sessionIdOf(arg);
+  if (!id) return [];
+  const sel = (Array.isArray(selected) ? selected : []).filter((it) => it && it.contextValue === "sessionlensSession").map((it) => it.id);
+  return sel.includes(id) ? [...new Set(sel)] : [id];
+}
 
 async function runInSidebar(name) {
   try {
@@ -1358,12 +1367,15 @@ async function newGroup() {
   if (sessionsGroupBy() !== "custom") await showMyGroups();
 }
 
-async function moveToGroup(arg) {
-  const id = sessionIdOf(arg);
-  if (!id) return;
+async function moveToGroup(arg, selected) {
   await host.ready;
-  if (!host.storeOpen || !host.store.has(id)) return;
-  const cur = host.store.meta(id).group || "";
+  if (!host.storeOpen) return;
+  const ids = sessionIdsOf(arg, selected).filter((x) => host.store.has(x));
+  if (!ids.length) return;
+  // the group they are all in, if one ("" for none or for several different ones)
+  const groupsOf = [...new Set(ids.map((x) => host.store.meta(x).group || ""))];
+  const cur = groupsOf.length === 1 ? groupsOf[0] : "";
+  const inSome = groupsOf.some(Boolean);
   /** @type {Array<import("vscode").QuickPickItem & { group?: string, make?: boolean }>} */
   const items = [
     ...groupNames(host.store.list())
@@ -1372,7 +1384,9 @@ async function moveToGroup(arg) {
     { label: "$(new-folder) " + t("New group…"), make: true },
   ];
   if (cur) items.push({ label: "$(close) " + t('Out of "{0}"', cur), group: "" });
-  const pick = await vscode.window.showQuickPick(items, { title: t("SessionLens: move to group"), placeHolder: t("Pick a group, or make a new one") });
+  else if (inSome) items.push({ label: "$(close) " + t("Out of their groups"), group: "" });
+  const title = ids.length > 1 ? t("SessionLens: move {0} sessions to a group", ids.length) : t("SessionLens: move to group");
+  const pick = await vscode.window.showQuickPick(items, { title, placeHolder: t("Pick a group, or make a new one") });
   if (!pick) return;
   let group = pick.group;
   if (pick.make) {
@@ -1380,7 +1394,7 @@ async function moveToGroup(arg) {
     if (name === undefined || !Lens.cleanGroup(name)) return;
     group = existingGroup(host.store.list(), name);
   }
-  await setSessionGroups([id], group || "");
+  await setSessionGroups(ids, group || "");
   if (group && sessionsGroupBy() !== "custom") await showMyGroups();
 }
 function checkGroupName(v) {
@@ -1546,30 +1560,40 @@ async function renameSession(context, arg) {
   vscode.window.showErrorMessage(t("SessionLens: could not rename the session. Try again."));
 }
 
-async function deleteSession(context, arg) {
-  const id = sessionIdOf(arg);
-  if (!id) return;
+// one question for every session selected (0.1.124), the names of up to five of them in it
+async function deleteSession(context, arg, selected) {
   await host.ready;
-  if (!host.storeOpen || !host.store.has(id)) return;
-  const label = Lens.displayName(host.store.meta(id)) || id;
+  if (!host.storeOpen) return;
+  const ids = sessionIdsOf(arg, selected).filter((x) => host.store.has(x));
+  if (!ids.length) return;
+  const names = ids.map((x) => Lens.displayName(host.store.meta(x)) || x);
   const yes = t("Delete");
   const pick = await vscode.window.showWarningMessage(
-    t('SessionLens: delete the session "{0}"?', label),
-    { modal: true, detail: t("Its findings and verdicts are deleted with it. This cannot be undone.") },
+    ids.length === 1 ? t('SessionLens: delete the session "{0}"?', names[0]) : t("SessionLens: delete {0} sessions?", ids.length),
+    {
+      modal: true,
+      detail:
+        (ids.length === 1
+          ? t("Its findings and verdicts are deleted with it. This cannot be undone.")
+          : t("Their findings and verdicts are deleted with them. This cannot be undone.")) +
+        (ids.length > 1 ? "\n\n" + names.slice(0, 5).join("\n") + (ids.length > 5 ? "\n" + t("and {0} more", ids.length - 5) : "") : ""),
+    },
     yes,
   );
   if (pick !== yes) return;
-  const panel = sessionPanels.get(id);
-  if (panel) {
-    sessionPanels.delete(id);
-    try {
-      panel.dispose();
-    } catch {
-      /* already closed */
+  for (const id of ids) {
+    const panel = sessionPanels.get(id);
+    if (panel) {
+      sessionPanels.delete(id);
+      try {
+        panel.dispose();
+      } catch {
+        /* already closed */
+      }
     }
+    await host.store.delete(id);
+    broadcastRefresh(null, { scope: "session", sessionId: id, meta: null });
   }
-  await host.store.delete(id);
-  broadcastRefresh(null, { scope: "session", sessionId: id, meta: null });
   if (sessionsTreeProvider) sessionsTreeProvider.refresh();
 }
 
@@ -1627,10 +1651,17 @@ function activate(context) {
   sessionsTreeProvider = new SessionsTreeProvider(context);
   // a tree view, not only a data provider: sessions are dragged onto a group of "My groups" (0.1.124)
   context.subscriptions.push(
-    vscode.window.createTreeView("sessionlensSessionsTree", { treeDataProvider: sessionsTreeProvider, dragAndDropController: sessionsDragAndDrop }),
+    vscode.window.createTreeView("sessionlensSessionsTree", {
+      treeDataProvider: sessionsTreeProvider,
+      dragAndDropController: sessionsDragAndDrop,
+      canSelectMany: true,
+    }),
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("sessionlens.openSessionFromTree", (arg) => openSessionPanel(context, sessionIdOf(arg))),
+    // a click opens one; Open in the menu opens every session selected
+    vscode.commands.registerCommand("sessionlens.openSessionFromTree", (arg, selected) => {
+      for (const id of sessionIdsOf(arg, selected)) openSessionPanel(context, id);
+    }),
     vscode.commands.registerCommand("sessionlens.importTranscript", () => runInSidebar("import")),
     vscode.commands.registerCommand("sessionlens.exportVerdicts", () => runInSidebar("exportVerdicts")),
     vscode.commands.registerCommand("sessionlens.openSession", () => openSessionPick(context)),
@@ -1638,9 +1669,9 @@ function activate(context) {
       vscode.commands.executeCommand("workbench.action.openSettings", "@ext:" + context.extension.id),
     ),
     vscode.commands.registerCommand("sessionlens.renameSession", (arg) => renameSession(context, arg)),
-    vscode.commands.registerCommand("sessionlens.deleteSession", (arg) => deleteSession(context, arg)),
+    vscode.commands.registerCommand("sessionlens.deleteSession", (arg, selected) => deleteSession(context, arg, selected)),
     vscode.commands.registerCommand("sessionlens.groupSessions", () => pickGroupBy()),
-    vscode.commands.registerCommand("sessionlens.moveToGroup", (arg) => moveToGroup(arg)),
+    vscode.commands.registerCommand("sessionlens.moveToGroup", (arg, selected) => moveToGroup(arg, selected)),
     vscode.commands.registerCommand("sessionlens.newGroup", () => newGroup()),
     vscode.commands.registerCommand("sessionlens.renameGroup", (arg) => renameGroup(arg)),
     vscode.commands.registerCommand("sessionlens.deleteGroup", (arg) => deleteGroup(arg)),
