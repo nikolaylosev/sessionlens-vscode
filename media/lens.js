@@ -1555,6 +1555,13 @@
     }
     return "";
   }
+  /* The session's own group (0.1.124, "My groups" in the Sessions tree): a name the person gave, kept on the session.
+     One line, spaces collapsed, at most 60 characters; "" for none or for anything else. */
+  const GROUP_MAX = 60;
+  function cleanGroup(g) {
+    if (typeof g !== "string" || /[\u0000-\u001f\u007f]/.test(g)) return "";
+    return g.replace(/\s+/g, " ").trim().slice(0, GROUP_MAX).trim();
+  }
   function transcriptOrigin(text, opts) {
     const t = typeof text === "string" ? text.trimStart() : "";
     if (!t) return { agent: "", project: "" };
@@ -2958,7 +2965,7 @@
     return "";
   }
   /* → { id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount,
-         openCount, agent, project, checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
+         openCount, agent, project, group, checkStats: { check: { total, ok, fp } }, sourceStats: { check: { source: { total, ok, fp } } },
          confirmed: [{ key, check, seq, message, snippet, note }] }
      checkStats is calibStats() of this one session, over the findings shown and the ones an "off" check hides
      (calibHidden); sourceStats is the same split by the finding's source ("formal" when it has none: a regex
@@ -2968,7 +2975,9 @@
      many findings calibration hides (calibHidden, 0.1.116), so the Sessions tree can say a green session has some.
      Schema 4 (0.1.124) adds agent and project (transcriptOrigin(): stored on the session at import; a session imported
      before has neither and gets them from its kept text, or "" without one) and openCount, the findings shown that
-     have no verdict yet. verdictsCount is no use for that: it also counts verdicts on findings that are gone. */
+     have no verdict yet. verdictsCount is no use for that: it also counts verdicts on findings that are gone. It also
+     has group, the session's own group (cleanGroup), "" when it has none: summaries written before it was added have
+     none either, so they need no rebuild. */
   /* A text cut to at most n characters at a word break, ending in "…" (0.1.121: a confirmed finding's message was cut
      at exactly 90 characters, mid-word, so the evidence on the Calibration tab read ".getByRole() o"). A text that
      fits stays as it is; a word longer than half of n is cut where it is. */
@@ -3023,6 +3032,7 @@
       openCount: open,
       agent: origin.agent,
       project: origin.project,
+      group: cleanGroup(s.group),
       checkStats,
       sourceStats,
       confirmed,
@@ -3135,6 +3145,8 @@
     importAny,
     transcriptOrigin,
     AGENTS,
+    cleanGroup,
+    GROUP_MAX,
     isCursorJsonl,
     cursorProjectSlug,
     isCursorStreamJson,

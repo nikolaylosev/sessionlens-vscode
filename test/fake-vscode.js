@@ -8,7 +8,7 @@ const path = require("path");
 const PKG = require("../package.json");
 
 function fakeVscode(opts = {}) {
-  const registered = { views: {}, commands: {}, trees: {}, serializers: {} };
+  const registered = { views: {}, commands: {}, trees: {}, treeViews: {}, serializers: {} };
   const calls = {
     info: [],
     warning: [],
@@ -95,6 +95,22 @@ function fakeVscode(opts = {}) {
     TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
     ThemeIcon: class {},
     ThemeColor: class {},
+    DataTransferItem: class {
+      constructor(value) {
+        this.value = value;
+      }
+    },
+    DataTransfer: class {
+      constructor() {
+        this.items = new Map();
+      }
+      get(mime) {
+        return this.items.get(mime);
+      }
+      set(mime, item) {
+        this.items.set(mime, item);
+      }
+    },
     l10n,
     env: {
       language,
@@ -113,6 +129,12 @@ function fakeVscode(opts = {}) {
       },
       registerTreeDataProvider: (id, p) => {
         registered.trees[id] = p;
+        return { dispose() {} };
+      },
+      // 0.1.124: the Sessions tree is a tree view with drag and drop; the provider lands where registerTreeDataProvider's does
+      createTreeView: (id, o) => {
+        registered.trees[id] = o.treeDataProvider;
+        registered.treeViews[id] = o;
         return { dispose() {} };
       },
       registerWebviewPanelSerializer: (id, s) => {
@@ -264,7 +286,7 @@ function fakeVscode(opts = {}) {
 async function treeSessions(tree) {
   const out = [];
   for (const it of await tree.getChildren()) {
-    if (it.contextValue === "sessionlensGroup") out.push(...(await tree.getChildren(it)));
+    if (String(it.contextValue).startsWith("sessionlensGroup")) out.push(...(await tree.getChildren(it)));
     else if (it.contextValue === "sessionlensSession") out.push(it);
   }
   return out;

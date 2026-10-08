@@ -110,13 +110,35 @@ test("package.json: activation, views, commands and menus", async () => {
     .filter((m) => m.when === "false")
     .map((m) => m.command)
     .sort();
-  assert.deepEqual(hidden, ["sessionlens.deleteSession", "sessionlens.openSessionFromTree", "sessionlens.renameSession"]);
+  assert.deepEqual(hidden, [
+    "sessionlens.deleteGroup",
+    "sessionlens.deleteSession",
+    "sessionlens.moveToGroup",
+    "sessionlens.openSessionFromTree",
+    "sessionlens.renameGroup",
+    "sessionlens.renameSession",
+  ]);
   const ctx = PKG.contributes.menus["view/item/context"];
+  const menu = (item) => ctx.filter((m) => m.when === `view == sessionlensSessionsTree && viewItem == ${item}`).map((m) => m.command);
+  assert.deepEqual(menu("sessionlensSession"), [
+    "sessionlens.openSessionFromTree",
+    "sessionlens.renameSession",
+    "sessionlens.moveToGroup",
+    "sessionlens.deleteSession",
+  ]);
+  // 0.1.124: a group of the person's own ("My groups"); the other groups have no menu
+  assert.deepEqual(menu("sessionlensGroupCustom"), ["sessionlens.renameGroup", "sessionlens.deleteGroup"]);
+  assert.equal(ctx.length, 6);
+  // 0.1.124: the buttons in the Sessions tree's title, in this order; Clear filter only while a filter is on
   assert.deepEqual(
-    ctx.map((m) => m.command),
-    ["sessionlens.openSessionFromTree", "sessionlens.renameSession", "sessionlens.deleteSession"],
+    PKG.contributes.menus["view/title"].map((m) => [m.command, m.when, m.group]),
+    [
+      ["sessionlens.filterSessions", "view == sessionlensSessionsTree", "navigation@1"],
+      ["sessionlens.clearSessionFilter", "view == sessionlensSessionsTree && sessionlens.sessionsFiltered", "navigation@2"],
+      ["sessionlens.newGroup", "view == sessionlensSessionsTree", "navigation@3"],
+      ["sessionlens.groupSessions", "view == sessionlensSessionsTree", "navigation@4"],
+    ],
   );
-  for (const m of ctx) assert.equal(m.when, "view == sessionlensSessionsTree && viewItem == sessionlensSession");
   // in a checkout: .vscodeignore keeps package.nls.json in the package; in the unpacked .vsix it is not there, but the
   // file itself must be
   const ignoreFile = path.join(root, ".vscodeignore");
@@ -473,6 +495,25 @@ test("Rename (tree), tab open: the tab renames its own session (no conflict) and
     const last = tab.posted.filter((m) => m.__slReply).pop();
     assert.equal(last.result.ok, true);
   }
+  assert.deepEqual(tab.errors, []);
+  tab.close();
+});
+
+test("Move to group (tree) while the session is open in a tab: the tab's next verdict keeps the group (0.1.124)", async () => {
+  const host = bootHost({ globalState: fxState(), vscode: { quickPickAnswer: (items) => items.find((i) => i.make), inputBoxAnswer: "Checkout" } });
+  const id = Object.keys(FX.sessions)[0];
+  const tab = await openPage(host, { sessionId: id });
+  await tab.ready();
+  await host.registered.commands["sessionlens.moveToGroup"](id);
+  const meta = () => JSON.parse(fs.readFileSync(path.join(host.context.globalStorageUri.fsPath, "sessions", id + ".meta.json"), "utf8"));
+  assert.equal(meta().group, "Checkout");
+  const before = meta().verdictsCount;
+  const undecided = [...tab.document.querySelectorAll("#findings .f")].find((d) => !d.classList.contains("done"));
+  assert.ok(undecided, "a finding without a verdict");
+  undecided.querySelector(".v-fp").dispatchEvent(new tab.window.MouseEvent("click", { bubbles: true }));
+  await until(() => meta().verdictsCount > before);
+  await tab.idle();
+  assert.equal(meta().group, "Checkout", "the tab read the session again after the conflict and kept the group");
   assert.deepEqual(tab.errors, []);
   tab.close();
 });

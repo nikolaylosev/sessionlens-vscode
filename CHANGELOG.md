@@ -13,6 +13,12 @@
   profile, and has two quick filters: **Only Red**, and **With findings without a verdict** (a review not started or
   not finished). They combine. A row on top of the list says what the filter is and how many sessions it shows;
   click it, or the **Clear filter** button, to see every session again.
+- **Your own groups.** The **+ New group** button in the list's title asks for a name and lets you tick the sessions
+  for it. Right-click a session → **Move to group…** puts it into a group you made or a new one; in **My groups** (a
+  fifth way to group the list) you can also drag sessions onto a group. A name that differs from a group's only in
+  case is that group. While you have no group yet, **No group** says how to make one. A group's menu has
+  **Rename group…** and **Delete group** (its sessions are kept and go to **No group**). The group is kept with the
+  session, so every window shows the same, and the filter finds a session by its group's name too.
 
 ### Changed
 - The date in the line under a session (in the Sessions list and **Open session…**) is now the day the agent ran the

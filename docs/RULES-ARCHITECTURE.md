@@ -1135,10 +1135,12 @@ text was kept, until **Import again**. An `agent` that is not one of the five is
 control characters is dropped (the page is not trusted, §14). `openCount` is the number of findings shown that have
 no verdict; `verdictsCount` cannot give it, since it also counts verdicts on findings that are gone. The Sessions
 tree groups by `agent` and filters by `openCount`; `project` is only kept for now. A summary of schema 3 is rebuilt
-once at `open()`.
+once at `open()`. Schema 4 also has `group`, the session's own group for "My groups" (§16.3): `Lens.cleanGroup` of the
+session's `group` field, one line, at most 60 characters, `""` for none. A summary written before it has none, and no
+session had a group then, so it needs no rebuild.
 
 `<name> = fileNameFor(id)`: the id itself if it matches `^[A-Za-z0-9_-]{1,64}$`, otherwise `h-` and the 32 hex characters of
-`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount, openCount, agent, project,
+`sha256(id)`. The summary: `id, name, task, profile, created, started, reviewed, specN, verdict, findingsCount, hiddenCount, verdictsCount, openCount, agent, project, group,
 checkStats { check: { total, ok, fp } }, sourceStats { check: { source: { total, ok, fp } } }, confirmed [{ key, check, seq, message ≤90, snippet ≤140, note }]` — everything that
 Calibration, Rules, `effect()`, the profile drop-down and the Sessions tree used to take from full sessions. The summary
 is computed by the **host** from the session's content; only `analyzedGen` is taken from the message (its format is checked).
@@ -1243,6 +1245,8 @@ and a change of it from anywhere redraws the tree.
 | `sessionlens.openSettings` | the host: `"@ext:" + context.extension.id` (since v0.1.106) |
 | `sessionlens.openSessionFromTree`, `renameSession`, `deleteSession` | the host; hidden in the palette, in the tree menu |
 | `sessionlens.groupSessions` | the host: a QuickPick of the four ways to group (the current one ticked); the button in the tree's title (`view/title`), and the palette (since v0.1.124) |
+| `sessionlens.newGroup` | the host: a name, then a `canPickMany` QuickPick of the sessions; the `$(new-folder)` button in the tree's title, and the palette (since v0.1.124, §16.3) |
+| `sessionlens.moveToGroup`, `renameGroup`, `deleteGroup` | the host; hidden in the palette; Move in a session's menu, Rename and Delete in the menu of a group of "My groups" (since v0.1.124, §16.3) |
 | `sessionlens.filterSessions`, `clearSessionFilter` | the host: the filter's QuickPick and its reset (§16.3); buttons in the tree's title, Clear only while `sessionlens.sessionsFiltered`, and the palette (since v0.1.124) |
 
 A command for the sidebar: `sessionlensView.focus`, waiting for `page:ready` (up to 10 s), then
@@ -1281,8 +1285,26 @@ configuration" until the window is reloaded (the owner's first try of 0.1.124): 
 Output channel has the error, and a warning asks to reload. Any change of the setting drops the pick.
 `test-integration/suite.js` checks in a real VS Code that the setting is registered and can be written.
 
+"My groups" (`custom`, since v0.1.124) groups by the summary's `group`: the names in any case (`localeCompare`, base
+sensitivity), then "No group", whose tooltip says how to make a group (and its line too while there is none yet: "N · make a
+group: + New group above"). A group is a name kept on the session file, so it travels with it and every window
+sees the same; it exists while a session is in it. `setSessionGroups(ids, group)` writes each session through the store
+with its `baseRev` (3 attempts, as Rename from the tree) and broadcasts `session`; `""` deletes the field. A tab that
+has the session open gets a conflict at its next save, reads the session again and applies its change to it, so the
+group stays (`test/vscode-integration.test.js`). **+ New group** (`newGroup`) asks for a name, then lists every session with ticks (a session's own group in its
+description; the sessions of a group with that name come ticked) and puts the ticked ones into the group. A group exists
+while a session is in it, so none ticked makes none, and there are no empty groups to store. A typed name that differs
+from a group there is only in case is that group (`existingGroup`), here, in Move to group…'s "New group…" and in
+Rename group…, where the group itself is left out, so a rename can change its case. **Move to group…** offers the groups there are (not the session's own),
+"New group…" (an input box: one line, at most 60 characters) and "Out of …"; after a move into a group the tree is
+grouped by "My groups" if it was not. A group of the person's own has `contextValue` `sessionlensGroupCustom` and
+`groupName`; its menu has **Rename group…** (every session of it; a name there is already merges them) and **Delete
+group** (a modal; the sessions go to No group). The tree is a `createTreeView` with a drag-and-drop controller
+(`application/vnd.code.tree.sessionlenssessionstree`, the session ids): in "My groups" a drop onto a group, onto a
+session (its group) or onto No group moves the dragged sessions; in the other groupings a drop does nothing.
+
 The filter (since v0.1.124) is `sessionFilter { text, red, open }` in the host, for this window only. `text` is a part
-of `displayName`, `name`, `task` or `profile`, in any case (`toLocaleLowerCase`); `red` keeps the red sessions; `open`
+of `displayName`, `name`, `task`, `profile` or `group`, in any case (`toLocaleLowerCase`); `red` keeps the red sessions; `open`
 the ones whose `openCount` (§15.1) is above 0, and for a summary without it (written by an older version in another
 window) `findingsCount − verdictsCount`. The three combine. **Filter sessions…** is one `createQuickPick`: the typed
 text gives the item "Name, task or profile containing …", and the quick filters are switched on and off (ticked when

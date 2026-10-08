@@ -112,6 +112,27 @@
         "title": "%cmd.clearSessionFilter%",
         "category": "SessionLens",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "sessionlens.moveToGroup",
+        "title": "%cmd.moveToGroup%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.renameGroup",
+        "title": "%cmd.renameGroup%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.deleteGroup",
+        "title": "%cmd.deleteGroup%",
+        "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.newGroup",
+        "title": "%cmd.newGroup%",
+        "category": "SessionLens",
+        "icon": "$(new-folder)"
       }
     ],
     "configuration": {
@@ -196,13 +217,15 @@
             "date",
             "profile",
             "verdict",
-            "agent"
+            "agent",
+            "custom"
           ],
           "enumDescriptions": [
             "%config.sessionsGroupBy.date%",
             "%config.sessionsGroupBy.profile%",
             "%config.sessionsGroupBy.verdict%",
-            "%config.sessionsGroupBy.agent%"
+            "%config.sessionsGroupBy.agent%",
+            "%config.sessionsGroupBy.custom%"
           ],
           "scope": "application",
           "markdownDescription": "%config.sessionsGroupBy%",
@@ -233,6 +256,18 @@
         {
           "command": "sessionlens.clearSessionFilter",
           "when": "sessionlens.sessionsFiltered"
+        },
+        {
+          "command": "sessionlens.moveToGroup",
+          "when": "false"
+        },
+        {
+          "command": "sessionlens.renameGroup",
+          "when": "false"
+        },
+        {
+          "command": "sessionlens.deleteGroup",
+          "when": "false"
         }
       ],
       "view/item/context": [
@@ -247,8 +282,23 @@
           "group": "2_edit@1"
         },
         {
+          "command": "sessionlens.moveToGroup",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
+          "group": "2_edit@2"
+        },
+        {
           "command": "sessionlens.deleteSession",
           "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
+          "group": "2_edit@3"
+        },
+        {
+          "command": "sessionlens.renameGroup",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensGroupCustom",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "sessionlens.deleteGroup",
+          "when": "view == sessionlensSessionsTree && viewItem == sessionlensGroupCustom",
           "group": "2_edit@2"
         }
       ],
@@ -264,9 +314,14 @@
           "group": "navigation@2"
         },
         {
-          "command": "sessionlens.groupSessions",
+          "command": "sessionlens.newGroup",
           "when": "view == sessionlensSessionsTree",
           "group": "navigation@3"
+        },
+        {
+          "command": "sessionlens.groupSessions",
+          "when": "view == sessionlensSessionsTree",
+          "group": "navigation@4"
         }
       ]
     }
