@@ -1,6 +1,6 @@
 # SessionLens for VS Code — tests
 
-This document describes the test suite as it stands at **v0.1.122**: how to run it, how it is built, what each file
+This document describes the test suite as it stands at **v0.1.124**: how to run it, how it is built, what each file
 checks, how the snapshots work and how to add a test. It is written for developers and coding agents who change the
 code and need to know which tests guard the part they touch.
 
@@ -47,7 +47,7 @@ SL_PRINT_MAPPING=1 node --test test/rule-mapping.test.js   # print what the rule
 env -u ELECTRON_RUN_AS_NODE npm run test:integration    # integration tests from VS Code's own terminal
 ```
 
-At v0.1.122 `npm test` runs 550 tests in 78 files. Off Windows, `cli.test.js` skips its `.cmd` case. On Windows that
+At v0.1.124 `npm test` runs 595 tests in 82 files. Off Windows, `cli.test.js` skips its `.cmd` case. On Windows that
 case runs, and the file skips five POSIX cases instead: the `runClaude` prompt, both `runCursor` cases,
 `cursorSocketDir` and `checkCursor`. `transcript-dialog.test.js` skips its symlink case on Windows too.
 
