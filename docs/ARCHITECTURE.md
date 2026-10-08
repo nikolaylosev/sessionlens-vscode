@@ -1,6 +1,6 @@
 # SessionLens for VS Code — architecture and functional blocks
 
-This document describes the whole extension as it stands at **v0.1.123**: what it is made of, how the parts talk
+This document describes the whole extension as it stands at **v0.1.124**: what it is made of, how the parts talk
 to each other, where data lives, and what each functional block does. It is written for developers who change the
 code and for reviewers who need to know where to look.
 
@@ -453,7 +453,7 @@ flowchart TD
   (`cursorProject`, since 0.1.122; kept as `source_project`): the transcript's paths are absolute, and
   `fromCursorJsonl` makes them relative to the folder above them whose name, made by the same rule
   (`Lens.cursorProjectSlug`), is that name. A transcript dropped onto the panel or pasted has no output and keeps
-  absolute paths. **Choose file** → Cursor Agent opens
+  absolute paths (from `~` in the home folder since 0.1.124, RA §15.7). **Choose file** → Cursor Agent opens
   the dialog at the workspace's `agent-transcripts` folder. The folder's name follows `cursorProjectSlug` in `cli.js`,
   the same rule as `Lens.cursorProjectSlug` and as Cursor's CLI: every character that is not a Latin letter or
   a digit becomes `-`, a run of them becomes one `-`, and none are left at either end (`/Users/me/my_app` becomes
@@ -782,15 +782,16 @@ session is analyzed again after the update (§6.3).
   loosened configs in it are not reported.
 - **Stored sessions** keep the events they were imported with: findings that need `prev_content` or a Codex
   `delete` event, a Codex 0.155+ session's file changes (0.1.121), and the 0.1.122 import's changes (a list-only
-  command is not a run, a Codex move, a weakened assertion's message) appear only after the transcript is imported
-  again (**Import again** in the session's tab, since 0.1.114; `Lens.needsReimport` offers it where a new import
-  differs, `IMPORT_GEN` 4).
+  command is not a run, a Codex move, a weakened assertion's message) and the 0.1.124 one (a path in the home folder
+  from `~`) appear only after the transcript is imported again (**Import again** in the session's tab, since 0.1.114;
+  `Lens.needsReimport` offers it where a new import differs, `IMPORT_GEN` 5). A session whose transcript was too long
+  to keep has no agent in its summary until then ("Unknown agent" in the Sessions tree).
 - **The model review** depends on the provider and the prompt; its precision is shown, never used to switch it off.
 - **Secret masking works by pattern** (`Lens.redactSecrets`): a secret of an unusual shape can still reach a
   model or an export.
 - **Cursor Agent JSONL keeps no command output.** Output is recovered only when the file is picked in the panel and
   Cursor's database can be read (`node:sqlite`, Node 22.13 or newer). A file that is dropped or pasted has no output
-  and keeps absolute paths. Without a parsed red run, `fix_after_fail_without_triage` does not fire, and
+  and keeps absolute paths (from `~` in the home folder since 0.1.124). Without a parsed red run, `fix_after_fail_without_triage` does not fire, and
   `test_deleted`, `product_code_edited`, `snapshot_overwritten` and `config_weakened` stay medium, also when a red run
   is followed by a run with no output (0.1.123). A Cloud Agent run
   leaves no local file. Older Composer transcripts are a different schema and are not imported. The folder-name rule

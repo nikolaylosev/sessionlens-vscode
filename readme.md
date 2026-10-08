@@ -96,7 +96,7 @@ Everything about one session. It opens in its own editor tab when you click a se
 - **Model request and reply:** the exact prompts and answers of the session, downloadable as `.txt`. Each request is headed with the provider and model that really answered it, which matters once you choose a model per request in ⚙ Settings. Hidden unless **Debug model** is on in ⚙ Settings.
 - **Timeline, Assertions, Transcript:** the sequence of reads, edits and test runs, a before-and-after comparison of assertions in each test, and the full conversation.
 - **Export:** **PR report (.md)** copies a report with confirmed, rejected and undecided findings. It is blocked until every high-severity finding has a verdict. **Report .json** exports the same data in an open schema; a model finding there also names the model that found it (`model`) and the one that verified it (`verifier`). Findings that calibration hides are in both reports too: Report .json lists them under `hiddenByCalibration` with the precision that hid them, and the PR report names the hidden high-severity ones. The Sessions tree shows how many a session has ("2 hidden by calibration"), so a green session with hidden findings does not look clean.
-- **Import again:** shown on a session imported before 0.1.113, which may miss deleted tests and loosened runner configs, on a Codex session with file changes imported before 0.1.121, and on a session imported before 0.1.122 where a command that only lists the tests was taken for a test run, a Codex patch moved a file, or a weakened assertion's message was cut. It parses the transcript once more into the same session, keeping its name, specification and verdicts; if the transcript was too large to keep at import, you pick the file again.
+- **Import again:** shown on a session imported before 0.1.113, which may miss deleted tests and loosened runner configs, on a Codex session with file changes imported before 0.1.121, and on a session imported before 0.1.122 where a command that only lists the tests was taken for a test run, a Codex patch moved a file, or a weakened assertion's message was cut, and on one imported before 0.1.124 whose paths in your home folder still show your user name (they start with `~` now). It parses the transcript once more into the same session, keeping its name, specification and verdicts; if the transcript was too large to keep at import, you pick the file again.
 - **Mark reviewed**, **Rename** and **Delete** manage the session itself. **Delete** also closes this tab, since there is nothing left to show in it.
 
 ### Calibration
@@ -520,7 +520,7 @@ SessionLens finds `agent` in `~/.local/bin`, where the installer puts it. Set a 
 - **Open settings** — VS Code Settings, filtered to this extension.
 - **Group sessions by…** — date, profile, verdict, agent or your own groups; the same as the button in the Sessions list's title.
 - **New group…** — a name, then the sessions to put into it; the same as the **+ New group** button there.
-- **Filter sessions…** — by a part of the name, task or profile, **Only Red**, **With findings without a verdict**; the same as the search button there. **Clear filter** shows every session again.
+- **Filter sessions…** — by a part of the name, task, profile or group, **Only Red**, **With findings without a verdict**; the same as the search button there. **Clear filter** shows every session again.
 
 **Settings** (Settings → Extensions → SessionLens, or `sessionlens.*` in `settings.json`):
 

@@ -1,6 +1,6 @@
 # SessionLens roadmap
 
-This is how we see SessionLens developing, as of version 0.1.122 (October 2026). There are no dates, and the order
+This is how we see SessionLens developing, as of version 0.1.124 (October 2026). There are no dates, and the order
 can change with feedback. To suggest something, please
 [open an issue](https://github.com/nikolaylosev/sessionlens-vscode/issues).
 
@@ -17,14 +17,21 @@ commands, read from Cursor's own databases on your machine), the CLI's `stream-j
 your Cursor subscription as a model for the semantic review. 0.1.122 shows a Cursor Agent session's files relative to
 its workspace, and gives fewer false findings: code inside a Python docstring, a command that only lists the tests,
 and comments in the test data check no longer count. It also reads a file moved by a Codex patch, and a weakened
-assertion's finding shows what changed.
+assertion's finding shows what changed. 0.1.123 finds weak assertions in C#, Go, REST Assured and Karate files it
+skipped before.
+
+0.1.124 makes the Sessions list easier to work with once there are many sessions. It groups them by date by default,
+or by profile, verdict, agent, or groups you make yourself (a button, a menu item, or drag and drop). It filters them
+by name, task, profile or group, and has quick filters for red sessions and for sessions with findings you have not
+judged yet. Paths in your home folder start with `~`, so a review or a PR report no longer shows your user name, and
+a finding that quotes a long line cuts it at a word.
 
 SessionLens looks at the agent's session, while pull request review tools look at the final diff. We plan new checks
 around process mistakes that only the session shows.
 
 ## Now
 
-- Test 0.1.122 by hand in real VS Code and Cursor and ship fixes as patch releases.
+- Test 0.1.124 by hand in real VS Code and Cursor and ship fixes as patch releases.
 - Tune checks based on [false finding reports](https://github.com/nikolaylosev/sessionlens-vscode/issues/new?template=false-finding.yml).
 
 ## Next: command line tool and CI

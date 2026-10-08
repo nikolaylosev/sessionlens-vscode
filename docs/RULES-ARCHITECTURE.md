@@ -7,7 +7,7 @@ An internal document for code review before publishing on GitHub. It describes
 gets its text, severity and on/off state, how this is edited in the UI, stored,
 exported, and how it turns into `CLAUDE.md`, `AGENTS.md` or `.cursor/rules/sessionlens.mdc`.
 It was written from the code at v0.1.97 (after Phase 4), when the registry landed in v0.1.98,
-and is current at **v0.1.122**. Counts below were checked against `media/checks.js` and `media/lens.js`
+and is current at **v0.1.124**. Counts below were checked against `media/checks.js` and `media/lens.js`
 at that version.
 
 Format: first the concepts and contracts, then a line-by-line walk through each
@@ -330,7 +330,7 @@ const RULES = new Proxy({}, { get: (_, k) => {
 
 ### 5.2 The `checks` object, `runChecks()` and `calibrate()`
 
-`lens.js` contains the `checks` object with **36 functions** (v0.1.122) of the form
+`lens.js` contains the `checks` object with **36 functions** (v0.1.124) of the form
 `checkName(ev, cfg) -> Finding[]` (the full list — see the table in §9).
 These are the only checks that **do not depend on an external engine** —
 plain JS/regex over the event text.
@@ -749,7 +749,7 @@ Rules and ⚙ Settings reach it when the Sessions tab is shown again and on a `k
 the one-line summary, also the `title` of the profile name in `#hdr`. The list options: `name — profile_desc_<name>`. All output goes through
 `esc()`; a check's rule text is the `title` attribute.
 
-## 9. The full table of checks at v0.1.122 (61 of them)
+## 9. The full table of checks at v0.1.124 (61 of them)
 
 The reference is `media/checks.js`; this table is a readable copy of it, generated from the registry and
 `LensLint.RULE_MAPS` (the "Source" column), not written by hand.
