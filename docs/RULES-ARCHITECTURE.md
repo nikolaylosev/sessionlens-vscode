@@ -1230,6 +1230,10 @@ The panel (`app.js`) does not know about VS Code settings; it sees them inside `
 
 `profile` stays in `globalState`: it is the last value of the drop-down, not a setting.
 
+`sessionsGroupBy` (0.1.124, `date | profile | verdict | agent`, `scope: "application"`) is not one of the five: the
+page never sees it. Only the Sessions tree reads it (§16.3); the title button writes it to `ConfigurationTarget.Global`,
+and a change of it from anywhere redraws the tree.
+
 ### 16.2 Commands
 
 | Command | Where it runs |
@@ -1238,6 +1242,7 @@ The panel (`app.js`) does not know about VS Code settings; it sees them inside `
 | `sessionlens.openSession` | the host: a QuickPick over `store.list()` |
 | `sessionlens.openSettings` | the host: `"@ext:" + context.extension.id` (since v0.1.106) |
 | `sessionlens.openSessionFromTree`, `renameSession`, `deleteSession` | the host; hidden in the palette, in the tree menu |
+| `sessionlens.groupSessions` | the host: a QuickPick of the four ways to group (the current one ticked); the button in the tree's title (`view/title`), and the palette (since v0.1.124) |
 
 A command for the sidebar: `sessionlensView.focus`, waiting for `page:ready` (up to 10 s), then
 `postMessage({ __slCommand: true, name })`. The page sends `page:ready` after loading and on a `focus` refresh;
@@ -1257,6 +1262,23 @@ changed the order of the views, VS Code keeps their order, and there is no API t
 only by the page (`tab:active`); the host resets it to `""` when the panel is hidden or closed, so the tree is visible
 until the page's first message and while the panel is collapsed. Items have an `id` (the menu commands receive it). An empty
 tree shows `viewsWelcome` with an import button.
+
+Since v0.1.124 the root holds groups and a group its sessions (`groupSessions()`). `sessionsGroupBy` picks them: `date`
+(the default) is Today, Yesterday, This week (from Monday on) and Earlier by the local day of the summary's `started`, or
+`created` when the transcript has no times; inside a group the newest `started` first. `profile` follows the order of
+`Lens.PROFILES`; `verdict` is Red, Yellow, Green; `agent` is the summary's `agent` (§15.1), with "Unknown agent" for
+`""` (its tooltip says Import again tells it). With any of the last three a group keeps the order of `store.list()`. A
+group with no session is not shown. A group is `Expanded`, `contextValue` `sessionlensGroup` (no session menu), and
+its `id` is `group\n<by>\n<key>`: a session id has no control characters (`checkId`), so the two never meet, and VS
+Code keeps a collapsed group collapsed by that id. The group item carries the summaries it shows; `getChildren(group)`
+does not read the store again. The date in a session's line (`describeSession`, also in **Open session…**) is the local
+day of the same `started || created`; until v0.1.124 it was the UTC day of `created`.
+
+A pick of the title button is applied at once (`groupByPicked`), then written to the setting. A .vsix installed into
+an open window runs its new code before VS Code registers its settings, and the write fails with "not a registered
+configuration" until the window is reloaded (the owner's first try of 0.1.124): the tree is grouped anyway, the
+Output channel has the error, and a warning asks to reload. Any change of the setting drops the pick.
+`test-integration/suite.js` checks in a real VS Code that the setting is registered and can be written.
 
 ### 16.4 The session name
 

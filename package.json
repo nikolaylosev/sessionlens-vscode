@@ -2,7 +2,7 @@
   "name": "sessionlens-vscode",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.123",
+  "version": "0.1.124",
   "license": "MIT",
   "publisher": "nikolaylosev",
   "engines": {
@@ -94,6 +94,12 @@
         "command": "sessionlens.deleteSession",
         "title": "%cmd.treeDelete%",
         "category": "SessionLens"
+      },
+      {
+        "command": "sessionlens.groupSessions",
+        "title": "%cmd.groupSessions%",
+        "category": "SessionLens",
+        "icon": "$(list-tree)"
       }
     ],
     "configuration": {
@@ -170,6 +176,25 @@
           "scope": "application",
           "markdownDescription": "%config.rulesTarget%",
           "order": 5
+        },
+        "sessionlens.sessionsGroupBy": {
+          "type": "string",
+          "default": "date",
+          "enum": [
+            "date",
+            "profile",
+            "verdict",
+            "agent"
+          ],
+          "enumDescriptions": [
+            "%config.sessionsGroupBy.date%",
+            "%config.sessionsGroupBy.profile%",
+            "%config.sessionsGroupBy.verdict%",
+            "%config.sessionsGroupBy.agent%"
+          ],
+          "scope": "application",
+          "markdownDescription": "%config.sessionsGroupBy%",
+          "order": 6
         }
       }
     },
@@ -209,6 +234,13 @@
           "command": "sessionlens.deleteSession",
           "when": "view == sessionlensSessionsTree && viewItem == sessionlensSession",
           "group": "2_edit@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "sessionlens.groupSessions",
+          "when": "view == sessionlensSessionsTree",
+          "group": "navigation@1"
         }
       ]
     }

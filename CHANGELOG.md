@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.124
+
+### Added
+- **The Sessions list is grouped.** By default by date: **Today**, **Yesterday**, **This week** (since Monday) and
+  **Earlier**, by when the agent ran the session. A claude.ai export has no times, so it counts from its import. The
+  button in the list's title groups by **Profile**, **Verdict** or **Agent** (Claude Code, Codex, Cursor, claude.ai or
+  a text transcript) instead; so does the setting `sessionlens.sessionsGroupBy`. A group you collapse stays collapsed.
+  A session imported before this version from a transcript too long to keep is under **Unknown agent** until
+  **Import again**.
+
+### Changed
+- The date in the line under a session (in the Sessions list and **Open session…**) is now the day the agent ran the
+  session, in your time zone, the same day the date groups use. It was the day of the import, so a session imported
+  today that ran last week showed today's date under **Earlier**. A claude.ai export has no times and still shows the
+  day of its import.
+
 ## 0.1.123
 
 ### Fixed

@@ -6,7 +6,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
-const { fakeVscode, loadExtension, fakeContext, fakeWebviewView } = require("./fake-vscode");
+const { fakeVscode, loadExtension, fakeContext, fakeWebviewView, treeSessions } = require("./fake-vscode");
 const { bootHost, openPage } = require("./host-panel");
 const V = require("../validate.js");
 const Lens = require("../media/lens.js");
@@ -147,10 +147,10 @@ async function treeDescriptions(language, counts) {
     findings.forEach((f) => {
       verdicts[Lens.fkey(f)] = { v: "ok" };
     });
-    sessions[id] = { id, name: "n" + i, task: "T" + i, profile: "qa-ts", created: `2026-09-0${i + 1}T00:00:00Z`, events: [], findings, verdicts };
+    sessions[id] = { id, name: "n" + i, task: "T" + i, profile: "qa-ts", created: new Date(2026, 8, i + 1, 12).toISOString(), events: [], findings, verdicts };
   });
   const h = await hostOnly({ vscode: { language }, globalState: { sessions } });
-  const items = await h.registered.trees.sessionlensSessionsTree.getChildren();
+  const items = await treeSessions(h.registered.trees.sessionlensSessionsTree);
   return Object.fromEntries(items.map((it) => [it.id, it.description]));
 }
 
@@ -331,10 +331,10 @@ test("settings: switching ESLint in settings.json re-analyzes sessions that are 
 
 test("tree: items carry the session id; empty tree gives the welcome view; a renamed session shows its name", async () => {
   const empty = await hostOnly();
-  assert.deepEqual(await empty.registered.trees.sessionlensSessionsTree.getChildren(), []);
+  assert.deepEqual(await treeSessions(empty.registered.trees.sessionlensSessionsTree), []);
   const s = { id: "a1", name: "file-53c3", task: "TASK-7", profile: "qa-ts", created: "2026-09-01T00:00:00Z", events: [], findings: [], verdicts: {} };
   const h = await hostOnly({ globalState: { sessions: { a1: s, b2: Object.assign({}, s, { id: "b2", name: "My name", nameSet: true }) } } });
-  const items = await h.registered.trees.sessionlensSessionsTree.getChildren();
+  const items = await treeSessions(h.registered.trees.sessionlensSessionsTree);
   const by = Object.fromEntries(items.map((it) => [it.id, it]));
   assert.equal(by.a1.label, "TASK-7");
   assert.equal(by.a1.tooltip, "file-53c3");
@@ -380,7 +380,16 @@ test("visibility: hiding the panel shows the Sessions tree again (activeTab rese
 
 test("Open session…: a QuickPick of the index; the pick opens its tab, titled with its display name", async () => {
   let offered = null;
-  const s = { id: "q1", name: "file", task: "TASK-9", profile: "qa-api", created: "2026-09-02T00:00:00Z", events: [], findings: [], verdicts: {} };
+  const s = {
+    id: "q1",
+    name: "file",
+    task: "TASK-9",
+    profile: "qa-api",
+    created: new Date(2026, 8, 2, 12).toISOString(),
+    events: [],
+    findings: [],
+    verdicts: {},
+  }; // local midday: the tree shows the local day
   const h = await hostOnly({
     vscode: {
       quickPickAnswer: (items) => {
@@ -418,13 +427,13 @@ test("Rename (tree), no tab open: written through the store with its rev; tree, 
   const sb = await openPage(host);
   await sb.ready();
   const id = Object.keys(FX.sessions)[1];
-  const items = await host.registered.trees.sessionlensSessionsTree.getChildren();
+  const items = await treeSessions(host.registered.trees.sessionlensSessionsTree);
   await host.registered.commands["sessionlens.renameSession"](items.find((it) => it.id === id));
   const meta = JSON.parse(fs.readFileSync(path.join(host.context.globalStorageUri.fsPath, "sessions", id + ".meta.json"), "utf8"));
   assert.equal(meta.name, "Checkout smoke");
   assert.equal(meta.nameSet, true);
   assert.equal(meta.rev, 2);
-  const after = await host.registered.trees.sessionlensSessionsTree.getChildren();
+  const after = await treeSessions(host.registered.trees.sessionlensSessionsTree);
   assert.equal(after.find((it) => it.id === id).label, "Checkout smoke");
   assert.ok(
     sb.posted.some((m) => m.__slRefresh && m.scope === "session" && m.sessionId === id && m.meta && m.meta.name === "Checkout smoke"),
@@ -480,7 +489,7 @@ test("Delete (tree): asks first; closes the session's tab; gone from store, tree
   assert.equal(host.calls.warning[0][1].modal, true);
   assert.equal(tab.panel.disposed, true);
   assert.ok(!fs.existsSync(path.join(host.context.globalStorageUri.fsPath, "sessions", id + ".json")));
-  const items = await host.registered.trees.sessionlensSessionsTree.getChildren();
+  const items = await treeSessions(host.registered.trees.sessionlensSessionsTree);
   assert.ok(!items.some((it) => it.id === id));
   assert.ok(
     sb.posted.some((m) => m.__slRefresh && m.scope === "session" && m.sessionId === id && m.meta === null),
