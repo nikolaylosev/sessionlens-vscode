@@ -1020,6 +1020,7 @@ const GROUP_BY = {
   profile: { label: "Profile", detail: "qa-ts, qa-python, …" },
   verdict: { label: "Verdict", detail: "Red, Yellow, Green" },
   agent: { label: "Agent", detail: "Claude Code, Codex, Cursor, …" },
+  custom: { label: "My groups", detail: "the groups you make: right-click a session → Move to group…" },
 };
 const DATE_GROUPS = { today: "Today", yesterday: "Yesterday", week: "This week", earlier: "Earlier" };
 const VERDICT_GROUPS = { red: "Red", yellow: "Yellow", green: "Green" };
@@ -1078,6 +1079,11 @@ function groupSessions(list, by, now) {
   } else if (by === "agent") {
     keyOf = (m) => (Object.prototype.hasOwnProperty.call(AGENT_GROUPS, m.agent) ? m.agent : "");
     [order, labels] = [Object.keys(AGENT_GROUPS), AGENT_GROUPS];
+  } else if (by === "custom") {
+    // the person's own groups by name, then the sessions in none
+    keyOf = (m) => m.group || "";
+    order = [...groupNames(list), ""];
+    labels = Object.fromEntries(order.map((g) => [g, g || t("No group")]));
   } else {
     keyOf = (m) => dateGroup(m, now);
     [order, labels] = [Object.keys(DATE_GROUPS), DATE_GROUPS];
@@ -1087,6 +1093,34 @@ function groupSessions(list, by, now) {
       .map((x) => x.m);
   }
   return order.map((key) => ({ key, label: labels[key], items: list.filter((m) => keyOf(m) === key) })).filter((g) => g.items.length);
+}
+
+/* 0.1.124: "My groups". A group is a name kept on the session (its group field; the summary has it, cleaned by
+   Lens.cleanGroup), so it travels with the session's file, and two windows see the same. A group exists while a session
+   is in it: Move to group… makes one, Delete group and moving its last session out end it. */
+const groupNames = (list) => [...new Set(list.map((m) => m.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+/* Writes the group of each session (one by one, with its rev, as Rename from the tree does): a tab that has the session
+   open gets a conflict at its next save, reads it again and keeps the group. → how many sessions changed. */
+async function setSessionGroups(ids, group) {
+  const g = Lens.cleanGroup(group);
+  let changed = 0;
+  for (const id of ids) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const r = await host.store.get(id);
+      if (!r || Lens.cleanGroup(r.session.group) === g) break;
+      if (g) r.session.group = g;
+      else delete r.session.group;
+      const w = await host.store.put(r.session, { baseRev: r.rev });
+      if (w.ok) {
+        changed++;
+        broadcastRefresh(null, { scope: "session", sessionId: id, meta: w.meta });
+        break;
+      }
+      if (attempt === 2) host.log(`group of ${String(id).slice(0, 60)}: the session kept changing, not moved`);
+    }
+  }
+  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
+  return changed;
 }
 
 /* 0.1.124: the Sessions tree's filter (the search button in its title). text: a part of the name, task or profile;
@@ -1102,7 +1136,7 @@ function matchesFilter(m, f) {
   if (f.open && !(openFindings(m) > 0)) return false;
   if (!f.text) return true;
   const q = f.text.toLocaleLowerCase();
-  return [Lens.displayName(m), m.name, m.task, m.profile].some((x) =>
+  return [Lens.displayName(m), m.name, m.task, m.profile, m.group].some((x) =>
     String(x || "")
       .toLocaleLowerCase()
       .includes(q),
@@ -1168,11 +1202,15 @@ class SessionsTreeProvider {
     return item;
   }
   toGroup(by, g) {
-    const item = /** @type {import("vscode").TreeItem & { sessions?: object[] }} */ (new vscode.TreeItem(g.label, vscode.TreeItemCollapsibleState.Expanded));
+    const item = /** @type {import("vscode").TreeItem & { sessions?: object[], groupName?: string }} */ (
+      new vscode.TreeItem(g.label, vscode.TreeItemCollapsibleState.Expanded)
+    );
     // a session id is never empty and has no "\n" (validate.js checkId), so it cannot be a group's id
     item.id = `group\n${by}\n${g.key}`;
     item.description = String(g.items.length);
-    item.contextValue = "sessionlensGroup";
+    // a group of the person's own has Rename group… and Delete group in its menu
+    item.contextValue = by === "custom" && g.key ? "sessionlensGroupCustom" : "sessionlensGroup";
+    if (by === "custom") item.groupName = g.key;
     if (by === "agent" && g.key === "")
       item.tooltip = t("Imported before SessionLens 0.1.124 from a transcript too long to keep. Import again in the session's tab tells the agent.");
     item.sessions = g.items;
@@ -1261,6 +1299,104 @@ async function pickGroupBy() {
     );
   }
 }
+
+/* Move to group… (0.1.124), from a session's menu: one of the groups there are, a new one, or out of its group. The
+   sessions are grouped by "My groups" afterwards when they were not: the move would not show otherwise. */
+async function moveToGroup(arg) {
+  const id = sessionIdOf(arg);
+  if (!id) return;
+  await host.ready;
+  if (!host.storeOpen || !host.store.has(id)) return;
+  const cur = host.store.meta(id).group || "";
+  /** @type {Array<import("vscode").QuickPickItem & { group?: string, make?: boolean }>} */
+  const items = [
+    ...groupNames(host.store.list())
+      .filter((g) => g !== cur)
+      .map((g) => ({ label: "$(folder) " + g, group: g })),
+    { label: "$(new-folder) " + t("New group…"), make: true },
+  ];
+  if (cur) items.push({ label: "$(close) " + t('Out of "{0}"', cur), group: "" });
+  const pick = await vscode.window.showQuickPick(items, { title: t("SessionLens: move to group"), placeHolder: t("Pick a group, or make a new one") });
+  if (!pick) return;
+  let group = pick.group;
+  if (pick.make) {
+    const name = await vscode.window.showInputBox({ title: t("SessionLens: new group"), prompt: t("Group name"), validateInput: checkGroupName });
+    if (name === undefined || !Lens.cleanGroup(name)) return;
+    group = Lens.cleanGroup(name);
+  }
+  await setSessionGroups([id], group || "");
+  if (group && sessionsGroupBy() !== "custom") await showMyGroups();
+}
+function checkGroupName(v) {
+  const s = String(v);
+  if (/[\u0000-\u001f\u007f]/.test(s)) return t("A group name is one line.");
+  if (s.trim().length > Lens.GROUP_MAX) return t("The name is too long ({0} characters at most).", Lens.GROUP_MAX);
+  return null;
+}
+// groups the tree by "My groups", the same way as a pick of the title button
+async function showMyGroups() {
+  groupByPicked = "custom";
+  if (sessionsTreeProvider) sessionsTreeProvider.refresh();
+  try {
+    await vscode.workspace.getConfiguration(CONFIG).update("sessionsGroupBy", "custom", vscode.ConfigurationTarget.Global);
+  } catch (e) {
+    host.log("could not write the setting sessionlens.sessionsGroupBy: " + String((e && e.message) || e));
+  }
+}
+const groupOf = (arg) => (arg && typeof arg.groupName === "string" ? arg.groupName : typeof arg === "string" ? arg : "");
+async function renameGroup(arg) {
+  const from = groupOf(arg);
+  if (!from) return;
+  await host.ready;
+  const value = await vscode.window.showInputBox({ title: t("SessionLens: rename group"), prompt: t("New name"), value: from, validateInput: checkGroupName });
+  const to = value === undefined ? "" : Lens.cleanGroup(value);
+  if (!to || to === from) return;
+  await setSessionGroups(
+    host.store
+      .list()
+      .filter((m) => m.group === from)
+      .map((m) => m.id),
+    to,
+  );
+}
+async function deleteGroup(arg) {
+  const name = groupOf(arg);
+  if (!name) return;
+  await host.ready;
+  const ids = host.store
+    .list()
+    .filter((m) => m.group === name)
+    .map((m) => m.id);
+  const yes = t("Delete group");
+  const pick = await vscode.window.showWarningMessage(
+    t('SessionLens: delete the group "{0}"?', name),
+    { modal: true, detail: t("Its sessions are kept and go to No group.") },
+    yes,
+  );
+  if (pick === yes) await setSessionGroups(ids, "");
+}
+/* Dragging sessions onto a group in "My groups" moves them there: onto a group, or onto a session of that group;
+   onto No group takes them out. In the other groupings a drop does nothing (a date or a verdict is not chosen). */
+const DRAG_MIME = "application/vnd.code.tree.sessionlenssessionstree";
+const sessionsDragAndDrop = {
+  dragMimeTypes: [DRAG_MIME],
+  dropMimeTypes: [DRAG_MIME],
+  handleDrag(source, dataTransfer) {
+    const ids = source.filter((it) => it && it.contextValue === "sessionlensSession").map((it) => it.id);
+    if (ids.length) dataTransfer.set(DRAG_MIME, new vscode.DataTransferItem(ids));
+  },
+  async handleDrop(target, dataTransfer) {
+    if (!target || sessionsGroupBy() !== "custom") return;
+    const item = dataTransfer.get(DRAG_MIME);
+    const ids = item && Array.isArray(item.value) ? item.value.filter((id) => typeof id === "string" && host.store.has(id)) : [];
+    if (!ids.length) return;
+    let group;
+    if (typeof target.groupName === "string") group = target.groupName;
+    else if (target.contextValue === "sessionlensSession" && host.store.has(target.id)) group = host.store.meta(target.id).group || "";
+    else return;
+    await setSessionGroups(ids, group);
+  },
+};
 
 /* The search button in the Sessions tree's title (0.1.124). One QuickPick: what is typed filters by name, task or
    profile, and the quick filters below it are switched on and off (a tick shows the ones on). */
@@ -1426,7 +1562,10 @@ function activate(context) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("sessionlensView", provider));
   context.subscriptions.push(vscode.commands.registerCommand("sessionlens.focus", () => vscode.commands.executeCommand("sessionlensView.focus")));
   sessionsTreeProvider = new SessionsTreeProvider(context);
-  context.subscriptions.push(vscode.window.registerTreeDataProvider("sessionlensSessionsTree", sessionsTreeProvider));
+  // a tree view, not only a data provider: sessions are dragged onto a group of "My groups" (0.1.124)
+  context.subscriptions.push(
+    vscode.window.createTreeView("sessionlensSessionsTree", { treeDataProvider: sessionsTreeProvider, dragAndDropController: sessionsDragAndDrop }),
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand("sessionlens.openSessionFromTree", (arg) => openSessionPanel(context, sessionIdOf(arg))),
     vscode.commands.registerCommand("sessionlens.importTranscript", () => runInSidebar("import")),
@@ -1438,6 +1577,9 @@ function activate(context) {
     vscode.commands.registerCommand("sessionlens.renameSession", (arg) => renameSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.deleteSession", (arg) => deleteSession(context, arg)),
     vscode.commands.registerCommand("sessionlens.groupSessions", () => pickGroupBy()),
+    vscode.commands.registerCommand("sessionlens.moveToGroup", (arg) => moveToGroup(arg)),
+    vscode.commands.registerCommand("sessionlens.renameGroup", (arg) => renameGroup(arg)),
+    vscode.commands.registerCommand("sessionlens.deleteGroup", (arg) => deleteGroup(arg)),
     vscode.commands.registerCommand("sessionlens.filterSessions", () => pickSessionFilter()),
     vscode.commands.registerCommand("sessionlens.clearSessionFilter", () => setSessionFilter({ text: "", red: false, open: false })),
   );

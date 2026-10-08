@@ -8,6 +8,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { fakeVscode, loadExtension, fakeContext, fakeWebviewView, treeSessions } = require("./fake-vscode");
 const Lens = require("../media/lens.js");
+const fs = require("fs");
+const path = require("path");
 
 // Wednesday, 7 October 2026, 15:00 local time
 const NOW = new Date(2026, 9, 7, 15, 0, 0).getTime();
@@ -37,14 +39,17 @@ async function host(sessions, opts = {}) {
     quickPickAnswer: opts.quickPickAnswer,
     configFails: opts.configFails,
     quickPickFlow: opts.quickPickFlow,
+    inputBoxAnswer: opts.inputBoxAnswer,
+    warningAnswer: opts.warningAnswer,
   });
   const ext = loadExtension(f.vscode);
   ext._test.setNow(() => opts.now || NOW);
-  ext.activate(fakeContext({ globalState: { sessions: Object.fromEntries(sessions.map((s) => [s.id, s])) } }));
+  const context = fakeContext({ globalState: { sessions: Object.fromEntries(sessions.map((s) => [s.id, s])) } });
+  ext.activate(context);
   const wv = fakeWebviewView();
   f.registered.views.sessionlensView.resolveWebviewView(wv.view);
   await wv.send("secret:status", {}); // waits for host.ready: the sessions are in files
-  return Object.assign(f, { tree: f.registered.trees.sessionlensSessionsTree });
+  return Object.assign(f, { tree: f.registered.trees.sessionlensSessionsTree, dir: path.join(context.globalStorageUri.fsPath, "sessions"), wv });
 }
 // [group label, count, [session ids]] in the order shown
 async function groups(tree) {
@@ -137,6 +142,7 @@ test("the title button: a QuickPick with the current choice ticked; a pick is wr
       ["profile", "Profile"],
       ["verdict", "Verdict"],
       ["agent", "Agent"],
+      ["custom", "My groups"],
     ],
   );
   assert.deepEqual(h.calls.configUpdates, [["sessionlens.sessionsGroupBy", "verdict", h.vscode.ConfigurationTarget.Global]]);
@@ -324,4 +330,164 @@ test("filter: nothing matches; Escape changes nothing; the text can be dropped a
   await h.registered.commands["sessionlens.filterSessions"]();
   assert.equal((await treeSessions(h.tree)).length, 5);
   assert.equal(filterKey(h), false);
+});
+
+// ---------- My groups ----------
+
+// the session as stored: its group, read the way another window would
+const stored = (h, id) => JSON.parse(fs.readFileSync(path.join(h.dir, id + ".json"), "utf8"));
+const myGroups = { "sessionlens.sessionsGroupBy": "custom" };
+
+test("My groups: the person's groups by name in any case, then No group; only a group of their own has a menu", async () => {
+  const h = await host(
+    [
+      session("a", { group: "checkout" }),
+      session("b", { group: "  Spike   GPT-5 " }),
+      session("c"),
+      session("d", { group: "Checkout API" }),
+      session("e", { group: "checkout" }),
+      session("f", { group: "bad\nname" }),
+    ],
+    { config: myGroups },
+  );
+  assert.deepEqual(await groups(h.tree), [
+    ["checkout", "2", ["e", "a"]],
+    ["Checkout API", "1", ["d"]],
+    ["Spike GPT-5", "1", ["b"]],
+    ["No group", "2", ["f", "c"]],
+  ]);
+  const items = await h.tree.getChildren();
+  assert.deepEqual(
+    items.map((g) => [g.contextValue, g.groupName]),
+    [
+      ["sessionlensGroupCustom", "checkout"],
+      ["sessionlensGroupCustom", "Checkout API"],
+      ["sessionlensGroupCustom", "Spike GPT-5"],
+      ["sessionlensGroup", ""],
+    ],
+  );
+});
+
+test("Move to group…: a new group, then one there is, then out of it; the tree switches to My groups once", async () => {
+  let answer = null;
+  const offered = [];
+  const h = await host([session("a"), session("b", { group: "Checkout" }), session("c", { group: "Login" })], {
+    quickPickAnswer: (items, o) => (offered.push({ labels: items.map((i) => i.label), o }), answer(items)),
+    inputBoxAnswer: (o) => {
+      assert.equal(o.validateInput("two\nlines"), "A group name is one line.");
+      assert.match(o.validateInput("x".repeat(61)), /too long \(60 characters at most\)/);
+      assert.equal(o.validateInput("Spike"), null);
+      return "  Spike  ";
+    },
+  });
+  const move = (id) => h.registered.commands["sessionlens.moveToGroup"]({ id });
+
+  answer = (items) => items.find((i) => i.make);
+  await move("a");
+  assert.deepEqual(offered[0].labels, ["$(folder) Checkout", "$(folder) Login", "$(new-folder) New group…"]);
+  assert.equal(stored(h, "a").group, "Spike");
+  assert.deepEqual(h.calls.configUpdates, [["sessionlens.sessionsGroupBy", "custom", h.vscode.ConfigurationTarget.Global]]);
+  assert.deepEqual(
+    (await groups(h.tree)).map((g) => g[0]),
+    ["Checkout", "Login", "Spike"],
+  );
+
+  answer = (items) => items.find((i) => i.label.endsWith("Checkout"));
+  await move("a");
+  assert.deepEqual(offered[1].labels, ["$(folder) Checkout", "$(folder) Login", "$(new-folder) New group…", '$(close) Out of "Spike"'], "not the one it is in");
+  assert.equal(stored(h, "a").group, "Checkout");
+  assert.deepEqual(await groups(h.tree), [
+    ["Checkout", "2", ["b", "a"]],
+    ["Login", "1", ["c"]],
+  ]);
+
+  answer = (items) => items.find((i) => i.label.startsWith("$(close)"));
+  await move("a");
+  assert.equal("group" in stored(h, "a"), false, "out of its group: the field is gone");
+  assert.equal(h.calls.configUpdates.length, 1, "already My groups: the setting is left alone");
+  assert.ok(
+    h.wv.posted.some((m) => m.__slRefresh && m.scope === "session" && m.sessionId === "a"),
+    "the panel is told",
+  );
+
+  answer = () => undefined; // Escape
+  await move("b");
+  assert.equal(stored(h, "b").group, "Checkout");
+});
+
+test("Rename group… moves every session of it, also into a group there is; Delete group asks and keeps the sessions", async () => {
+  let rename = "Login",
+    yes = false;
+  const h = await host([session("a", { group: "Checkout" }), session("b", { group: "Checkout" }), session("c", { group: "Login" })], {
+    config: myGroups,
+    inputBoxAnswer: () => rename,
+    warningAnswer: (msg, o, button) => (yes ? button : undefined),
+  });
+  const [checkout] = await h.tree.getChildren();
+  await h.registered.commands["sessionlens.renameGroup"](checkout);
+  assert.deepEqual(await groups(h.tree), [["Login", "3", ["c", "b", "a"]]]);
+
+  const [login] = await h.tree.getChildren();
+  await h.registered.commands["sessionlens.deleteGroup"](login);
+  assert.match(h.calls.warning[0][0], /delete the group "Login"\?/);
+  assert.equal(h.calls.warning[0][1].modal, true);
+  assert.equal(stored(h, "a").group, "Login", "cancelled: nothing changes");
+  yes = true;
+  await h.registered.commands["sessionlens.deleteGroup"](login);
+  assert.deepEqual(await groups(h.tree), [["No group", "3", ["c", "b", "a"]]]);
+  assert.deepEqual(
+    ["a", "b", "c"].map((id) => stored(h, id).name),
+    ["a", "b", "c"],
+    "the sessions are kept",
+  );
+});
+
+test("drag and drop: onto a group, onto a session of a group, onto No group; nothing outside My groups", async () => {
+  // d stays in no group, so No group is there to drop onto
+  const sessions = [session("a"), session("b", { group: "Checkout" }), session("c", { group: "Login" }), session("d")];
+  const h = await host(sessions, { config: myGroups });
+  const dnd = h.registered.treeViews.sessionlensSessionsTree.dragAndDropController;
+  const drag = async (ids, target) => {
+    const items = (await treeSessions(h.tree)).filter((s) => ids.includes(s.id));
+    const dt = new h.vscode.DataTransfer();
+    dnd.handleDrag(items, dt);
+    await dnd.handleDrop(target, dt);
+  };
+  const byLabel = async (label) => (await h.tree.getChildren()).find((g) => g.label === label);
+  await drag(["a"], await byLabel("Checkout"));
+  assert.equal(stored(h, "a").group, "Checkout");
+  const login = (await treeSessions(h.tree)).find((s) => s.id === "c");
+  await drag(["a", "b"], login);
+  assert.deepEqual([stored(h, "a").group, stored(h, "b").group], ["Login", "Login"], "onto a session: its group, both at once");
+  await drag(["a"], await byLabel("No group"));
+  assert.equal("group" in stored(h, "a"), false);
+  // a group is not dragged
+  const dt = new h.vscode.DataTransfer();
+  dnd.handleDrag([await byLabel("Login")], dt);
+  assert.equal(dt.get(dnd.dragMimeTypes[0]), undefined);
+
+  const byDate = await host(sessions);
+  const dnd2 = byDate.registered.treeViews.sessionlensSessionsTree.dragAndDropController;
+  const items = await treeSessions(byDate.tree);
+  const dt2 = new byDate.vscode.DataTransfer();
+  dnd2.handleDrag([items.find((s) => s.id === "a")], dt2);
+  await dnd2.handleDrop(
+    items.find((s) => s.id === "b"),
+    dt2,
+  );
+  assert.equal("group" in stored(byDate, "a"), false, "by date: a drop moves nothing");
+});
+
+test("the filter's text matches a group's name too", async () => {
+  const h = await host([session("a", { group: "Checkout" }), session("b")], {
+    quickPickFlow: (qp, p) => {
+      p.type("checkout");
+      p.accept(qp.items[0]);
+    },
+  });
+  await h.registered.commands["sessionlens.filterSessions"]();
+  assert.deepEqual(
+    (await treeSessions(h.tree)).map((s) => s.id),
+    ["a"],
+  );
 });

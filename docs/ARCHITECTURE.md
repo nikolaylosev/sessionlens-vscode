@@ -202,7 +202,7 @@ flowchart TB
 | View | Kind | What it shows |
 |---|---|---|
 | `sessionlensView` — "Calibration & Settings" | webview view in the SessionLens activity bar container | tabs **Sessions**, **Calibration**, **Rules**, **Model rules**, **⚙** |
-| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions in groups (date, profile, verdict or agent), with a filter; Open, Rename, Delete; visible while the Sessions tab is active |
+| `sessionlensSessionsTree` — "Sessions" | native tree view | the stored sessions in groups (date, profile, verdict, agent or the person's own), with a filter; Open, Rename, Move to group, Delete; visible while the Sessions tab is active |
 | `sessionlensSession` | webview panel, one per session | the review of one session: findings, verdicts, spec, timeline, coverage |
 
 All three webviews load the same page (`sidepanel.html` + scripts); a session tab boots straight into its review
@@ -341,6 +341,7 @@ classDiagram
     openCount
     agent
     project
+    group
     checkStats
     sourceStats
     confirmed
@@ -377,7 +378,8 @@ Key points:
   one, which the effect of a moved rule uses, and `hiddenCount`, the findings calibration hides, which the Sessions
   tree shows. Schema 4 (0.1.124) added `agent` (Claude Code, Codex, Cursor, claude.ai or text) and `project` (the
   folder the agent worked in), which the import now stores on the session, and `openCount`, the findings without a
-  verdict. `open()` rebuilds a summary of an older schema once.
+  verdict, and `group`, the person's own group for "My groups" in the Sessions tree. `open()` rebuilds a summary of an
+  older schema once.
 - **What a session keeps besides the events.** `source_text` is the transcript when it is under 400 000 characters.
   `importGen` is the `IMPORT_GEN` of that import (4 at 0.1.122). `source_outputs` (0.1.121) is the ends of the command
   outputs Cursor's database returned, 20 000 characters each, so Back to regex parsing and Import again can parse the

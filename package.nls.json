@@ -16,6 +16,9 @@
   "cmd.groupSessions": "Group sessions by…",
   "cmd.filterSessions": "Filter sessions…",
   "cmd.clearSessionFilter": "Clear filter",
+  "cmd.moveToGroup": "Move to group…",
+  "cmd.renameGroup": "Rename group…",
+  "cmd.deleteGroup": "Delete group",
   "config.title": "SessionLens",
   "config.claudeCliPath": "Full path to the Claude Code CLI (`claude`). Leave empty to find it automatically. Machine setting: a workspace cannot change it.",
   "config.cursorCliPath": "Full path to the Cursor Agent CLI (`agent`). Leave empty to find it automatically in `~/.local/bin`. Machine setting: a workspace cannot change it.",
@@ -33,5 +36,6 @@
   "config.sessionsGroupBy.date": "By when the agent ran the session: Today, Yesterday, This week (since Monday), Earlier. A transcript without times counts from its import.",
   "config.sessionsGroupBy.profile": "By profile (qa-ts, qa-python, …).",
   "config.sessionsGroupBy.verdict": "By verdict: Red, Yellow, Green.",
-  "config.sessionsGroupBy.agent": "By the agent the transcript comes from: Claude Code, Codex, Cursor, claude.ai, or a text transcript."
+  "config.sessionsGroupBy.agent": "By the agent the transcript comes from: Claude Code, Codex, Cursor, claude.ai, or a text transcript.",
+  "config.sessionsGroupBy.custom": "By your own groups: right-click a session → Move to group…, or drag it onto a group. Sessions in none are under No group."
 }
