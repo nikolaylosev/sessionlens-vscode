@@ -1518,7 +1518,26 @@
 
   /* opts.cursorOutputs: the commands Cursor's database kept for a Cursor transcript (fromCursorJsonl); opts.cursorProject:
      the name of its folder in ~/.cursor/projects, for the workspace's path */
+  /* A path in a person's home folder from the home folder: /Users/me/shop/a.ts → ~/shop/a.ts, also /home/me/… and
+     C:\Users\me\…, where it starts a path in a text (0.1.124). A file outside the agent's folder, or a command, kept the
+     person's user name: a review's screenshot and its PR report showed it. macOS's /Users/Shared is not a home. */
+  const HOME_AT = /(^|[\s"'`=(:;|&<>])(?:\/Users\/(?!Shared\/)[^/\s"'`]+|\/home\/[^/\s"'`]+|[A-Za-z]:[\\/]Users[\\/][^\\/\s"'`]+)(?=[\\/])/g;
+  const homeless = (s) => (typeof s === "string" ? s.replace(HOME_AT, "$1~") : s);
+  // every step of what importAny returns: its file and its command
+  function fromHome(ev) {
+    for (const e of Array.isArray(ev) ? ev : []) {
+      if (e && e.events) fromHome(e.events);
+      else if (e) {
+        if (typeof e.file === "string") e.file = homeless(e.file);
+        if (typeof e.cmd === "string") e.cmd = homeless(e.cmd);
+      }
+    }
+    return ev;
+  }
   function importAny(text, cfg, opts) {
+    return fromHome(importAll(text, cfg, opts));
+  }
+  function importAll(text, cfg, opts) {
     const t = text.trimStart();
     if (t.startsWith("[") || (t.startsWith("{") && /"chat_messages"/.test(t.slice(0, 5000)))) {
       try {
@@ -1597,8 +1616,11 @@
      3: Codex 0.155+ file changes (item_completed FileChange), and Codex edits without the line lost after a hunk
         (0.1.121).
      4: a command that only lists the tests is not a run, a file moved by a Codex patch is an edit of its new name, and
-        a weakened assertion shows the change, not 40 characters of each line (0.1.122). */
-  const IMPORT_GEN = 4;
+        a weakened assertion shows the change, not 40 characters of each line (0.1.122).
+     5: a path or a command in the home folder starts with ~, without the person's user name (fromHome, 0.1.124). */
+  const IMPORT_GEN = 5;
+  // a step of a session imported before 0.1.124 with the home folder spelled out
+  const homeSpelled = (s) => s.events.some((e) => [e.file, e.cmd].some((x) => typeof x === "string" && homeless(x) !== x));
   /* A Codex session imported before 0.1.121 with file changes in its transcript: from Codex 0.155 they were skipped,
      and an edit lost the line after its hunk. Without the kept text, a bare exec step tells the same: a patch in the
      code-mode harness, or a Codex 0.159 command that was lost the same way. */
@@ -1627,7 +1649,8 @@
   function needsReimport(s) {
     if (!s || !Array.isArray(s.events) || s.importGen >= IMPORT_GEN) return false;
     if ((s.importGen || 0) < 3 && codexChangesBefore121(s)) return true;
-    if (changedBy122(s)) return true;
+    if ((s.importGen || 0) < 4 && changedBy122(s)) return true; // a 0.1.122 import already reads these the new way
+    if (homeSpelled(s)) return true;
     if ((s.importGen || 0) >= 2) return false;
     const cfg = profile(s.profile);
     if (!cfg.checks.includes("test_deleted") && !cfg.checks.includes("config_weakened")) return false;
@@ -1637,7 +1660,8 @@
   /* How much of a stored session's timeline a new import of a transcript repeats, in order: 1 for the same transcript
      (a newer import may add events, such as Codex deletions), near 0 for another one. */
   function transcriptMatch(stored, fresh) {
-    const sig = (e) => [e.kind, e.file || "", e.cmd || "", String(e.text || "").slice(0, 60)].join("|");
+    // a session imported before 0.1.124 has the home folder spelled out where a new import has ~ (fromHome)
+    const sig = (e) => [e.kind, homeless(e.file || ""), homeless(e.cmd || ""), String(e.text || "").slice(0, 60)].join("|");
     // a Codex 0.159 command stored before 0.1.121 as a bare "tool exec" step is the same step as its command now
     const same = (x, y) => sig(x) === sig(y) || (x.kind === "tool" && x.tool === "exec" && y.tool === "exec");
     const a = stored || [],
@@ -1698,8 +1722,8 @@
   };
   // a file the plan names, also when one of the two paths has a prefix the other lacks (./, shop/, an absolute path)
   const inPlan = (f, planned) => {
-    const g = f.replace(/^\.\//, "");
-    return [...planned].some((x) => g === x || g.endsWith("/" + x) || x.endsWith("/" + g));
+    const g = homeless(f).replace(/^\.\//, "");
+    return [...planned].map(homeless).some((x) => g === x || g.endsWith("/" + x) || x.endsWith("/" + g));
   };
   const inDirs = (path, dirs) => {
     const p = (path || "").replace(/^\.?\//, "");
@@ -2062,7 +2086,11 @@
         if (gone.length) push("test_deleted_msg", e.file, e.seq, gone);
       }
       // ---- a test file deleted ----
-      const same = (a, b) => a === b || a.endsWith("/" + b) || b.endsWith("/" + a);
+      // one of the two may have the home folder spelled out (a session imported before 0.1.124)
+      const same = (x, y) => {
+        const [a, b] = [homeless(x), homeless(y)];
+        return a === b || a.endsWith("/" + b) || b.endsWith("/" + a);
+      };
       const testFile = (f) => isCode(f, cfg) && (TEST_FILE_RX.test(f) || inDirs(f, cfg.test_dirs));
       for (const e of ev) {
         let targets = [];
@@ -3143,6 +3171,7 @@
     ALIAS,
     redactSecrets,
     importAny,
+    homeless,
     transcriptOrigin,
     AGENTS,
     cleanGroup,

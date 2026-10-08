@@ -27,6 +27,12 @@
   day of its import.
 
 ### Fixed
+- **Your user name no longer shows in paths.** A file outside the agent's folder and a path in a command were shown in
+  full, `/Users/<you>/shop/tests/cart.spec.ts`, in findings, the timeline and the PR report, for example when Claude
+  Code was started in another folder than the one it worked in. Now a path in your home folder starts with `~`:
+  `~/shop/tests/cart.spec.ts` (also `/home/<you>/…` and `C:\Users\<you>\…`). A file inside the agent's folder is
+  relative, as before. A session imported before gets this after **Import again**, which it now offers; its verdicts
+  stay with their findings.
 - Closing a session's tab wrote "Webview is disposed" to VS Code's log, and the window kept treating the session as
   open: when the rules or the static analysis setting changed, the sidebar did not analyze that session again until
   the window was reloaded or the session opened. Now a closed tab is let go.

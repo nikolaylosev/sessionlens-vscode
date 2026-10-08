@@ -61,7 +61,7 @@ test("product code changed: high right after a red run, medium otherwise; one fi
       ["write", "/home/me/shop/src/cart.ts"],
       ["write", "shop/e2e/src/helper.ts"],
     ]),
-    ["medium: shop/src/cart.ts: product code changed in a testing task", "medium: /home/me/shop/src/cart.ts: product code changed in a testing task"],
+    ["medium: shop/src/cart.ts: product code changed in a testing task", "medium: ~/shop/src/cart.ts: product code changed in a testing task"], // the home folder as ~ (0.1.124)
     "Claude Code started in a parent folder, or a path outside it",
   );
 });

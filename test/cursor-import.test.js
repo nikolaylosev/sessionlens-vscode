@@ -177,8 +177,9 @@ test("with the transcript's folder name, the paths in the workspace are relative
     Lens.importAny(jsonl(...lines), cfg, { cursorProject: project })
       .filter((e) => e.file)
       .map((e) => `${e.kind} ${e.file}`);
-  assert.deepEqual(files("Users-me-my-shop"), ["read src/cart.ts", `write ${SPEC}`, `edit ${SPEC}`, "read /Users/me/notes.md"]);
-  const abs = ["read /Users/me/my_shop/src/cart.ts", `write /Users/me/my_shop/${SPEC}`, `edit /Users/me/my_shop/${SPEC}`, "read /Users/me/notes.md"];
+  // outside the workspace, a path in the home folder starts with ~ (0.1.124)
+  assert.deepEqual(files("Users-me-my-shop"), ["read src/cart.ts", `write ${SPEC}`, `edit ${SPEC}`, "read ~/notes.md"]);
+  const abs = ["read ~/my_shop/src/cart.ts", `write ~/my_shop/${SPEC}`, `edit ~/my_shop/${SPEC}`, "read ~/notes.md"];
   assert.deepEqual(files(undefined), abs, "dropped or pasted: no folder");
   assert.deepEqual(files("Users-me-other"), abs, "a folder name that no path gives");
   const ev = Lens.importAny(jsonl(...lines), cfg, { cursorProject: "Users-me-my-shop" });

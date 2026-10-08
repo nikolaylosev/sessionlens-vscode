@@ -381,7 +381,8 @@ Key points:
   verdict, and `group`, the person's own group for "My groups" in the Sessions tree. `open()` rebuilds a summary of an
   older schema once.
 - **What a session keeps besides the events.** `source_text` is the transcript when it is under 400 000 characters.
-  `importGen` is the `IMPORT_GEN` of that import (4 at 0.1.122). `source_outputs` (0.1.121) is the ends of the command
+  `importGen` is the `IMPORT_GEN` of that import (4 at 0.1.122, 5 at 0.1.124: a step's `file` and `cmd` have the home folder
+  as `~`, `Lens.homeless`, so no path shows the user name). `source_outputs` (0.1.121) is the ends of the command
   outputs Cursor's database returned, 20 000 characters each, so Back to regex parsing and Import again can parse the
   tests again. `source_project` (0.1.122) is the name of the transcript's folder in `~/.cursor/projects`, so a later
   import can make the absolute paths relative again.
